@@ -102,6 +102,10 @@ services:
   api:
     image: ${ENGAZ_IMAGE:-ghcr.io/shadynafie/engaz/app}:${ENGAZ_IMAGE_TAG:-edge}
     restart: unless-stopped
+    # Lets a model server on this computer be reached as host.docker.internal, as on
+    # Docker Desktop. The API and worker call models; bot computers do not get this name.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command:
       - bash
       - -lc
@@ -166,6 +170,9 @@ services:
   worker:
     image: ${ENGAZ_IMAGE:-ghcr.io/shadynafie/engaz/app}:${ENGAZ_IMAGE_TAG:-edge}
     restart: unless-stopped
+    # See api: a model server on this computer.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: ["pnpm", "--filter", "@engaz/worker", "start"]
     init: true
     security_opt:

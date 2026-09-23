@@ -93,7 +93,26 @@ function buildPiCatalog(): PiCatalogEntry[] {
     });
   }
 
-  return entries;
+  return sortByProviderRank(entries);
+}
+
+function sortByProviderRank(entries: PiCatalogEntry[]): PiCatalogEntry[] {
+  // Providers most owners already have an account with, then models on the owner's own
+  // machine. The rest keep the upstream order.
+  const featured = [
+    "openrouter",
+    "anthropic",
+    "openai",
+    "openai-codex",
+    "google",
+    LOCAL_PROVIDER_ID,
+    OPENAI_COMPATIBLE_PROVIDER_ID,
+  ];
+  const rank = (provider: string) => {
+    const index = featured.indexOf(provider);
+    return index === -1 ? featured.length : index;
+  };
+  return entries.toSorted((a, b) => rank(a.provider) - rank(b.provider));
 }
 
 /** Trailing upstream "latest" marker: "Claude Opus 4.5 (latest)", "Gemini Flash Latest", "foo-latest". */

@@ -41,6 +41,20 @@ describe("Pi model catalog", () => {
     expect(scriptedCatalogEntry.provider).toBe("scripted");
   });
 
+  it("lists the providers most owners use first", () => {
+    const providers = [...new Set(listPiCatalog().map((entry) => entry.provider))];
+    expect(providers.slice(0, 5)).toEqual([
+      "openrouter",
+      "anthropic",
+      "openai",
+      "openai-codex",
+      "google",
+    ]);
+    expect(providers.indexOf("openai-compatible")).toBeLessThan(
+      providers.indexOf("amazon-bedrock"),
+    );
+  });
+
   it("lists current xAI and OpenCode Go models from the Pi catalog", () => {
     const catalog = listPiCatalog();
     const ids = (provider: string) =>

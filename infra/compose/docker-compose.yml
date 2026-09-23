@@ -65,6 +65,10 @@ services:
       context: ../..
       dockerfile: infra/compose/Dockerfile
     command: ["bash", "-lc", "pnpm --filter @engaz/db exec prisma migrate deploy && pnpm --filter @engaz/api start"]
+    # Lets a model server on this computer be reached as host.docker.internal, as on
+    # Docker Desktop. The API and worker call models; bot computers do not get this name.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - ../../.env
     environment:
@@ -101,6 +105,9 @@ services:
       context: ../..
       dockerfile: infra/compose/Dockerfile
     command: ["pnpm", "--filter", "@engaz/worker", "start"]
+    # See api: a model server on this computer.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - ../../.env
     environment:

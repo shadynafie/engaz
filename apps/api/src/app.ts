@@ -427,6 +427,7 @@ export async function createApp(
 
   const router = createRouter({
     cloudAgent,
+    verifyModel: (model, signal) => runtime.verifyModel(model, signal),
     prisma,
     events,
     auth,

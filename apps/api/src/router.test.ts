@@ -1,3 +1,4 @@
+import type { ModelCheck } from "@engaz/adapter-kit";
 import { COMPUTER_SCREEN_UNAVAILABLE, ComputerScreenUnavailableError } from "@engaz/adapters";
 import type { Actor } from "@engaz/contracts";
 import { REPLY_QUOTE_MAX_LENGTH } from "@engaz/contracts";
@@ -971,8 +972,9 @@ describe("model credential persistence", () => {
     isDeploymentOwner: true,
   } satisfies Actor;
 
-  function persistDeps(options?: { envDefaultModel?: string }) {
+  function persistDeps(options?: { envDefaultModel?: string; check?: ModelCheck }) {
     const upsert = vi.fn().mockResolvedValue({ id: "preference" });
+    const verifyModel = vi.fn().mockResolvedValue(options?.check ?? { ok: true });
     const finish = vi.fn();
     const tx = {
       userModelCredential: {
@@ -995,6 +997,7 @@ describe("model credential persistence", () => {
       },
     };
     const deps = {
+      verifyModel,
       prisma: { $transaction: vi.fn(async (fn: (client: typeof tx) => unknown) => fn(tx)) },
       secrets: {
         put: vi.fn().mockResolvedValue({ id: "secret-1", ciphertext: "cipher" }),
@@ -1011,7 +1014,7 @@ describe("model credential persistence", () => {
         agentRuntime: "pi",
       },
     } as unknown as RouterDeps;
-    return { upsert, finish, deps, handler: new RPCHandler(createRouter(deps)) };
+    return { upsert, finish, verifyModel, deps, handler: new RPCHandler(createRouter(deps)) };
   }
 
   async function call(handler: RPCHandler<never>, path: string, body: unknown): Promise<Response> {
@@ -1076,6 +1079,59 @@ describe("model credential persistence", () => {
         create: expect.objectContaining({ modelId: null }),
         update: expect.objectContaining({ modelId: null }),
       }),
+    );
+  });
+
+  it("tests a new key with the model it will be saved with", async () => {
+    const { verifyModel, upsert, handler } = persistDeps();
+
+    const response = await call(handler, "models/connect", {
+      provider: "anthropic",
+      apiKey: "sk-test-key-123",
+      modelId: "claude-sonnet-5",
+    });
+
+    expect(response.status).toBe(200);
+    expect(verifyModel).toHaveBeenCalledWith(
+      { provider: "anthropic", id: "claude-sonnet-5", apiKey: "sk-test-key-123" },
+      expect.any(AbortSignal),
+    );
+    expect(upsert).toHaveBeenCalled();
+  });
+
+  it("saves nothing and names the problem when the test request fails", async () => {
+    const { upsert, deps, handler } = persistDeps({ check: { ok: false, reason: "auth" } });
+
+    const response = await call(handler, "models/connect", {
+      provider: "anthropic",
+      apiKey: "sk-wrong-key-123",
+      modelId: "claude-sonnet-5",
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      json: {
+        message: "Anthropic rejected this key. Check it and try again.",
+        data: { reason: "auth" },
+      },
+    });
+    expect(deps.secrets.put).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it("offers the scripted fixture model only to the scripted runtime", async () => {
+    const pi = persistDeps();
+    const listed = await (await call(pi.handler, "models/list", {})).json();
+    expect(listed.json.some((entry: { provider: string }) => entry.provider === "scripted")).toBe(
+      false,
+    );
+
+    const scripted = persistDeps();
+    scripted.deps.env.agentRuntime = "scripted";
+    const handler = new RPCHandler(createRouter(scripted.deps));
+    const fixture = await (await call(handler, "models/list", {})).json();
+    expect(fixture.json.some((entry: { provider: string }) => entry.provider === "scripted")).toBe(
+      true,
     );
   });
 });

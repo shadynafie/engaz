@@ -1,6 +1,7 @@
 import type {
   AdapterContext,
   AdapterDescriptor,
+  AgentRunModel,
   AgentRunRequest,
   AgentRuntimeCapabilities,
   AgentRuntimeEvent,
@@ -47,6 +48,7 @@ import type {
   MessagingPlatformDescriptor,
   MessagingSendRequest,
   MessagingSendResult,
+  ModelCheck,
   NotificationMessage,
   PageBrowserCommand,
   PageBrowserResult,
@@ -236,6 +238,8 @@ export interface AgentRuntime {
     context?: Partial<AdapterContext>,
   ): AsyncIterable<AgentRuntimeEvent>;
   abort(runId: string): Promise<void>;
+  /** Send one small request with this connection, as a run would, before it is saved. */
+  verifyModel(model: AgentRunModel, signal: AbortSignal): Promise<ModelCheck>;
 }
 
 export interface ModelProvider {

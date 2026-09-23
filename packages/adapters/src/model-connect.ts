@@ -1,4 +1,5 @@
 import { getSupportedThinkingLevels } from "@earendil-works/pi-ai";
+import type { AgentRunModel } from "@engaz/adapter-kit";
 import type { ModelConnectInput, ModelCredential, ThinkingLevel } from "@engaz/contracts";
 import { OPENAI_COMPATIBLE_PROVIDER_ID as CONTRACT_OPENAI_COMPAT } from "@engaz/contracts";
 import { modelIdSupportsImages, updateModelImageCapabilities } from "./model-vision.js";
@@ -80,6 +81,29 @@ export function buildModelConnectPlaintext(
     throw new Error("API key must contain at least 8 characters");
   }
   return apiKey;
+}
+
+/** The run model a new API-key or custom-server connection resolves to, for a test request. */
+export function modelForConnectionCheck(
+  provider: string,
+  modelId: string,
+  plaintext: string,
+): AgentRunModel {
+  const secret = parseModelSecret(plaintext);
+  if (secret.kind === "api_key") return { provider, id: modelId, apiKey: secret.key };
+  if (secret.kind === "openai_compatible") {
+    return {
+      provider,
+      id: modelId,
+      apiKey: secret.apiKey,
+      baseUrl: secret.baseUrl,
+      reasoning: secret.reasoning,
+      maxTokens: secret.maxTokens,
+      contextWindow: secret.contextWindow,
+      thinkingLevel: secret.thinkingLevel,
+    };
+  }
+  throw new Error("Subscription sign-in is checked by its own flow");
 }
 
 export function modelCredentialDto(

@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type {
   AdapterContext,
   AgentHomeStore,
+  AgentRuntime,
   ArtifactStore,
   ConnectorCatalogItem,
   JobPublisher,
@@ -57,6 +58,7 @@ import {
   McpOAuthBroker,
   mapScratchpadItem,
   modelCredentialDto,
+  modelForConnectionCheck,
   pickReusableConnection,
   planLiveConnectionSync,
   prepareApiInstall,
@@ -156,6 +158,7 @@ import {
   serializeSpaceMemoryConfig,
   updateMemoryProviderDefaultScope,
 } from "./memory-provider-config.js";
+import { modelCheckMessage } from "./model-check-message.js";
 import {
   chooseFocus,
   dismissFocus,
@@ -420,6 +423,8 @@ function mcpAssignmentDto(row: {
 
 export interface RouterDeps {
   cloudAgent?: CloudAgentConnection | null;
+  /** Sends one test request with a new model connection before it is saved. */
+  verifyModel: AgentRuntime["verifyModel"];
   prisma: PrismaClient;
   events: ThreadEvents;
   auth: Auth;
@@ -770,7 +775,7 @@ export function createRouter(deps: RouterDeps) {
       }),
     },
     models: {
-      list: authed.models.list.handler(async () => [...listPiCatalog(), scriptedCatalogEntry]),
+      list: authed.models.list.handler(async () => modelCatalog(deps)),
       credentials: authed.models.credentials.handler(async ({ context }) => {
         const rows = await deps.prisma.userModelCredential.findMany({
           where: { userId: context.actor.userId },
@@ -846,6 +851,24 @@ export function createRouter(deps: RouterDeps) {
           throw new ORPCError("BAD_REQUEST", {
             message: error instanceof Error ? error.message : "Invalid model connection",
           });
+        }
+        const checkModelId = connectionModelId(deps, input.provider, input.modelId);
+        if (checkModelId) {
+          const check = await deps.verifyModel(
+            modelForConnectionCheck(input.provider, checkModelId, plaintext),
+            context.signal ?? new AbortController().signal,
+          );
+          if (!check.ok) {
+            const isServer = input.provider === OPENAI_COMPATIBLE_PROVIDER_ID;
+            throw new ORPCError("BAD_REQUEST", {
+              message: modelCheckMessage(check, {
+                name: isServer ? "The model server" : providerDisplayName(input.provider),
+                modelId: checkModelId,
+                baseUrl: isServer ? input.baseUrl : undefined,
+              }),
+              data: { reason: check.reason },
+            });
+          }
         }
         return persistModelCredential(deps, context.actor, {
           provider: input.provider,
@@ -1018,7 +1041,7 @@ export function createRouter(deps: RouterDeps) {
           if (!credential) {
             throw new ORPCError("BAD_REQUEST", { message: "Connect that model provider first" });
           }
-          const knownModels = [...listPiCatalog(), scriptedCatalogEntry];
+          const knownModels = modelCatalog(deps);
           const inCatalog = knownModels.some(
             (item) => item.provider === input.modelProvider && item.id === input.modelId,
           );
@@ -5104,6 +5127,25 @@ function computerHostFor(
   return null;
 }
 
+/** The fixture model is only offered when the scripted runtime serves runs. */
+function modelCatalog(deps: RouterDeps) {
+  const catalog = listPiCatalog();
+  return deps.env.agentRuntime === "scripted" ? [...catalog, scriptedCatalogEntry] : catalog;
+}
+
+function providerDisplayName(provider: string): string {
+  return listPiCatalog().find((entry) => entry.provider === provider)?.providerName ?? provider;
+}
+
+/** The model a connection is saved with, and so the one its test request uses. */
+function connectionModelId(deps: RouterDeps, provider: string, modelId?: string | null) {
+  return (
+    usableModelId(modelId) ??
+    defaultCatalogModelId(provider) ??
+    usableModelId(deps.env.defaultModel)
+  );
+}
+
 async function persistModelCredential(
   deps: RouterDeps,
   actor: Actor,
@@ -5165,10 +5207,7 @@ async function persistModelCredential(
               },
             });
         throwIfAborted(input.signal);
-        const defaultModel =
-          usableModelId(input.modelId) ??
-          defaultCatalogModelId(input.provider) ??
-          usableModelId(deps.env.defaultModel);
+        const defaultModel = connectionModelId(deps, input.provider, input.modelId);
         await selectSpaceModelPreference(tx, actor, credential.id, defaultModel);
         throwIfAborted(input.signal);
         if (existing) {

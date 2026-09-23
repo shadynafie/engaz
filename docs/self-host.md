@@ -263,19 +263,23 @@ ENGAZ_LOCAL_MAX_TOKENS=4096
 ENGAZ_LOCAL_VISION_MODELS=qwen3-vl
 ```
 
-The loopback default is suitable when running Engaz from a source checkout. From containers,
-prefer a stable LAN RFC1918 address (not Compose service DNS alone). On Docker Desktop,
-`host.docker.internal` also works.
+The loopback default is suitable when running Engaz from a source checkout. In the Docker
+installation, `127.0.0.1` is the Engaz container itself: use `host.docker.internal`, which the
+Compose files map to this computer for the API and worker on every platform, or a stable LAN
+RFC1918 address. On Linux the model server must listen beyond loopback for that route (for
+Ollama, `OLLAMA_HOST=0.0.0.0`); keep such a server off untrusted networks.
 On Docker Desktop, a bot computer shell can often reach services bound to host `127.0.0.1`
 through that same hostname. Do not run sensitive unauthenticated services on loopback while
-bots run, or firewall / block that path. Linux does not get `host.docker.internal` the same
-way by default.
+bots run, or firewall / block that path. Bot computers on Linux do not get the
+`host.docker.internal` name.
 Only configure an endpoint you control: prompts, attachments, and tool results sent to that model
 leave Engaz through this URL. Leave `ENGAZ_LOCAL_MODELS` blank to disable the provider.
 
 Each user can also connect their own OpenAI-compatible endpoint from **Connect a model** /
 **Settings → Models** on web and mobile. Choose **OpenAI-compatible**, enter the server base URL
-(for example `http://127.0.0.1:8000/v1`), the exact model id, and an optional API key.
+(for example `http://host.docker.internal:11434/v1` in the Docker installation), the exact model
+id, and an optional API key. Engaz sends one short test request with every new connection and
+saves it only if the model answers; the error names the provider's reason.
 Public hosts and ordinary hostnames need `ENGAZ_OPENAI_COMPAT_ALLOW_PUBLIC=1` and HTTPS.
 Literal private IP, loopback, and `host.docker.internal` targets do not. If that endpoint's model
 accepts images, enable **Supports images** under **Advanced** when connecting so attachments and

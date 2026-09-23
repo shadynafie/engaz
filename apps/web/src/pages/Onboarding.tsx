@@ -27,6 +27,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IntegrationSetup } from "../components/integrations/IntegrationSetup";
+import { ModelPicker } from "../components/ModelPicker";
 import type { ModelCatalogEntry } from "../lib/model-auth";
 import { rpc } from "../lib/rpc";
 import { useModelOAuthSignIn } from "../lib/use-model-oauth-signin";
@@ -121,6 +122,7 @@ export function OnboardingPage() {
   const [modelProbe] = useState(() => createModelProbe(setProbe));
   const resetOpenAiCompatibleProbe = modelProbe.reset;
   const createStartedRef = useRef(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -193,6 +195,7 @@ export function OnboardingPage() {
     selected &&
       modelId.trim() &&
       !oauthPending &&
+      !saving &&
       (isOpenAiCompatible ? openAiCompatibleReady : acceptsKey && apiKey.trim()),
   );
   const otherModelLabel = t`Other model…`;
@@ -200,10 +203,6 @@ export function OnboardingPage() {
   const providerItems = useMemo(
     () => providers.map((entry) => ({ value: entry.provider, label: providerLabel(entry) })),
     [providers],
-  );
-  const modelItems = useMemo(
-    () => modelsForProvider.map((entry) => ({ value: entry.id, label: entry.label })),
-    [modelsForProvider],
   );
   const probeModelItems = useMemo(
     () => [
@@ -224,6 +223,7 @@ export function OnboardingPage() {
   function updateApiKey(nextApiKey: string) {
     setApiKey(nextApiKey);
     resetOpenAiCompatibleProbe();
+    setError(null);
   }
 
   function selectProvider(nextProvider: string) {
@@ -275,9 +275,11 @@ export function OnboardingPage() {
     });
   }
 
-  async function saveModel() {
+  async function saveModel(event: React.FormEvent) {
+    event.preventDefault();
     if (!canSaveModel) return;
     setError(null);
+    setSaving(true);
     try {
       if (isOpenAiCompatible) {
         const parsedMaxImagesPerPrompt = parseModelMaxImagesPerPrompt(
@@ -329,6 +331,8 @@ export function OnboardingPage() {
       setStep(nextStepAfterModel(needsIntegrationSetup));
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not save model`);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -380,7 +384,7 @@ export function OnboardingPage() {
           </p>
         ) : null}
         {step === "model" ? (
-          <div>
+          <form onSubmit={(event) => void saveModel(event)}>
             <h1 className="text-[32px] font-medium text-foreground">
               <Trans>Connect a model</Trans>
             </h1>
@@ -396,7 +400,10 @@ export function OnboardingPage() {
                 }}
                 items={providerItems}
               >
-                <SelectTrigger aria-label={t`Provider`} className="mt-2 w-full">
+                <SelectTrigger
+                  aria-label={t`Provider`}
+                  className="mt-2 w-full data-[size=default]:h-10"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -420,11 +427,12 @@ export function OnboardingPage() {
                       aria-label={t`OpenAI-compatible server URL`}
                       placeholder="http://127.0.0.1:8000/v1"
                       autoComplete="off"
-                      className="mt-2"
+                      className="mt-2 h-10"
                     />
                   </label>
                   <div className="mt-3">
                     <Button
+                      type="button"
                       variant="outline"
                       disabled={probing || !baseUrl.trim()}
                       onClick={() => void probeServerModels()}
@@ -452,7 +460,10 @@ export function OnboardingPage() {
                         }}
                         items={probeModelItems}
                       >
-                        <SelectTrigger aria-label={t`Models from server`} className="mt-2 w-full">
+                        <SelectTrigger
+                          aria-label={t`Models from server`}
+                          className="mt-2 w-full data-[size=default]:h-10"
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -475,11 +486,12 @@ export function OnboardingPage() {
                         }}
                         aria-label={t`Model id`}
                         placeholder="exact-model-id"
-                        className="mt-2"
+                        className="mt-2 h-10"
                       />
                     )}
                     {probeModels.length && manualModelId ? (
                       <Button
+                        type="button"
                         variant="link"
                         size="xs"
                         className="mt-2 px-0 text-muted-foreground"
@@ -533,27 +545,16 @@ export function OnboardingPage() {
                   <span className="font-medium">
                     <Trans>Model</Trans>
                   </span>
-                  <Select
+                  <ModelPicker
+                    options={modelsForProvider}
                     value={selected?.id ?? modelId}
-                    onValueChange={(value) => {
-                      if (typeof value !== "string" || !value) return;
+                    onChange={(value) => {
                       if (value === modelId) return;
                       cancelOAuthAttempt();
                       setModelId(value);
+                      setError(null);
                     }}
-                    items={modelItems}
-                  >
-                    <SelectTrigger aria-label={t`Model`} className="mt-2 w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {modelsForProvider.map((entry) => (
-                        <SelectItem key={`${entry.provider}:${entry.id}`} value={entry.id}>
-                          {entry.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </>
               )}
             </div>
@@ -587,6 +588,7 @@ export function OnboardingPage() {
                             placeholder="http://localhost:53692/callback?code=…"
                           />
                           <Button
+                            type="button"
                             disabled={!pasteCode.trim()}
                             onClick={() => void submitOAuthCode()}
                           >
@@ -622,7 +624,11 @@ export function OnboardingPage() {
                     )}
                   </div>
                 ) : (
-                  <Button disabled={oauthPending} onClick={() => beginSelectedSubscriptionSignIn()}>
+                  <Button
+                    type="button"
+                    disabled={oauthPending}
+                    onClick={() => beginSelectedSubscriptionSignIn()}
+                  >
                     {oauthPending ? <Trans>Starting…</Trans> : signInLabel}
                   </Button>
                 )}
@@ -641,7 +647,7 @@ export function OnboardingPage() {
                     placeholder={t`Optional`}
                     type="password"
                     autoComplete="new-password"
-                    className="mt-2"
+                    className="mt-2 h-10"
                   />
                 </details>
               ) : (
@@ -657,7 +663,7 @@ export function OnboardingPage() {
                     placeholder="sk-…"
                     type="password"
                     autoComplete="new-password"
-                    className="mt-2"
+                    className="mt-2 h-10"
                   />
                 </label>
               )
@@ -665,11 +671,11 @@ export function OnboardingPage() {
             {notice ? <p className="mt-3 text-sm text-success">{notice}</p> : null}
             {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
             <div className="mt-6 flex gap-3">
-              <Button disabled={!canSaveModel} onClick={() => void saveModel()}>
-                <Trans>Continue</Trans>
+              <Button type="submit" disabled={!canSaveModel}>
+                {saving ? <Trans>Checking…</Trans> : <Trans>Continue</Trans>}
               </Button>
             </div>
-          </div>
+          </form>
         ) : null}
         {step === "integrations" ? (
           <IntegrationSetup

@@ -1,3 +1,4 @@
+import { EngazMark } from "@engaz/ui-web";
 import { Trans } from "@lingui/react/macro";
 import { useNavigate } from "react-router-dom";
 import { WindowChrome } from "./WindowChrome";
@@ -11,10 +12,7 @@ export function WelcomePage() {
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-11 pb-[90px]">
         <div className="flex items-center gap-[26px]">
-          <div className="flex h-[88px] w-[88px] items-center justify-center gap-[13px] rounded-full bg-accent">
-            <span className="h-6 w-[11px] rounded-full bg-card" />
-            <span className="h-6 w-[11px] rounded-full bg-card" />
-          </div>
+          <EngazMark className="size-[88px]" />
           <div className="text-[76px] leading-none tracking-[-0.03em] text-foreground">Engaz</div>
         </div>
         <p className="max-w-[600px] text-center text-[27px] leading-[1.4] text-foreground/75">

@@ -47,9 +47,9 @@ Current status: **0 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 pla
 
 ### 2. Secure first run and remote access
 
-1. Show the Engaz brand from the first screen: browser tab, installable web app, sign-up page, and desktop and mobile app icons, all generated from one source.
+1. Show the Engaz brand from the first screen: browser tab, installable web app, sign-up page, and desktop and mobile app icons, all generated from one source. **Verified:** the generator writes every platform icon from the traced face; CI captured the sign-up page and the packaged macOS Dock icon ([PR #10](https://github.com/shadynafie/engaz/pull/10)).
 2. Keep first registration as the owner claim: the installation is reachable only from its host until the owner exists. Make later registration and invitations an explicit owner choice, and let public access (step 4) start only after an owner exists, so a public endpoint never offers the owner claim.
-3. Turn onboarding into a short path: owner account → one working model connection → first agent → first conversation. Optional plugins can be skipped and revisited. Show a real model connection failure before the user reaches a broken chat.
+3. Turn onboarding into a short path: owner account → one working model connection → first agent → first conversation. Optional plugins can be skipped and revisited. Show a real model connection failure before the user reaches a broken chat. **In progress:** a new connection now sends one test request and is saved only if the model answers; the setup screen names the reason (rejected key, unavailable model, no credit, unreachable server). Common providers are listed first, models are searchable, and the Docker installation can reach a model server on the same computer.
 4. Keep local-only access as the default. For a user-owned public URL, document and validate HTTPS, reverse proxy, and matching auth, web, and API origins. Do not expose Postgres, the sandbox supervisor, or the Docker socket publicly. Desktop and mobile must let the user select their installation and recover from an invalid URL or certificate.
 
 **Gate:** fresh-install tests prove public access cannot be enabled before an owner exists, the owner can finish first run, a second account follows the chosen signup policy, and local plus optional HTTPS access work across applicable clients.

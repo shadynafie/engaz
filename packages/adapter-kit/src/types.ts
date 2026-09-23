@@ -370,6 +370,18 @@ export interface AgentRunModel {
   };
 }
 
+/** Why a test request to a model connection failed, from the provider's response. */
+export type ModelCheckFailure =
+  | "auth"
+  | "model"
+  | "billing"
+  | "rate-limit"
+  | "unreachable"
+  | "timeout"
+  | "provider";
+
+export type ModelCheck = { ok: true } | { ok: false; reason: ModelCheckFailure; detail?: string };
+
 export interface AgentRunRequest {
   botId: string;
   threadId: string;

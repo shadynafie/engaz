@@ -7,6 +7,7 @@ import {
 } from "@earendil-works/pi-agent-core";
 import {
   type Api,
+  type AssistantMessage,
   clampThinkingLevel,
   type Model,
   type Models,
@@ -17,6 +18,7 @@ import {
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import type {
   AdapterContext,
+  AgentRunModel,
   AgentRunRequest,
   AgentRuntime,
   AgentRuntimeEvent,
@@ -24,12 +26,14 @@ import type {
   AgentToolCompletion,
   AgentToolExecutionResult,
   ConnectorTool,
+  ModelCheck,
 } from "@engaz/adapter-kit";
 import { usableModelId } from "@engaz/contracts";
 import { getLogger } from "@engaz/logging";
 import { isToolPauseResult } from "./approval-effect.js";
 import { builtinAgentTools, DELEGATION_TOOL_NAMES } from "./builtin-tools.js";
 import { DEFAULT_OPENROUTER_MODEL_ID } from "./deployment-model.js";
+import { MODEL_CHECK_PROMPT, MODEL_CHECK_TIMEOUT_MS, modelCheckResult } from "./model-check.js";
 import {
   normalizeOpenAiToolParameters,
   openAiToolParametersNeedNormalization,
@@ -134,6 +138,37 @@ export class PiAgentRuntime implements AgentRuntime {
       adapterVersion: "0.1.0",
       capabilities: { streaming: true, compaction: true, tools: true, scripted: false },
     };
+  }
+
+  async verifyModel(modelConfig: AgentRunModel, signal: AbortSignal): Promise<ModelCheck> {
+    const { models, model, apiKey } = resolveRuntimeModel(modelConfig);
+    if (!model) return { ok: false, reason: "model" };
+    const timeout = AbortSignal.timeout(MODEL_CHECK_TIMEOUT_MS);
+    // The lowest level the model accepts: some endpoints reject reasoning "off".
+    const thinkingLevel = thinkingLevelFor(model, "minimal");
+    let reply: Pick<AssistantMessage, "stopReason" | "errorMessage">;
+    try {
+      reply = await models.completeSimple(
+        modelForCompletion(model, modelConfig.maxTokens),
+        { messages: [{ role: "user", content: MODEL_CHECK_PROMPT, timestamp: Date.now() }] },
+        reliableStreamOptions(
+          model,
+          {
+            apiKey,
+            signal: AbortSignal.any([signal, timeout]),
+            maxRetries: 1,
+            reasoning: thinkingLevel === "off" ? undefined : thinkingLevel,
+          },
+          modelConfig.maxTokens,
+        ),
+      );
+    } catch (error) {
+      reply = { stopReason: "error", errorMessage: error instanceof Error ? error.message : "" };
+    }
+    const errorMessage = reply.errorMessage
+      ? sanitizeProviderError(model.provider, reply.errorMessage)
+      : undefined;
+    return modelCheckResult({ ...reply, errorMessage }, timeout.aborted);
   }
 
   async abort(runId: string): Promise<void> {

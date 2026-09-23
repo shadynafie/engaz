@@ -5,7 +5,7 @@ import path from "node:path";
 import { ComposioEmulator, FakeSandboxProvider } from "@engaz/adapters";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { sessionCookieHeader } from "./index.js";
-import { type ModelEmulatorStep, startModelEmulator } from "./model-emulator.js";
+import { type ModelEmulatorStep, modelCheckStep, startModelEmulator } from "./model-emulator.js";
 
 type App = { request: (input: string, init?: RequestInit) => Promise<Response> };
 const databaseAvailable = process.env.VERIFY_DATABASE === "1" && Boolean(process.env.DATABASE_URL);
@@ -47,6 +47,7 @@ describe.skipIf(!databaseAvailable)("offline Pi computer approval", () => {
       const model = await startModelEmulator({
         apiKey: fixtureKey,
         steps: [
+          modelCheckStep,
           {
             expect(request) {
               expect(request.tools).toContainEqual(
@@ -170,7 +171,8 @@ describe.skipIf(!databaseAvailable)("offline Pi computer approval", () => {
             .toBe(status);
         };
         await waitForRun("waiting_input");
-        expect(model.requests).toHaveLength(1);
+        // The connection check, then the turn that asked for the pending action.
+        expect(model.requests).toHaveLength(2);
         expect(act).not.toHaveBeenCalled();
         const effects = await handles.prisma.externalEffect.findMany({
           where: { runId: sent.runId },

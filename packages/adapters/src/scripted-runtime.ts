@@ -3,6 +3,7 @@ import type {
   AgentRunRequest,
   AgentRuntime,
   AgentRuntimeEvent,
+  ModelCheck,
 } from "@engaz/adapter-kit";
 import { abortableDelay, inferHandoffTargetName } from "@engaz/core";
 
@@ -20,6 +21,11 @@ export class ScriptedAgentRuntime implements AgentRuntime {
 
   async abort(runId: string): Promise<void> {
     running.get(runId)?.abort();
+  }
+
+  /** Scripted runs never call a model, so every connection passes offline. */
+  async verifyModel(): Promise<ModelCheck> {
+    return { ok: true };
   }
 
   async *run(

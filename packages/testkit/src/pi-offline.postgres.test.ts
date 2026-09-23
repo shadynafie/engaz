@@ -5,7 +5,7 @@ import path from "node:path";
 import { ComposioEmulator } from "@engaz/adapters";
 import { describe, expect, it } from "vitest";
 import { sessionCookieHeader } from "./index.js";
-import { startModelEmulator } from "./model-emulator.js";
+import { modelCheckStep, startModelEmulator } from "./model-emulator.js";
 
 type App = { request: (input: string, init?: RequestInit) => Promise<Response> };
 const databaseAvailable = process.env.VERIFY_DATABASE === "1" && Boolean(process.env.DATABASE_URL);
@@ -17,6 +17,7 @@ describe.skipIf(!databaseAvailable)("offline Pi product journey", () => {
     const model = await startModelEmulator({
       apiKey: fixtureKey,
       steps: [
+        modelCheckStep,
         {
           expect(request) {
             expect(JSON.stringify(request.messages)).toContain("Save hello to notes/result.txt.");

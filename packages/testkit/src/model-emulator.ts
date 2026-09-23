@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createServer, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { AgentRunRequest } from "@engaz/adapter-kit";
+import { MODEL_CHECK_PROMPT } from "@engaz/adapters";
 
 export interface ModelEmulatorRequest {
   model: string;
@@ -34,6 +35,14 @@ export interface ModelEmulatorStep {
   expect: (request: ModelEmulatorRequest) => void | Promise<void>;
   response: ModelEmulatorResponse | ((request: ModelEmulatorRequest) => ModelEmulatorResponse);
 }
+
+/** The test request `models/connect` sends before it saves a connection. */
+export const modelCheckStep: ModelEmulatorStep = {
+  expect(request) {
+    assert.ok(JSON.stringify(request.messages).includes(MODEL_CHECK_PROMPT));
+  },
+  response: { type: "text", text: "OK" },
+};
 
 /**
  * A loopback-only model protocol fixture. Pi itself and its HTTP/SSE transport

@@ -1,0 +1,82 @@
+name: published-image-boot
+
+# Installs Engaz the way docs/self-host.md tells a user to: download the installer from main,
+# pull the published images without registry credentials, and wait for a healthy stack.
+on:
+  workflow_run:
+    workflows: [publish-server-image]
+    types: [completed]
+    branches: [main]
+  pull_request:
+    paths:
+      - ".github/workflows/published-image-boot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  boot:
+    name: Boot published images ${{ matrix.arch }}
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      ARCH: ${{ matrix.arch }}
+    steps:
+      - name: Use an empty Docker credential store
+        run: |
+          mkdir -p "$RUNNER_TEMP/docker-config"
+          printf '{}\n' > "$RUNNER_TEMP/docker-config/config.json"
+          echo "DOCKER_CONFIG=$RUNNER_TEMP/docker-config" >> "$GITHUB_ENV"
+
+      - name: Install with the documented command
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir engaz && cd engaz
+          curl -fsSLO https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh
+          bash install-images.sh
+
+      - name: Check the running stack
+        working-directory: ${{ runner.temp }}/engaz
+        run: |
+          curl -fsS --retry 10 --retry-delay 3 --retry-all-errors http://127.0.0.1:5173/ -o /dev/null
+          curl -fsS http://127.0.0.1:3100/health
+          echo
+          curl -fsS http://127.0.0.1:5173/api/auth/capabilities
+          echo
+          docker compose --env-file .env -f docker-compose.images.yml ps
+
+      - name: Pull the updater image
+        run: docker pull ghcr.io/shadynafie/engaz/updater:edge
+
+      - name: Record image digests
+        run: |
+          report="$RUNNER_TEMP/digests.md"
+          printf '### Published images on %s\n\n| Image | Repository digest | Architecture |\n| --- | --- | --- |\n' "$ARCH" > "$report"
+          status=0
+          for name in app computer updater; do
+            ref="ghcr.io/shadynafie/engaz/${name}:edge"
+            digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$ref")
+            arch=$(docker image inspect --format '{{.Architecture}}' "$ref")
+            echo "| ${name} | \`${digest#*@}\` | ${arch} |" >> "$report"
+            if [[ "$arch" != "$ARCH" ]]; then
+              echo "::error::${name} is ${arch}, expected ${ARCH}"
+              status=1
+            fi
+          done
+          cat "$report" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Show service logs
+        if: failure()
+        working-directory: ${{ runner.temp }}/engaz
+        run: docker compose --env-file .env -f docker-compose.images.yml logs --no-color --tail 200 || true

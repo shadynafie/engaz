@@ -17,7 +17,8 @@ jobs:
     name: Daily web screenshots
     uses: ./.github/workflows/playwright.yml
     with:
-      publish_report: true
+      # Same opt-in as publish-playwright-report.yml; without it the upload step is skipped.
+      publish_report: ${{ vars.PLAYWRIGHT_REPORT_ENABLED == 'true' }}
     secrets:
       S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
       S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}

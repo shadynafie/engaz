@@ -20,17 +20,17 @@ The existing orchestration, apps, and provider architecture are the foundation. 
 | Plugins | Integrations, MCP, API-based adapters, and agent toggles exist. | Connection tests, clear health, narrow per-agent tool access, and a safe local MCP route need work. Current MCP assignment can grant all tools. |
 | Skills | Shared skill catalog and bot-scoped taught skills exist; agent instructions can be edited under Advanced. | Their relationship and per-agent assignment are unclear to users. |
 | UI | A shared monochrome token system and reusable web components exist. | Settings and integrations are separated, and key agent controls are hard to find. |
-| Quality | Main CI lint, typecheck, build, unit, and Postgres journeys passed on 2026-09-23. | [Main CI](https://github.com/shadynafie/engaz/actions/runs/35877719805) failed Web E2E: one golden test recorded aborted auth-capabilities requests during navigation. Diagnose and restore a green gate. |
+| Quality | [PR #3 CI](https://github.com/shadynafie/engaz/actions/runs/35881176498) passed lint, typecheck, build, unit, Postgres journeys, and Web E2E on 2026-09-23 after fixing a post-signup redirect race. | Main CI must pass again after the merge. |
 
 This baseline describes source and checks, not the safety of an existing installation. The current NAS trial is live data and is read-only for this roadmap. New work uses the repository and isolated test installations.
 
 ## Order of work
 
-Current status: **0 in progress; 1–5 planned.** Start with the failed Web E2E test in step 0.1. Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
+Current status: **0 in progress (0.1 verified on PR #3); 1–5 planned.** Continue with step 0.2. Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
 
 ### 0. Restore the release gate
 
-1. Diagnose the failing Web E2E golden test. Check whether aborted `/api/auth/capabilities` requests are expected navigation cancellation or a real auth failure; fix the root cause or make the assertion accurately distinguish them. Rerun the focused test, then full CI.
+1. Diagnose the failing Web E2E golden test. Check whether aborted `/api/auth/capabilities` requests are expected navigation cancellation or a real auth failure; fix the root cause or make the assertion accurately distinguish them. Rerun the focused test, then full CI. **Verified:** a sign-up navigation raced the session refetch and briefly mounted sign-in; auth routes now redirect from session state ([PR #3](https://github.com/shadynafie/engaz/pull/3)).
 2. Verify anonymous pulls of the app, computer, and updater images on amd64 and arm64 and boot an isolated stack from published images. Record image digests and startup outcome in the PR; do not substitute a manifest response for a pull.
 3. Keep the optional Playwright report publisher from turning a test failure into a second notification. The publishing workflow should skip cleanly when its report credentials are unavailable.
 

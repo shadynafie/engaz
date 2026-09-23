@@ -30,13 +30,13 @@ PRD="$(git rev-parse --show-toplevel)/.agents/skills/pr-watch/pr-digest"
 
 ## The cycle
 
-1. Run `"$PRD" --watch` with **`run_in_background: true`**. It blocks until
+1. Run `"$PRD" --watch` in a background execution session. It blocks until
    every check run and commit status on the exact head SHA is terminal, then
-   prints the digest. You are re-invoked when it exits.
+   prints the digest. Read the session output when it exits.
 
-   Never wait in the foreground. `sleep` is blocked and an `until` loop is
-   killed at the execution tool's timeout, costing an error round-trip plus a
-   retry without producing any signal. One backgrounded call replaces the poll.
+   Never poll in the foreground. A long `sleep` or `until` loop can hit the
+   execution tool's timeout without producing a useful signal. One background
+   session handles the wait.
 
 2. Read the `VERDICT` line and act:
 

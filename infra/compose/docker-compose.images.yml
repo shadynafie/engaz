@@ -118,6 +118,7 @@ services:
     environment:
       NODE_ENV: production
       API_HOST: "0.0.0.0"
+      API_PORT: "7792"
       ENGAZ_DESKTOP_STACK_TOKEN: ${ENGAZ_DESKTOP_STACK_TOKEN:-}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://127.0.0.1:7791}
       WEB_ORIGIN: ${WEB_ORIGIN:-http://127.0.0.1:7791}

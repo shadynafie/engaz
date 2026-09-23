@@ -70,6 +70,7 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-engaz}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-engaz}
       API_HOST: "0.0.0.0"
+      API_PORT: "7792"
       DATA_DIR: /data
       SANDBOX_SUPERVISOR_URL: http://supervisor:7091
       WAKEUP_DRIVER: graphile

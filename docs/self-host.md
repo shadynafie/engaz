@@ -4,7 +4,28 @@ The signed-in product is a long-running API, a Graphile Worker, Postgres, and a 
 
 ## Local (source checkout)
 
-Same as the README quick start: `.env` from `.env.example`, Postgres via Compose, `pnpm sandbox:build`, `pnpm dev`, then [http://127.0.0.1:5173](http://127.0.0.1:5173) (or `http://localhost:5173` — both loopback hosts are trusted). Electron: `pnpm --filter @engaz/desktop dev` while that stack is up, choosing **Existing instance** with that address. The desktop app's **This computer** option instead installs and runs the published images itself with Docker Compose (see [Published images](#published-images-no-checkout)), using port 45173 by default so it can run alongside `pnpm dev`. If that port is occupied, the app selects and remembers another loopback port. The managed API gets a Docker-assigned loopback port; all desktop traffic uses the web origin.
+For a source checkout, prepare `.env` from `.env.example`, start Postgres via Compose, run `pnpm sandbox:build` and `pnpm dev`, then open [http://127.0.0.1:5173](http://127.0.0.1:5173) (or `http://localhost:5173` — both loopback hosts are trusted). Electron: `pnpm --filter @engaz/desktop dev` while that stack is up, choosing **Existing instance** with that address. The desktop app's **This computer** option instead installs and runs the published images itself with Docker Compose (see [Published images](#published-images-no-checkout)), using port 45173 by default so it can run alongside `pnpm dev`. If that port is occupied, the app selects and remembers another loopback port. The managed API gets a Docker-assigned loopback port; all desktop traffic uses the web origin.
+
+Use a supported Node.js version (`^22.22.2`, `^24`, or `26+`), pnpm 9, Docker Engine 26+, and the Docker Compose plugin. From a fresh checkout:
+
+```bash
+git clone https://github.com/shadynafie/engaz.git
+cd engaz
+cp .env.example .env
+# Set POSTGRES_PASSWORD, DATABASE_URL, BETTER_AUTH_SECRET,
+# ENCRYPTION_KEY, SCREEN_PROXY_SECRET, and SANDBOX_SUPERVISOR_TOKEN.
+docker compose --env-file .env \
+  -f infra/compose/docker-compose.yml \
+  -f infra/compose/docker-compose.postgres-host.yml \
+  up postgres -d
+pnpm install
+pnpm db:generate
+pnpm db:migrate
+pnpm sandbox:build
+pnpm dev
+```
+
+Keep the original values in `.env` for this installation, especially `ENCRYPTION_KEY`. See the [secrets checklist](./self-host-secrets.md) before making it publicly reachable.
 
 For source development in WSL, keep the checkout and `data` directory in the Linux filesystem (for example, `~/engaz`), and run `pnpm dev` as your normal user. The host-run supervisor matches bot container UID/GID to that user. If Docker Desktop container IPs are unreachable, set `SANDBOX_CONTROL_VIA_LOOPBACK=true` in `.env`; this publishes the token-protected control service on a random loopback port. Leave this unset for the Compose-hosted supervisor.
 
@@ -123,6 +144,8 @@ BETTER_AUTH_URL=https://app.example.com
 WEB_ORIGIN=https://app.example.com
 API_URL=https://app.example.com
 ```
+
+### Public signup policy
 
 Cookies and CORS follow those origins. `SIGNUPS_ENABLED` / `SIGNUP_ALLOWLIST` seed the signup
 policy when the API starts for the first time. They are not reapplied on restart, so configure them

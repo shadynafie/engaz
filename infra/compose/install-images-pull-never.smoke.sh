@@ -435,7 +435,7 @@ setup_work "$tmp/space"
 mkdir -p "$tmp/space/docker-root"
 export STUB_DOCKER_ROOT="$tmp/space/docker-root" STUB_DF_AVAILABLE_KB=5242880
 data_install "$tmp/space"
-expect_data_failure "the Engaz images need about 10 GB"
+expect_data_failure "Engaz needs at least 8 GB for its images and first data."
 export STUB_DOCKER_IMAGES=present
 data_install "$tmp/space"
 [[ "$data_code" -eq 0 ]] || fail "an update with local images should skip the space check: $data_out"

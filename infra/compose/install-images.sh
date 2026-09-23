@@ -537,7 +537,7 @@ if [[ "$prepare_only" == true ]]; then
 fi
 
 # A first pull needs room for the images; an update already has most of them.
-readonly MIN_IMAGE_FREE_GB=10
+readonly MIN_IMAGE_FREE_GB=8
 check_image_space() {
   local root available_kb
   [[ "$pull_never" != true ]] || return 0
@@ -548,7 +548,7 @@ check_image_space() {
   available_kb=$(df -Pk "$root" 2>/dev/null | awk 'NR == 2 { print $4 }')
   [[ "$available_kb" =~ ^[0-9]+$ ]] || return 0
   if ((available_kb < MIN_IMAGE_FREE_GB * 1024 * 1024)); then
-    fail "Docker's storage ($root) has $((available_kb / 1024 / 1024)) GB free; the Engaz images need about ${MIN_IMAGE_FREE_GB} GB. Free some space, then run this command again."
+    fail "Docker's storage ($root) has $((available_kb / 1024 / 1024)) GB free; Engaz needs at least ${MIN_IMAGE_FREE_GB} GB for its images and first data. Free some space, then run this command again."
   fi
 }
 

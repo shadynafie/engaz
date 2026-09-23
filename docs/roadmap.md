@@ -16,7 +16,7 @@ The existing orchestration, apps, and provider architecture are the foundation. 
 | Images | Anonymous pulls of app, computer, and updater and a healthy installer startup pass on amd64 and arm64 CI runners after each main publish. | Upgrade, and startup on real NAS and desktop hosts, remain untested. |
 | Setup | Source setup and an image installer exist. | The image installer requires Docker, Compose, curl, and OpenSSL; it does not install Docker or offer a durable host directory. |
 | Data | Postgres and appdata are persisted in Compose volumes; source backup and restore instructions exist. | A portable backup and verified restore for the image installer are missing. A configuration directory alone is insufficient. |
-| Ownership | First registration becomes deployment owner; onboarding connects a model and creates a first agent. | Publicly reachable first-owner claim can be raced; signup policy needs an explicit first-run choice. |
+| Ownership | First registration becomes deployment owner; onboarding connects a model and creates a first agent. | First registration wins by design; the installer binds to 127.0.0.1, so only the host can claim. Signup policy after the owner needs an explicit choice. |
 | Plugins | Integrations, MCP, API-based adapters, and agent toggles exist. | Connection tests, clear health, narrow per-agent tool access, and a safe local MCP route need work. Current MCP assignment can grant all tools. |
 | Skills | Shared skill catalog and bot-scoped taught skills exist; agent instructions can be edited under Advanced. | Their relationship and per-agent assignment are unclear to users. |
 | UI | A shared monochrome token system and reusable web components exist. | Settings and integrations are separated, and key agent controls are hard to find. |
@@ -48,11 +48,11 @@ Current status: **0 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 pla
 ### 2. Secure first run and remote access
 
 1. Show the Engaz brand from the first screen: browser tab, installable web app, sign-up page, and desktop and mobile app icons, all generated from one source.
-2. Protect the first-owner claim with a one-time setup secret or localhost-only claim. Close it permanently after use. Make later registration and invitations an explicit owner choice; a public endpoint must not allow an unintended account to become owner.
+2. Keep first registration as the owner claim: the installation is reachable only from its host until the owner exists. Make later registration and invitations an explicit owner choice, and let public access (step 4) start only after an owner exists, so a public endpoint never offers the owner claim.
 3. Turn onboarding into a short path: owner account → one working model connection → first agent → first conversation. Optional plugins can be skipped and revisited. Show a real model connection failure before the user reaches a broken chat.
 4. Keep local-only access as the default. For a user-owned public URL, document and validate HTTPS, reverse proxy, and matching auth, web, and API origins. Do not expose Postgres, the sandbox supervisor, or the Docker socket publicly. Desktop and mobile must let the user select their installation and recover from an invalid URL or certificate.
 
-**Gate:** fresh-install tests prove an unclaimed public instance cannot be taken over, the owner can finish first run, a second account follows the chosen signup policy, and local plus optional HTTPS access work across applicable clients.
+**Gate:** fresh-install tests prove public access cannot be enabled before an owner exists, the owner can finish first run, a second account follows the chosen signup policy, and local plus optional HTTPS access work across applicable clients.
 
 ### 3. Make settings and plugins usable
 

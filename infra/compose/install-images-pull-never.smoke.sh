@@ -41,11 +41,14 @@ log="${STUB_DOCKER_LOG:?}"
   printf '\n'
 } >> "$log"
 
-if [[ "${1:-}" != compose ]]; then
-  echo "STUB: unexpected docker $*" >&2
-  exit 1
-fi
-shift
+case "${1:-}" in
+  compose) shift ;;
+  info) exit 0 ;;
+  # Nonempty by default: a running stack skips the host port check.
+  ps) printf '%s\n' "${STUB_DOCKER_PS-running}"; exit 0 ;;
+  volume) printf '%s\n' "${STUB_DOCKER_VOLUMES-}"; exit 0 ;;
+  *) echo "STUB: unexpected docker $*" >&2; exit 1 ;;
+esac
 
 help=false
 short=false
@@ -133,7 +136,12 @@ if [[ -n "$out" ]]; then
 fi
 exit 1
 STUB
-  chmod +x "$bin/docker" "$bin/curl"
+  cat > "$bin/df" <<'STUB'
+#!/usr/bin/env bash
+printf 'Filesystem 1024-blocks Used Available Capacity Mounted on\n'
+printf 'stub 99999999 1 %s 1%% /\n' "${STUB_DF_AVAILABLE_KB:-52428800}"
+STUB
+  chmod +x "$bin/docker" "$bin/curl" "$bin/df"
 }
 
 setup_work() {
@@ -235,5 +243,111 @@ set -e
 [[ "$default_out" != *"unbound variable"* ]] || fail "empty array expansion aborted: $default_out"
 has_compose_pull "$tmp/default" || fail "default install should run compose pull"
 grep -q 'VERB=up' "$tmp/default/docker.log" || fail "default install should run compose up"
+
+# --data-dir keeps .env, Postgres, and app data together in a new host folder.
+data_install() {
+  local work="$1"
+  shift
+  set +e
+  data_out="$(run_install "$work" "$@" 2>&1)"
+  data_code=$?
+  set -e
+}
+expect_data_failure() {
+  local message="$1"
+  [[ "$data_code" -ne 0 ]] || fail "expected failure containing '$message': $data_out"
+  [[ "$data_out" == *"$message"* ]] || fail "expected '$message', got: $data_out"
+}
+
+setup_work "$tmp/data"
+data_install "$tmp/data" "--data-dir=$tmp/data/store/"
+[[ "$data_code" -eq 0 ]] || fail "--data-dir exited $data_code: $data_out"
+store="$(cd "$tmp/data/store" && pwd -P)"
+[[ -d "$store/postgres" && -d "$store/appdata" ]] || fail "--data-dir did not create data folders"
+grep -qxF "ENGAZ_DATA_DIR=$store" "$store/.env" || fail "--data-dir did not record ENGAZ_DATA_DIR: $(cat "$store/.env")"
+grep -qxF "COMPOSE_FILE=docker-compose.images.yml:docker-compose.data-dir.yml" "$store/.env" \
+  || fail "--data-dir did not record COMPOSE_FILE"
+[[ "$(ls -ld "$store/.env" | cut -c1-10)" == "-rw-------" ]] || fail ".env should be private"
+grep -F -e 'up -d' "$tmp/data/docker.log" | grep -F -e '-f docker-compose.data-dir.yml' >/dev/null \
+  || fail "--data-dir should start with the data-dir Compose file: $(cat "$tmp/data/docker.log")"
+[[ "$data_out" == *"Data and secrets are in $store"* ]] || fail "--data-dir should name the folder to back up"
+
+data_install "$tmp/data" "--data-dir=$store"
+[[ "$data_code" -eq 0 ]] || fail "--data-dir rerun exited $data_code: $data_out"
+[[ "$data_out" == *"Keeping existing .env."* ]] || fail "--data-dir rerun should keep .env"
+
+# Rerunning from inside the folder without the flag must not fall back to named volumes.
+: > "$tmp/data/docker.log"
+set +e
+data_out="$(
+  export STUB_DOCKER_LOG="$tmp/data/docker.log" STUB_CURL_LOG="$tmp/data/curl.log"
+  export PATH="$tmp/data/bin:$PATH"
+  cd "$store" && bash "$src" 2>&1
+)"
+data_code=$?
+set -e
+[[ "$data_code" -eq 0 ]] || fail "rerun inside the data folder exited $data_code: $data_out"
+[[ "$data_out" == *"Keeping Engaz data in $store"* ]] || fail "rerun inside the folder lost the data dir: $data_out"
+grep -F -e 'up -d' "$tmp/data/docker.log" | grep -F -e '-f docker-compose.data-dir.yml' >/dev/null \
+  || fail "rerun inside the folder should keep the data-dir Compose file"
+
+setup_work "$tmp/relative"
+data_install "$tmp/relative" --data-dir=engaz-data
+expect_data_failure "--data-dir must be an absolute path."
+
+setup_work "$tmp/foreign"
+mkdir -p "$tmp/foreign/store" && : > "$tmp/foreign/store/notes.txt"
+data_install "$tmp/foreign" "--data-dir=$tmp/foreign/store"
+expect_data_failure "is not empty"
+
+setup_work "$tmp/foreign-env"
+mkdir -p "$tmp/foreign-env/store" && printf 'OTHER=1\n' > "$tmp/foreign-env/store/.env"
+data_install "$tmp/foreign-env" "--data-dir=$tmp/foreign-env/store"
+expect_data_failure "does not belong to an Engaz installation"
+
+setup_work "$tmp/volumes"
+export STUB_DOCKER_VOLUMES=engaz_pgdata
+data_install "$tmp/volumes" "--data-dir=$tmp/volumes/store"
+unset STUB_DOCKER_VOLUMES
+expect_data_failure "keeps its data in Docker volumes"
+[[ ! -e "$tmp/volumes/store/.env" ]] || fail "volume refusal should not write .env"
+
+setup_work "$tmp/old-data"
+export STUB_COMPOSE_SHORT='2.23.3'
+data_install "$tmp/old-data" "--data-dir=$tmp/old-data/store"
+unset STUB_COMPOSE_SHORT
+expect_data_failure "needs Docker Compose 2.24 or newer"
+
+setup_work "$tmp/small"
+export STUB_DF_AVAILABLE_KB=1048576
+data_install "$tmp/small" "--data-dir=$tmp/small/store"
+unset STUB_DF_AVAILABLE_KB
+expect_data_failure "Engaz needs at least 10 GB"
+
+# A fresh install refuses a web port that another program already holds.
+if command -v python3 >/dev/null 2>&1; then
+  setup_work "$tmp/port"
+  port_file="$tmp/port/port"
+  python3 -c '
+import socket, sys, time
+s = socket.socket()
+s.bind(("127.0.0.1", 0))
+s.listen(1)
+open(sys.argv[1], "w").write(str(s.getsockname()[1]))
+time.sleep(30)
+' "$port_file" &
+  listener=$!
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    [[ -s "$port_file" ]] && break
+    sleep 0.2
+  done
+  printf 'ENGAZ_WEB_PORT=%s\n' "$(cat "$port_file")" >> "$tmp/port/cwd/.env"
+  export STUB_DOCKER_PS=""
+  data_install "$tmp/port" --offline
+  unset STUB_DOCKER_PS
+  kill "$listener" 2>/dev/null || true
+  wait "$listener" 2>/dev/null || true
+  expect_data_failure "port $(cat "$port_file") on 127.0.0.1 is already in use"
+fi
 
 echo "ok"

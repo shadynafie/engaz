@@ -20,21 +20,21 @@ The existing orchestration, apps, and provider architecture are the foundation. 
 | Plugins | Integrations, MCP, API-based adapters, and agent toggles exist. | Connection tests, clear health, narrow per-agent tool access, and a safe local MCP route need work. Current MCP assignment can grant all tools. |
 | Skills | Shared skill catalog and bot-scoped taught skills exist; agent instructions can be edited under Advanced. | Their relationship and per-agent assignment are unclear to users. |
 | UI | A shared monochrome token system and reusable web components exist. | Settings and integrations are separated, and key agent controls are hard to find. |
-| Quality | Main CI, including Web E2E, passed on 2026-09-23 after the post-signup redirect fix ([run](https://github.com/shadynafie/engaz/actions/runs/35884199213)). | Keep it green. |
+| Quality | Main CI, including Web E2E, passed on 2026-09-23 ([run](https://github.com/shadynafie/engaz/actions/runs/35888758429)); the nightly run no longer fails on missing report storage. | Keep it green. |
 
 This baseline describes source and checks, not the safety of an existing installation. The current NAS trial is live data and is read-only for this roadmap. New work uses the repository and isolated test installations.
 
 ## Order of work
 
-Current status: **0 in progress (0.1 and 0.2 verified; 0.3 in review); 1–5 planned.** Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
+Current status: **0 verified; 1 in progress (1.1 in review); 2–5 planned.** Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
 
 ### 0. Restore the release gate
 
 1. Diagnose the failing Web E2E golden test. Check whether aborted `/api/auth/capabilities` requests are expected navigation cancellation or a real auth failure; fix the root cause or make the assertion accurately distinguish them. Rerun the focused test, then full CI. **Verified:** a sign-up navigation raced the session refetch and briefly mounted sign-in; auth routes now redirect from session state ([PR #3](https://github.com/shadynafie/engaz/pull/3)).
 2. Verify anonymous pulls of the app, computer, and updater images on amd64 and arm64 and boot an isolated stack from published images. Record image digests and startup outcome in the PR; do not substitute a manifest response for a pull. **Verified:** `published-image-boot` runs the documented installer with no registry credentials on native amd64 and arm64 runners and reached healthy web and API services ([PR #4](https://github.com/shadynafie/engaz/pull/4); app `sha256:7d0f50b8…`, computer `sha256:0c333a9d…`, updater `sha256:25955051…`). It reruns after every main image publish.
-3. Keep the optional Playwright report publisher from turning a test failure into a second notification. The publishing workflow should skip cleanly when its report credentials are unavailable.
+3. Keep the optional Playwright report publisher from turning a test failure into a second notification. The publishing workflow should skip cleanly when its report credentials are unavailable. **Verified:** the nightly run uses the `PLAYWRIGHT_REPORT_ENABLED` opt-in and skipped the upload in a dispatched run ([PR #5](https://github.com/shadynafie/engaz/pull/5)).
 
-**Gate:** main CI green; fresh published-image startup confirmed on supported architectures; no claim that the installer is one command yet.
+**Gate:** main CI green; fresh published-image startup confirmed on supported architectures; no claim that the installer is one command yet. **Met on 2026-09-23** ([main CI](https://github.com/shadynafie/engaz/actions/runs/35888758429)).
 
 ### 1. Make installation and recovery safe
 

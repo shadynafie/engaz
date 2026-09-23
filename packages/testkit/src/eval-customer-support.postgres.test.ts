@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { EVAL_CASES } from "./evals/cases.js";
 import { runTrial } from "./evals/runner.js";
 import { EvalSandboxProvider } from "./evals/sandbox.js";
-import { type ModelEmulatorRequest, startModelEmulator } from "./model-emulator.js";
+import { type ModelEmulatorRequest, modelCheckStep, startModelEmulator } from "./model-emulator.js";
 
 const databaseAvailable = process.env.VERIFY_DATABASE === "1" && Boolean(process.env.DATABASE_URL);
 
@@ -15,6 +15,7 @@ describe.skipIf(!databaseAvailable)("offline Slack customer-support eval", () =>
     const model = await startModelEmulator({
       apiKey: fixtureKey,
       steps: [
+        modelCheckStep,
         {
           expect(request) {
             expect(JSON.stringify(request.messages)).toContain("Fairhaven Robotics");

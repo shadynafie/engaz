@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { runTrial } from "./evals/runner.js";
-import { startModelEmulator } from "./model-emulator.js";
+import { modelCheckStep, startModelEmulator } from "./model-emulator.js";
 
 const databaseAvailable = process.env.VERIFY_DATABASE === "1" && Boolean(process.env.DATABASE_URL);
 
@@ -14,29 +14,32 @@ describe.skipIf(!databaseAvailable)("eval history accounting", () => {
       const fixtureKey = "offline-eval-history-key";
       const model = await startModelEmulator({
         apiKey: fixtureKey,
-        steps: ["first", "second"].flatMap((turn) => [
-          {
-            expect(request) {
-              const messages = JSON.stringify(request.messages);
-              expect(messages).toContain(`Save ${turn} turn.`);
-              if (turn === "second") expect(messages).not.toContain("Save first turn.");
+        steps: [
+          modelCheckStep,
+          ...["first", "second"].flatMap((turn) => [
+            {
+              expect(request) {
+                const messages = JSON.stringify(request.messages);
+                expect(messages).toContain(`Save ${turn} turn.`);
+                if (turn === "second") expect(messages).not.toContain("Save first turn.");
+              },
+              response: {
+                type: "tool" as const,
+                id: `${turn}-write`,
+                name: "write_file",
+                arguments: { path: `results/${turn}.txt`, content: turn },
+              },
             },
-            response: {
-              type: "tool" as const,
-              id: `${turn}-write`,
-              name: "write_file",
-              arguments: { path: `results/${turn}.txt`, content: turn },
+            {
+              expect(request) {
+                const tool = request.messages.findLast((message) => message.role === "tool");
+                expect(tool?.tool_call_id).toBe(`${turn}-write`);
+                expect(JSON.parse(String(tool?.content))).toMatchObject({ ok: true });
+              },
+              response: { type: "text" as const, text: `Saved ${turn} turn.` },
             },
-          },
-          {
-            expect(request) {
-              const tool = request.messages.findLast((message) => message.role === "tool");
-              expect(tool?.tool_call_id).toBe(`${turn}-write`);
-              expect(JSON.parse(String(tool?.content))).toMatchObject({ ok: true });
-            },
-            response: { type: "text" as const, text: `Saved ${turn} turn.` },
-          },
-        ]),
+          ]),
+        ],
       });
       const dataDir = await mkdtemp(path.join(tmpdir(), "engaz-eval-history-"));
       try {

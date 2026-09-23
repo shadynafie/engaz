@@ -80,13 +80,15 @@ done
 readonly TTY="${ENGAZ_TTY:-/dev/tty}"
 interactive=false
 if [[ "${ENGAZ_NONINTERACTIVE:-}" != 1 ]] && (: <"$TTY") 2>/dev/null; then
+  exec 3<"$TTY"
   interactive=true
 fi
 
+# Answers come from one open descriptor so each question reads the next line.
 ask() {
   local answer=""
   printf '%s ' "$1" >&2
-  IFS= read -r answer <"$TTY" || answer=""
+  IFS= read -r answer <&3 || answer=""
   printf '%s' "$answer"
 }
 
@@ -543,12 +545,26 @@ if [[ "$pull_never" == true ]]; then
 fi
 # bash 3.2 + set -u: "${arr[@]}" aborts when arr is empty.
 url="http://127.0.0.1:$(env_value ENGAZ_WEB_PORT 7791)"
+
+# Healthy containers are not enough: the port must answer from the host, as the browser sees it.
+url_answers() {
+  local attempt
+  for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
+    curl -fsS --noproxy '*' --max-time 5 -o /dev/null "$url/" 2>/dev/null && return 0
+    sleep 1
+  done
+  return 1
+}
+
 if grep -q -- '--wait-timeout' <<<"$compose_up_help"; then
   echo "Waiting for healthy services."
   docker compose "${compose_args[@]}" up -d ${up_pull_args[@]+"${up_pull_args[@]}"} --wait --wait-timeout 300
-  echo "Engaz is ready. Open $url in your browser to set it up."
 else
   docker compose "${compose_args[@]}" up -d ${up_pull_args[@]+"${up_pull_args[@]}"}
+fi
+if url_answers; then
+  echo "Engaz is ready. Open $url in your browser to set it up."
+else
   echo "Engaz is starting. In a minute, open $url in your browser to set it up."
 fi
 echo "Engaz files are in $PWD. Run this command again to update."

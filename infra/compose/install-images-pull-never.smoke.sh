@@ -203,7 +203,10 @@ set -e
 [[ "$offline_out" == *"Using local .env.images.example"* ]] || fail "--offline did not keep local env example"
 [[ "$offline_out" == *"Skipping image pull"* ]] || fail "--offline did not skip image pull"
 [[ "$offline_out" == *"Open http://127.0.0.1:7791 in your browser to set it up."* ]] || fail "--offline did not start"
-[[ ! -s "$tmp/offline/curl.log" ]] || fail "--offline should not curl when files are local: $(cat "$tmp/offline/curl.log")"
+# Only the local readiness probe may use curl; nothing is downloaded.
+if grep -v -F -e 'http://127.0.0.1:' "$tmp/offline/curl.log" | grep -q .; then
+  fail "--offline should not download when files are local: $(cat "$tmp/offline/curl.log")"
+fi
 has_compose_pull "$tmp/offline" && fail "--offline should not run compose pull"
 has_up_pull_never "$tmp/offline" || fail "--offline should pass --pull never to compose up: $(cat "$tmp/offline/docker.log")"
 

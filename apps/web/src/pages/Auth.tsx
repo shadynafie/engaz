@@ -3,7 +3,7 @@ import { Button, Input, Label } from "@engaz/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { authClient } from "../lib/auth";
 import { clearSpaceSelection } from "../lib/rpc";
 
@@ -17,7 +17,6 @@ const MAX_AUTH_CAPABILITIES_RESPONSE_BYTES = 64 * 1024;
 
 export function AuthPage({ mode }: { mode: AuthMode }) {
   const { t } = useLingui();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -103,14 +102,9 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
         setSearchParams({ verify: "email" });
         return;
       }
+      // Navigating before the session store holds the user bounces through
+      // /sign-in; the routes redirect once Better Auth's refetch lands.
       clearSpaceSelection();
-      navigate(
-        mode === "up"
-          ? "/onboarding"
-          : searchParams.get("next") === "/integrations/setup"
-            ? "/integrations/setup"
-            : "/app",
-      );
     } catch {
       setError(t`Could not reach the server`);
     } finally {

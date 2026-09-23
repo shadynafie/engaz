@@ -33,7 +33,7 @@ Compose bot homes mount only their own subdirectory of the application volume us
 
 ## Published images (no checkout)
 
-Engaz images have not yet been verified as publicly pullable. Use the source-checkout workflow until the release pipeline and image access are verified. The instructions below describe the intended image-based workflow.
+The published image manifests are anonymously accessible for amd64 and arm64, but a fresh image-based installation has not been verified on supported hosts. Use the source-checkout workflow for now. The instructions below describe the image-based workflow being validated.
 
 Pull Postgres and `ghcr.io/shadynafie/engaz/app` into any empty folder. No clone or image build.
 Requires Docker Engine 26+ (API 1.45+ for bot home volume subpaths), the Compose plugin, curl, and OpenSSL.

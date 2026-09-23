@@ -35,13 +35,29 @@ jobs:
     env:
       ARCH: ${{ matrix.arch }}
     steps:
+      - uses: actions/checkout@v5
+        if: github.event_name == 'pull_request'
+        with:
+          persist-credentials: false
+
       - name: Use an empty Docker credential store
         run: |
           mkdir -p "$RUNNER_TEMP/docker-config"
           printf '{}\n' > "$RUNNER_TEMP/docker-config/config.json"
           echo "DOCKER_CONFIG=$RUNNER_TEMP/docker-config" >> "$GITHUB_ENV"
 
+      # Pull requests prove their own installer; published runs use the documented download from main.
+      - name: Install from this pull request
+        if: github.event_name == 'pull_request'
+        run: |
+          mkdir "$RUNNER_TEMP/engaz"
+          cp infra/compose/install-images.sh infra/compose/docker-compose.images.yml \
+            infra/compose/.env.images.example "$RUNNER_TEMP/engaz/"
+          cd "$RUNNER_TEMP/engaz"
+          bash install-images.sh --local
+
       - name: Install with the documented command
+        if: github.event_name != 'pull_request'
         working-directory: ${{ runner.temp }}
         run: |
           mkdir engaz && cd engaz

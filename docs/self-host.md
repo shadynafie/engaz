@@ -4,7 +4,7 @@ The signed-in product is a long-running API, a Graphile Worker, Postgres, and a 
 
 ## Local (source checkout)
 
-For a source checkout, prepare `.env` from `.env.example`, start Postgres via Compose, run `pnpm sandbox:build` and `pnpm dev`, then open [http://127.0.0.1:5173](http://127.0.0.1:5173) (or `http://localhost:5173` — both loopback hosts are trusted). Electron: `pnpm --filter @engaz/desktop dev` while that stack is up, choosing **Existing instance** with that address. The desktop app's **This computer** option instead installs and runs the published images itself with Docker Compose (see [Published images](#published-images-no-checkout)), using port 45173 by default so it can run alongside `pnpm dev`. If that port is occupied, the app selects and remembers another loopback port. The managed API gets a Docker-assigned loopback port; all desktop traffic uses the web origin.
+For a source checkout, prepare `.env` from `.env.example`, start Postgres via Compose, run `pnpm sandbox:build` and `pnpm dev`, then open [http://127.0.0.1:7791](http://127.0.0.1:7791) (or `http://localhost:7791` — both loopback hosts are trusted). Electron: `pnpm --filter @engaz/desktop dev` while that stack is up, choosing **Existing instance** with that address. The desktop app's **This computer** option instead installs and runs the published images itself with Docker Compose (see [Published images](#published-images-no-checkout)), using port 45173 by default so it can run alongside `pnpm dev`. If that port is occupied, the app selects and remembers another loopback port. The managed API gets a Docker-assigned loopback port; all desktop traffic uses the web origin.
 
 Use a supported Node.js version (`^22.22.2`, `^24`, or `26+`), pnpm 9, Docker Engine 26+, and the Docker Compose plugin. From a fresh checkout:
 
@@ -85,18 +85,18 @@ Auto Review uses that LLM checker by default. To use TypeSafe Jev instead, set
 The example defaults to `edge` (main builds). Every publish is multi-arch (`amd64` + `arm64`), so
 arm64 hosts need no special tag. Do not assume `latest` is present until a stable release exists.
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The first registered user becomes the
-deployment owner. Put TLS in front of `:5173` for a public host and set the three public origins to
+Open [http://127.0.0.1:7791](http://127.0.0.1:7791). The first registered user becomes the
+deployment owner. Put TLS in front of `:7791` for a public host and set the three public origins to
 that HTTPS URL.
 
-Images Compose binds web to loopback (`127.0.0.1:5173`). Terminate TLS on the host and proxy
-there. Vite preview same-origin-proxies `/api` and `/rpc`, so do not expose `:3100`. Set
+Images Compose binds web to loopback (`127.0.0.1:7791`). Terminate TLS on the host and proxy
+there. Vite preview same-origin-proxies `/api` and `/rpc`, so do not expose `:7792`. Set
 `BETTER_AUTH_URL`, `WEB_ORIGIN`, and `API_URL` to that same HTTPS origin, and set
 `ENGAZ_HOST` to its hostname (for example, `app.example.com`).
 
 ```Caddyfile
 app.example.com {
-	reverse_proxy 127.0.0.1:5173
+	reverse_proxy 127.0.0.1:7791
 }
 ```
 
@@ -131,7 +131,7 @@ supervisor at startup naming the variable, rather than surfacing later as a fail
 2. Set `OPENROUTER_API_KEY` (and `COMPOSIO_API_KEY` if you want Plugins).
 3. Build the computer image: `pnpm sandbox:build` (Compose also builds it via the `computer` service).
 4. `docker compose --env-file .env -f infra/compose/docker-compose.yml up --build`
-5. Open the web origin (`http://127.0.0.1:5173` by default). The first registered user becomes the deployment owner.
+5. Open the web origin (`http://127.0.0.1:7791` by default). The first registered user becomes the deployment owner.
 
 On Windows, if an older clone with `core.autocrlf=true` leaves the computer pane hung on boot (`bash\r` in sandbox logs): from a clean worktree, set `git config core.autocrlf false`, run `git add --renormalize . && git checkout -- .`, then rebuild with `pnpm sandbox:build`.
 
@@ -158,7 +158,7 @@ proxy). Keep both distinct from `BETTER_AUTH_SECRET`.
 
 New credentials use versioned AES-GCM with per-record salt and row-bound AAD. Legacy ciphertext stays readable.
 
-On a VPS, put TLS in front of `:5173` (or serve the web build behind your proxy) and set:
+On a VPS, put TLS in front of `:7791` (or serve the web build behind your proxy) and set:
 
 ```env
 BETTER_AUTH_URL=https://app.example.com
@@ -205,7 +205,7 @@ EMAIL_EMULATOR=true
 
 The emulator is forcibly disabled when `NODE_ENV=production` and requires the API to bind to a
 loopback host. In `NODE_ENV=development`, captured messages are available from
-`http://127.0.0.1:3100/api/dev/emails` with cache disabled; the API logs only delivery
+`http://127.0.0.1:7792/api/dev/emails` with cache disabled; the API logs only delivery
 metadata, never reset tokens. The inbox route is not registered in test, staging, or production.
 
 ### Logging

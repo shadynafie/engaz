@@ -325,7 +325,7 @@ describe("LocalStackController", () => {
       allocatePort: async () => 45174,
       stackDir: path.join(root, "stack"),
       resourceDir: COMPOSE_DIR,
-      localWebUrl: "http://127.0.0.1:5173",
+      localWebUrl: "http://127.0.0.1:7791",
       imageTag: "v1.2.3",
       randomHex: fakeHex,
       sleep: async () => undefined,
@@ -463,9 +463,9 @@ describe("LocalStackController", () => {
     });
 
     await expect(stack.matchesDesiredStack()).resolves.toBe(true);
-    expect(probedUrls).toEqual(["http://127.0.0.1:5173"]);
+    expect(probedUrls).toEqual(["http://127.0.0.1:7791"]);
     await expect(stack.matchesDesiredStack("http://127.0.0.1:5199")).resolves.toBe(true);
-    expect(probedUrls).toEqual(["http://127.0.0.1:5173", "http://127.0.0.1:5199"]);
+    expect(probedUrls).toEqual(["http://127.0.0.1:7791", "http://127.0.0.1:5199"]);
     expect(calls).toEqual([]);
   });
 
@@ -591,7 +591,7 @@ describe("LocalStackController", () => {
     expect(calls.filter((call) => call.args[7] === "pull")).toHaveLength(1);
     expect(
       calls.filter((call) => call.args[7] === "up").map((call) => call.env.ENGAZ_WEB_PORT),
-    ).toEqual(["5173", "45174"]);
+    ).toEqual(["7791", "45174"]);
     expect(calls.at(-1)?.env).toMatchObject({
       ENGAZ_API_PORT: "0",
       WEB_ORIGIN: stack.webUrl(),

@@ -1455,7 +1455,7 @@ function connectionInput(displayName: string) {
 async function signup(app: App, email: string, name: string) {
   const response = await app.request("/api/auth/sign-up/email", {
     method: "POST",
-    headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" },
+    headers: { "content-type": "application/json", origin: "http://127.0.0.1:7791" },
     body: JSON.stringify({ email, password: "password12", name }),
   });
   if (response.status >= 400) {
@@ -1477,7 +1477,7 @@ async function raw(
       "content-type": "application/json",
       ...(cookie ? { cookie } : {}),
       ...(spaceId ? { "x-engaz-space-id": spaceId } : {}),
-      origin: "http://127.0.0.1:5173",
+      origin: "http://127.0.0.1:7791",
     },
     body: JSON.stringify({ json: body ?? {} }),
   });

@@ -155,7 +155,7 @@ describePiApp("live OpenRouter product journey", () => {
     const email = `pi-${stamp}@engaz.test`;
     const signup = await handles.app.request("/api/auth/sign-up/email", {
       method: "POST",
-      headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" },
+      headers: { "content-type": "application/json", origin: "http://127.0.0.1:7791" },
       body: JSON.stringify({ email, password: "password12", name: "Pi Canary" }),
     });
     expect(signup.status).toBeLessThan(400);
@@ -200,7 +200,7 @@ type Snap = {
 async function rpc<T>(app: App, cookie: string, proc: string, body: unknown = {}): Promise<T> {
   const res = await app.request(`/rpc/${proc}`, {
     method: "POST",
-    headers: { "content-type": "application/json", cookie, origin: "http://127.0.0.1:5173" },
+    headers: { "content-type": "application/json", cookie, origin: "http://127.0.0.1:7791" },
     body: JSON.stringify({ json: body }),
   });
   const parsed = (await res.json()) as { json?: T; error?: { message?: string } };

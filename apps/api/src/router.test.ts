@@ -28,7 +28,7 @@ describe("account preferences", () => {
       env: {
         defaultProvider: "fake",
         defaultModel: "fake-model",
-        webOrigin: "http://127.0.0.1:5173",
+        webOrigin: "http://127.0.0.1:7791",
         screenProxySecret: "fake-test-secret",
         sandboxProvider: "fake",
       },
@@ -157,7 +157,7 @@ describe("model setup gate", () => {
         defaultProvider: "openrouter",
         defaultModel: "test-model",
         deploymentModelKey: options.deploymentModelKey,
-        webOrigin: "http://127.0.0.1:5173",
+        webOrigin: "http://127.0.0.1:7791",
         screenProxySecret: "fake-test-secret",
         sandboxProvider: "fake",
       },
@@ -302,7 +302,7 @@ describe("thread answer delivery", () => {
       env: {
         defaultProvider: "fake",
         defaultModel: "fake-model",
-        webOrigin: "http://127.0.0.1:5173",
+        webOrigin: "http://127.0.0.1:7791",
         screenProxySecret: "fake-test-secret",
         sandboxProvider: "fake",
       },
@@ -365,7 +365,7 @@ describe("MCP server deletion", () => {
       env: {
         defaultProvider: "fake",
         defaultModel: "fake-model",
-        webOrigin: "http://127.0.0.1:5173",
+        webOrigin: "http://127.0.0.1:7791",
         screenProxySecret: "fake-test-secret",
         sandboxProvider: "fake",
       },
@@ -437,7 +437,7 @@ describe("connections.begin", () => {
       env: {
         defaultProvider: "fake",
         defaultModel: "fake-model",
-        webOrigin: "http://127.0.0.1:5173",
+        webOrigin: "http://127.0.0.1:7791",
         screenProxySecret: "fake-test-secret",
         sandboxProvider: "fake",
       },
@@ -544,7 +544,7 @@ describe("connections.complete", () => {
       env: {
         defaultProvider: "fake",
         defaultModel: "fake-model",
-        webOrigin: "http://127.0.0.1:5173",
+        webOrigin: "http://127.0.0.1:7791",
         screenProxySecret: "fake-test-secret",
         sandboxProvider: "fake",
       },
@@ -600,7 +600,7 @@ describe("updater owner gate", () => {
       env: {
         defaultProvider: "fake",
         defaultModel: "fake-model",
-        webOrigin: "http://127.0.0.1:5173",
+        webOrigin: "http://127.0.0.1:7791",
         screenProxySecret: "fake-test-secret",
         sandboxProvider: "fake",
         gitSha: "deadbeef",
@@ -726,7 +726,7 @@ describe("computer screen url", () => {
       env: {
         defaultProvider: "fake",
         defaultModel: "fake-model",
-        webOrigin: "http://127.0.0.1:5173",
+        webOrigin: "http://127.0.0.1:7791",
         screenProxySecret: "fake-test-secret",
         sandboxProvider: "e2b",
       },
@@ -751,7 +751,7 @@ describe("computer screen url", () => {
     expect(response.status).toBe(200);
     const { json } = await response.json();
     const url = new URL(json.url);
-    expect(url.origin).toBe("http://127.0.0.1:5173");
+    expect(url.origin).toBe("http://127.0.0.1:7791");
     expect(openScreenCapability(url.pathname, "fake-test-secret")).toMatchObject({
       scope: {
         botId: "bot-1",
@@ -1005,7 +1005,7 @@ describe("model credential persistence", () => {
       env: {
         defaultProvider: "openrouter",
         defaultModel: options?.envDefaultModel ?? "openai/gpt-5.6-luna",
-        webOrigin: "http://127.0.0.1:5173",
+        webOrigin: "http://127.0.0.1:7791",
         screenProxySecret: "fake-test-secret",
         sandboxProvider: "fake",
         agentRuntime: "pi",

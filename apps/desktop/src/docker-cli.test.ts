@@ -131,8 +131,8 @@ describe("classifyDockerFailure", () => {
     ["pull access denied for ghcr.io/x/y, repository does not exist", "image-not-found"],
     ["Get https://ghcr.io/v2/: dial tcp: lookup ghcr.io: no such host", "network"],
     ["net/http: TLS handshake timeout", "network"],
-    ["Bind for 127.0.0.1:5173 failed: port is already allocated", "port-in-use"],
-    ["listen tcp 127.0.0.1:3100: bind: address already in use", "port-in-use"],
+    ["Bind for 127.0.0.1:7791 failed: port is already allocated", "port-in-use"],
+    ["listen tcp 127.0.0.1:7792: bind: address already in use", "port-in-use"],
     [
       "Error response from daemon: all predefined address pools have been fully subnetted",
       "address-pool-exhausted",

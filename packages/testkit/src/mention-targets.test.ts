@@ -313,7 +313,7 @@ async function signup(app: App, email: string, name: string) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      origin: "http://127.0.0.1:5173",
+      origin: "http://127.0.0.1:7791",
     },
     body: JSON.stringify({ email, password: "password12", name }),
   });
@@ -329,7 +329,7 @@ async function raw(app: App, cookie: string, proc: string, body: unknown = {}) {
     headers: {
       "content-type": "application/json",
       cookie,
-      origin: "http://127.0.0.1:5173",
+      origin: "http://127.0.0.1:7791",
     },
     body: JSON.stringify({ json: body }),
   });

@@ -27,25 +27,25 @@ http://{$ENGAZ_HOST:app.example.com} {
 	encode zstd gzip
 
 	handle /health {
-		reverse_proxy api:3100 {
+		reverse_proxy api:7792 {
 			import deploy_retry
 		}
 	}
 
 	handle /api/* {
-		reverse_proxy api:3100 {
+		reverse_proxy api:7792 {
 			import deploy_retry
 		}
 	}
 
 	handle /rpc/* {
-		reverse_proxy api:3100 {
+		reverse_proxy api:7792 {
 			import deploy_retry
 		}
 	}
 
 	handle {
-		reverse_proxy web:5173 {
+		reverse_proxy web:7791 {
 			import deploy_retry
 		}
 	}

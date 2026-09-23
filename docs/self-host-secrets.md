@@ -86,7 +86,7 @@ example.
 bash install-images.sh --prepare-only   # creates .env + fills empties
 # inspect key NAMES only if debugging; never log values
 bash install-images.sh                  # pull + up; preserves .env
-curl -fsS http://127.0.0.1:3100/health
+curl -fsS http://127.0.0.1:7792/health
 ```
 
 If `sandbox` in `/health` is `"none"` or the supervisor never becomes healthy,

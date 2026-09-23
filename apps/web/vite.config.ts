@@ -23,7 +23,7 @@ import {
   watchScreenAuthorization,
 } from "./src/screen-proxy.js";
 
-const webPort = Number(process.env.WEB_PORT ?? 5173);
+const webPort = Number(process.env.WEB_PORT ?? 7791);
 const DESKTOP_STACK_PROBE_PATH = "/.well-known/engaz-desktop-stack";
 const DESKTOP_STACK_TOKEN_HEADER = "x-engaz-desktop-stack-token";
 
@@ -227,7 +227,7 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
 
 export default defineConfig(({ mode }) => {
   const rootEnv = loadEnv(mode, path.resolve(import.meta.dirname, "../.."), "");
-  const api = process.env.API_PROXY_TARGET ?? rootEnv.API_PROXY_TARGET ?? "http://127.0.0.1:3100";
+  const api = process.env.API_PROXY_TARGET ?? rootEnv.API_PROXY_TARGET ?? "http://127.0.0.1:7792";
   const previewHost = process.env.ENGAZ_HOST ?? rootEnv.ENGAZ_HOST ?? "localhost";
   const screenProxySecret = () =>
     resolveScreenProxySecret({
@@ -284,7 +284,7 @@ export default defineConfig(({ mode }) => {
     },
     preview: {
       host: "0.0.0.0",
-      port: Number(process.env.WEB_PORT ?? 5173),
+      port: Number(process.env.WEB_PORT ?? 7791),
       allowedHosts: [previewHost],
       proxy: {
         "/api": { target: api, changeOrigin: true },

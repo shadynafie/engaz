@@ -35,13 +35,29 @@ jobs:
     env:
       ARCH: ${{ matrix.arch }}
     steps:
+      - uses: actions/checkout@v5
+        if: github.event_name == 'pull_request'
+        with:
+          persist-credentials: false
+
       - name: Use an empty Docker credential store
         run: |
           mkdir -p "$RUNNER_TEMP/docker-config"
           printf '{}\n' > "$RUNNER_TEMP/docker-config/config.json"
           echo "DOCKER_CONFIG=$RUNNER_TEMP/docker-config" >> "$GITHUB_ENV"
 
+      # Pull requests prove their own installer; published runs use the documented download from main.
+      - name: Install from this pull request
+        if: github.event_name == 'pull_request'
+        run: |
+          mkdir "$RUNNER_TEMP/engaz"
+          cp infra/compose/install-images.sh infra/compose/docker-compose.images.yml \
+            infra/compose/.env.images.example "$RUNNER_TEMP/engaz/"
+          cd "$RUNNER_TEMP/engaz"
+          bash install-images.sh --local
+
       - name: Install with the documented command
+        if: github.event_name != 'pull_request'
         working-directory: ${{ runner.temp }}
         run: |
           mkdir engaz && cd engaz
@@ -51,10 +67,10 @@ jobs:
       - name: Check the running stack
         working-directory: ${{ runner.temp }}/engaz
         run: |
-          curl -fsS --retry 10 --retry-delay 3 --retry-all-errors http://127.0.0.1:5173/ -o /dev/null
-          curl -fsS http://127.0.0.1:3100/health
+          curl -fsS --retry 10 --retry-delay 3 --retry-all-errors http://127.0.0.1:7791/ -o /dev/null
+          curl -fsS http://127.0.0.1:7792/health
           echo
-          curl -fsS http://127.0.0.1:5173/api/auth/capabilities
+          curl -fsS http://127.0.0.1:7791/api/auth/capabilities
           echo
           docker compose --env-file .env -f docker-compose.images.yml ps
 
@@ -130,7 +146,7 @@ jobs:
             echo "::error::named data volumes were created"
             exit 1
           fi
-          curl -fsS http://127.0.0.1:3100/health
+          curl -fsS http://127.0.0.1:7792/health
 
       - name: Write a file from an agent computer
         working-directory: ${{ env.DATA }}
@@ -175,7 +191,7 @@ jobs:
           docker compose down
           docker compose up -d --wait --wait-timeout 300
           test "$(sudo cat "$DATA/appdata/homes/ci-data-dir/probe.txt")" = home-ok
-          curl -fsS http://127.0.0.1:3100/health
+          curl -fsS http://127.0.0.1:7792/health
 
       - name: Show service logs
         if: failure()

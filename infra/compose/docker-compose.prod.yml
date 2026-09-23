@@ -52,6 +52,7 @@ services:
     environment:
       NODE_ENV: production
       API_HOST: "0.0.0.0"
+      API_PORT: "7792"
       DATABASE_URL: postgres://${POSTGRES_USER:-engaz}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-engaz}
       DATA_DIR: /data
       SANDBOX_PROVIDER: ${SANDBOX_PROVIDER:-e2b}
@@ -69,7 +70,7 @@ services:
       no_proxy: ${no_proxy:-${NO_PROXY:-}}
       ENGAZ_UPDATER_URL: http://updater:7092
     expose:
-      - "3100"
+      - "7792"
     volumes:
       - appdata:/data
     networks:
@@ -84,7 +85,7 @@ services:
         - CMD
         - node
         - -e
-        - fetch('http://127.0.0.1:3100/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+        - fetch('http://127.0.0.1:7792/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
       interval: 10s
       timeout: 5s
       retries: 20
@@ -145,7 +146,7 @@ services:
       args:
         GIT_SHA: ${GIT_SHA:-}
     restart: unless-stopped
-    command: ["pnpm", "--filter", "@engaz/web", "preview", "--host", "0.0.0.0", "--port", "5173"]
+    command: ["pnpm", "--filter", "@engaz/web", "preview", "--host", "0.0.0.0", "--port", "7791"]
     init: true
     security_opt:
       - no-new-privileges:true
@@ -155,11 +156,11 @@ services:
     mem_limit: 512m
     environment:
       NODE_ENV: production
-      API_PROXY_TARGET: http://api:3100
+      API_PROXY_TARGET: http://api:7792
       ENGAZ_HOST: ${ENGAZ_HOST:-app.example.com}
       SCREEN_PROXY_SECRET: ${SCREEN_PROXY_SECRET:?Set SCREEN_PROXY_SECRET in .env}
     expose:
-      - "5173"
+      - "7791"
     networks:
       - edge
       - app

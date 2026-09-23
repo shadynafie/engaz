@@ -106,10 +106,10 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     realtimeDatabaseUrl: source.REALTIME_DATABASE_URL ?? required(source, "DATABASE_URL"),
     desktopStackToken: optional(source.ENGAZ_DESKTOP_STACK_TOKEN),
     authSecret,
-    authUrl: source.BETTER_AUTH_URL ?? source.WEB_ORIGIN ?? "http://127.0.0.1:5173",
-    webOrigin: source.WEB_ORIGIN ?? "http://127.0.0.1:5173",
+    authUrl: source.BETTER_AUTH_URL ?? source.WEB_ORIGIN ?? "http://127.0.0.1:7791",
+    webOrigin: source.WEB_ORIGIN ?? "http://127.0.0.1:7791",
     privacyPolicyUrl: optional(source.PRIVACY_POLICY_URL),
-    apiUrl: source.API_URL ?? "http://127.0.0.1:3100",
+    apiUrl: source.API_URL ?? "http://127.0.0.1:7792",
     apiHost: source.API_HOST ?? "127.0.0.1",
     signupsEnabled: source.SIGNUPS_ENABLED,
     signupAllowlist: source.SIGNUP_ALLOWLIST,
@@ -172,7 +172,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
       .split(",")
       .map((value) => value.trim())
       .filter(Boolean),
-    port: Number(source.API_PORT ?? 3100),
+    port: Number(source.API_PORT ?? 7792),
     gitSha: optional(source.GIT_SHA) ?? optional(source.ENGAZ_GIT_SHA),
     updaterUrl,
     updaterToken,

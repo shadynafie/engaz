@@ -12,11 +12,11 @@ expects a running Engaz stack and deliberately stays out of ordinary pull-reques
 3. Create a disposable test account through the mobile or web sign-up screen. Never use a
    production account or put credentials in this repository.
 4. Build/install the native app with an API URL that the emulator can reach. For the standard local
-   ports, use `http://10.0.2.2:3100` on the Android emulator and `http://127.0.0.1:3100` on the iOS
+   ports, use `http://10.0.2.2:7792` on the Android emulator and `http://127.0.0.1:7792` on the iOS
    simulator. For example:
 
    ```sh
-   EXPO_PUBLIC_API_URL=http://10.0.2.2:3100 pnpm --filter @engaz/mobile android
+   EXPO_PUBLIC_API_URL=http://10.0.2.2:7792 pnpm --filter @engaz/mobile android
    ```
 
 ## Run

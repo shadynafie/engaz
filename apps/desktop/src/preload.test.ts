@@ -123,8 +123,8 @@ describe("setup preload bridge", () => {
     expect(Object.keys(bridge.stack).sort()).toEqual(["onChange", "start", "state"]);
 
     await bridge.state();
-    await bridge.test("http://127.0.0.1:5173");
-    await bridge.save({ mode: "new", serverUrl: "http://127.0.0.1:5173" });
+    await bridge.test("http://127.0.0.1:7791");
+    await bridge.save({ mode: "new", serverUrl: "http://127.0.0.1:7791" });
     await bridge.quit();
     await bridge.openLink("orbstack");
     await bridge.stack.state();

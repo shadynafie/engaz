@@ -66,10 +66,10 @@ function policyFixture(url = appUrl) {
 describe("desktop session permissions", () => {
   it.each([
     appUrl,
-    "http://127.0.0.1:5173/chat",
-    "http://localhost:5173/chat",
-    "http://[::1]:5173/chat",
-    "https://192.168.1.20:3100/chat",
+    "http://127.0.0.1:7791/chat",
+    "http://localhost:7791/chat",
+    "http://[::1]:7791/chat",
+    "https://192.168.1.20:7792/chat",
   ])("preserves microphone, notifications and copy in the connected app at %s", (url) => {
     const policy = policyFixture(url);
     for (const permission of ["media", "notifications", "clipboard-sanitized-write"] as const) {
@@ -79,10 +79,10 @@ describe("desktop session permissions", () => {
   });
 
   it.each([
-    "http://192.168.1.20:3100/chat",
-    "http://10.0.0.20:3100/chat",
-    "http://[fd00::20]:3100/chat",
-    "http://server.local:3100/chat",
+    "http://192.168.1.20:7792/chat",
+    "http://10.0.0.20:7792/chat",
+    "http://[fd00::20]:7792/chat",
+    "http://server.local:7792/chat",
     "http://app.example.test/chat",
   ])("denies permissions to a connected app over non-loopback HTTP: %s", (url) => {
     const policy = policyFixture(url);

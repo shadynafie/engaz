@@ -55,7 +55,7 @@ describe("MCP OAuth", () => {
     const provider = new StoredMcpOAuthProvider("server-1", {}, async () => undefined, {
       onAuthorization,
     });
-    const authorizationUrl = new URL("http://127.0.0.1:5173/authorize");
+    const authorizationUrl = new URL("http://127.0.0.1:7791/authorize");
 
     await provider.redirectToAuthorization(authorizationUrl);
 
@@ -87,7 +87,7 @@ describe("MCP OAuth", () => {
       "server-1",
       {
         oauth: {
-          redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+          redirectUri: "http://127.0.0.1:7791/mcp/oauth/callback",
           tokens: { access_token: "old", refresh_token: "refresh", token_type: "bearer" },
           clientInformation: { client_id: "client-1" },
           discoveryState: { authorizationServerUrl: "https://auth.example.test" },
@@ -122,7 +122,7 @@ describe("MCP OAuth", () => {
       "server-1",
       {
         oauth: {
-          redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+          redirectUri: "http://127.0.0.1:7791/mcp/oauth/callback",
           tokens: { access_token: "revoked-server-side", token_type: "bearer" },
           clientInformation: { client_id: "client-1" },
         },
@@ -182,7 +182,7 @@ describe("MCP OAuth", () => {
             return Response.json(
               {
                 client_id: "registered-client-id",
-                redirect_uris: ["http://127.0.0.1:5173/mcp/oauth/callback"],
+                redirect_uris: ["http://127.0.0.1:7791/mcp/oauth/callback"],
                 token_endpoint_auth_method: "none",
               },
               { status: 201 },
@@ -244,7 +244,7 @@ describe("MCP OAuth", () => {
         serverId: "server-1",
         spaceId: "workspace-1",
         userId: "user-1",
-        redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+        redirectUri: "http://127.0.0.1:7791/mcp/oauth/callback",
       });
       expect(started.status).toBe("authorization_required");
       if (started.status !== "authorization_required") throw new Error("OAuth was not requested");
@@ -260,7 +260,7 @@ describe("MCP OAuth", () => {
         serverId: "server-1",
         spaceId: "workspace-1",
         userId: "user-1",
-        redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+        redirectUri: "http://127.0.0.1:7791/mcp/oauth/callback",
       });
       expect(second.status).toBe("authorization_required");
       if (second.status !== "authorization_required") throw new Error("OAuth was not requested");
@@ -327,7 +327,7 @@ describe("MCP OAuth", () => {
         serverId: "server-1",
         spaceId: "workspace-1",
         userId: "user-1",
-        redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+        redirectUri: "http://127.0.0.1:7791/mcp/oauth/callback",
       }),
     ).rejects.toThrow(/HTTPS/i);
     expect(fetchCalls).toEqual([]);
@@ -350,7 +350,7 @@ describe("MCP OAuth", () => {
     );
     const material = {
       oauth: {
-        redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+        redirectUri: "http://127.0.0.1:7791/mcp/oauth/callback",
         codeVerifier: "persisted-verifier",
         clientInformation: { client_id: "persisted-client" },
         discoveryState: {
@@ -608,7 +608,7 @@ describe("MCP OAuth", () => {
         serverId: "server-1",
         spaceId: "workspace-1",
         userId: "user-1",
-        redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+        redirectUri: "http://127.0.0.1:7791/mcp/oauth/callback",
       }),
     ).rejects.toThrow(/redirect/i);
     expect(requestedUrls.every((url) => !url.includes("attacker.example.test"))).toBe(true);
@@ -683,7 +683,7 @@ describe("MCP OAuth", () => {
         serverId: "server-1",
         spaceId: "workspace-1",
         userId: "user-1",
-        redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+        redirectUri: "http://127.0.0.1:7791/mcp/oauth/callback",
       }),
     ).rejects.toThrow(/Could not reach private-auth\.example\.test|Unexpected request/);
 

@@ -54,7 +54,7 @@ export function withSpaceHeaders(
 const link = new RPCLink<RpcClientContext>({
   url: () =>
     typeof window === "undefined"
-      ? "http://127.0.0.1:5173/rpc"
+      ? "http://127.0.0.1:7791/rpc"
       : `${window.location.origin}${window.location.pathname === LOCAL_SETTINGS_PAGE ? LOCAL_SETTINGS_RPC : "/rpc"}`,
   fetch: async (input, init, options) => {
     const request = new Request(input, init);

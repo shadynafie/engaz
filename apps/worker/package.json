@@ -15,7 +15,8 @@
     "@engaz/core": "workspace:*",
     "@engaz/db": "workspace:*",
     "@engaz/logging": "workspace:*",
-    "@engaz/memory": "workspace:*"
+    "@engaz/memory": "workspace:*",
+    "tsx": "4.23.13"
   },
   "devDependencies": {
     "typescript": "7.0.2",

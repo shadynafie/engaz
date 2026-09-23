@@ -85,7 +85,7 @@ describeLive("real model and sandbox computer journey", () => {
     const stamp = Date.now();
     const signup = await handles.app.request("/api/auth/sign-up/email", {
       method: "POST",
-      headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" },
+      headers: { "content-type": "application/json", origin: "http://127.0.0.1:7791" },
       body: JSON.stringify({
         email: `computer-${stamp}@engaz.test`,
         password: "password12",
@@ -277,7 +277,7 @@ type RunState = { status: string; error: string | null };
 async function rpc<T>(app: App, cookie: string, procedure: string, body: unknown): Promise<T> {
   const response = await app.request(`/rpc/${procedure}`, {
     method: "POST",
-    headers: { "content-type": "application/json", cookie, origin: "http://127.0.0.1:5173" },
+    headers: { "content-type": "application/json", cookie, origin: "http://127.0.0.1:7791" },
     body: JSON.stringify({ json: body }),
   });
   const parsed = (await response.json()) as { json?: T; error?: { message?: string } };

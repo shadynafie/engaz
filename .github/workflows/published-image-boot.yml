@@ -51,10 +51,10 @@ jobs:
       - name: Check the running stack
         working-directory: ${{ runner.temp }}/engaz
         run: |
-          curl -fsS --retry 10 --retry-delay 3 --retry-all-errors http://127.0.0.1:5173/ -o /dev/null
-          curl -fsS http://127.0.0.1:3100/health
+          curl -fsS --retry 10 --retry-delay 3 --retry-all-errors http://127.0.0.1:7791/ -o /dev/null
+          curl -fsS http://127.0.0.1:7792/health
           echo
-          curl -fsS http://127.0.0.1:5173/api/auth/capabilities
+          curl -fsS http://127.0.0.1:7791/api/auth/capabilities
           echo
           docker compose --env-file .env -f docker-compose.images.yml ps
 
@@ -130,7 +130,7 @@ jobs:
             echo "::error::named data volumes were created"
             exit 1
           fi
-          curl -fsS http://127.0.0.1:3100/health
+          curl -fsS http://127.0.0.1:7792/health
 
       - name: Write a file from an agent computer
         working-directory: ${{ env.DATA }}
@@ -175,7 +175,7 @@ jobs:
           docker compose down
           docker compose up -d --wait --wait-timeout 300
           test "$(sudo cat "$DATA/appdata/homes/ci-data-dir/probe.txt")" = home-ok
-          curl -fsS http://127.0.0.1:3100/health
+          curl -fsS http://127.0.0.1:7792/health
 
       - name: Show service logs
         if: failure()

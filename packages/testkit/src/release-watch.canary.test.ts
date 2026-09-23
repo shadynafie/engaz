@@ -50,7 +50,7 @@ describeLive("live release-watch eval (GPT 5.6 Luna + GitHub emulator)", () => {
     const stamp = Date.now();
     const signup = await handles.app.request("/api/auth/sign-up/email", {
       method: "POST",
-      headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" },
+      headers: { "content-type": "application/json", origin: "http://127.0.0.1:7791" },
       body: JSON.stringify({
         email: `release-watch-${stamp}@engaz.test`,
         password: "password12",
@@ -205,7 +205,7 @@ type Snap = {
 async function rpc<T>(app: App, cookie: string, proc: string, body: unknown = {}): Promise<T> {
   const res = await app.request(`/rpc/${proc}`, {
     method: "POST",
-    headers: { "content-type": "application/json", cookie, origin: "http://127.0.0.1:5173" },
+    headers: { "content-type": "application/json", cookie, origin: "http://127.0.0.1:7791" },
     body: JSON.stringify({ json: body }),
   });
   const parsed = (await res.json()) as { json?: T; error?: { message?: string } };

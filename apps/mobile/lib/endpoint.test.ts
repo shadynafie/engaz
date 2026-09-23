@@ -28,9 +28,9 @@ describe("normalizeApiBase", () => {
       ok: true,
       url: "https://engaz.example.com:8443",
     });
-    expect(normalizeApiBase("http://192.168.1.20:3100/")).toEqual({
+    expect(normalizeApiBase("http://192.168.1.20:7792/")).toEqual({
       ok: true,
-      url: "http://192.168.1.20:3100",
+      url: "http://192.168.1.20:7792",
     });
     expect(normalizeApiBase("http://app.example.com")).toEqual({
       ok: false,
@@ -60,7 +60,7 @@ describe("display and warnings", () => {
     vi.resetModules();
     const endpoint = await import("./endpoint.js");
 
-    expect(endpoint.defaultApiBase()).toBe("http://127.0.0.1:3100");
+    expect(endpoint.defaultApiBase()).toBe("http://127.0.0.1:7792");
     vi.unstubAllEnvs();
   });
 
@@ -69,22 +69,22 @@ describe("display and warnings", () => {
     vi.resetModules();
     const endpoint = await import("./endpoint.js");
 
-    expect(endpoint.defaultApiBase()).toBe("http://127.0.0.1:3100");
+    expect(endpoint.defaultApiBase()).toBe("http://127.0.0.1:7792");
     vi.unstubAllEnvs();
   });
 
   it("shows host and non-default port", () => {
     expect(displayApiHost("https://engaz.example.com")).toBe("engaz.example.com");
-    expect(displayApiHost("http://10.0.0.8:3100")).toBe("10.0.0.8:3100");
+    expect(displayApiHost("http://10.0.0.8:7792")).toBe("10.0.0.8:7792");
   });
 
   it("warns on public http but not LAN or loopback", () => {
     expect(apiBaseWarning("https://app.example.com")).toBeNull();
-    expect(apiBaseWarning("http://127.0.0.1:3100")).toBeNull();
-    expect(apiBaseWarning("http://192.168.1.20:3100")).toBeNull();
-    expect(apiBaseWarning("http://100.64.0.1:3100")).toBeNull();
-    expect(apiBaseWarning("http://100.119.57.55:3100")).toBeNull();
-    expect(apiBaseWarning("http://100.127.255.255:3100")).toBeNull();
+    expect(apiBaseWarning("http://127.0.0.1:7792")).toBeNull();
+    expect(apiBaseWarning("http://192.168.1.20:7792")).toBeNull();
+    expect(apiBaseWarning("http://100.64.0.1:7792")).toBeNull();
+    expect(apiBaseWarning("http://100.119.57.55:7792")).toBeNull();
+    expect(apiBaseWarning("http://100.127.255.255:7792")).toBeNull();
     expect(apiBaseWarning("http://app.example.com")).toMatch(/https/i);
   });
 

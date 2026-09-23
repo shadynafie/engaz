@@ -26,7 +26,7 @@ describe("loopback OAuth callbacks", () => {
   it("ignores the authorize page and other steps of the flow", () => {
     expect(oauthCallbackFrom("https://claude.ai/oauth/authorize?code=true")).toBeUndefined();
     expect(oauthCallbackFrom("http://localhost:53692/callback")).toBeUndefined();
-    expect(oauthCallbackFrom("http://localhost:5173/")).toBeUndefined();
+    expect(oauthCallbackFrom("http://localhost:7791/")).toBeUndefined();
   });
 
   it("does not treat a remote host as a loopback callback", () => {
@@ -46,13 +46,13 @@ describe("loopback OAuth callbacks", () => {
 
   it("does not capture the app renderer origin used by MCP and other in-app callbacks", () => {
     expect(
-      oauthCallbackFrom("http://127.0.0.1:5173/mcp/oauth/callback?code=mcp_123&state=s", {
-        excludeOrigins: ["http://127.0.0.1:5173"],
+      oauthCallbackFrom("http://127.0.0.1:7791/mcp/oauth/callback?code=mcp_123&state=s", {
+        excludeOrigins: ["http://127.0.0.1:7791"],
       }),
     ).toBeUndefined();
     expect(
       oauthCallbackFrom("http://localhost:53692/callback?code=ac_123", {
-        excludeOrigins: ["http://127.0.0.1:5173"],
+        excludeOrigins: ["http://127.0.0.1:7791"],
       }),
     ).toEqual({ code: "ac_123" });
   });

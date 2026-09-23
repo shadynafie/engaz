@@ -97,7 +97,7 @@ describe("screen proxy", () => {
       safeProxyHeaders({
         ":method": "GET",
         ":path": "/novnc/embed.html",
-        ":authority": "localhost:5173",
+        ":authority": "localhost:7791",
         ":scheme": "https",
         upgrade: "websocket",
         "sec-websocket-key": "key",

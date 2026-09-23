@@ -20,9 +20,9 @@ import {
 
 describe("server address normalization", () => {
   it("assumes http locally and https for a bare public host", () => {
-    expect(normalizeServerUrl("127.0.0.1:5173")).toBe("http://127.0.0.1:5173");
-    expect(normalizeServerUrl("localhost:5173")).toBe("http://localhost:5173");
-    expect(normalizeServerUrl("192.168.1.20:3100")).toBe("http://192.168.1.20:3100");
+    expect(normalizeServerUrl("127.0.0.1:7791")).toBe("http://127.0.0.1:7791");
+    expect(normalizeServerUrl("localhost:7791")).toBe("http://localhost:7791");
+    expect(normalizeServerUrl("192.168.1.20:7792")).toBe("http://192.168.1.20:7792");
     expect(normalizeServerUrl("engaz.example.com")).toBe("https://engaz.example.com");
   });
 
@@ -34,23 +34,23 @@ describe("server address normalization", () => {
   });
 
   it("trims surrounding space, trailing slashes, queries, and fragments", () => {
-    expect(normalizeServerUrl("  http://127.0.0.1:5173/  ")).toBe("http://127.0.0.1:5173");
-    expect(normalizeServerUrl("http://127.0.0.1:5173///")).toBe("http://127.0.0.1:5173");
-    expect(normalizeServerUrl("http://127.0.0.1:5173/?next=/bots#top")).toBe(
-      "http://127.0.0.1:5173",
+    expect(normalizeServerUrl("  http://127.0.0.1:7791/  ")).toBe("http://127.0.0.1:7791");
+    expect(normalizeServerUrl("http://127.0.0.1:7791///")).toBe("http://127.0.0.1:7791");
+    expect(normalizeServerUrl("http://127.0.0.1:7791/?next=/bots#top")).toBe(
+      "http://127.0.0.1:7791",
     );
   });
 
   it("rejects cleartext public servers but permits private-network development", () => {
     expect(normalizeServerUrl("http://engaz.example.com")).toBeNull();
-    expect(normalizeServerUrl("http://10.0.0.8:3100")).toBe("http://10.0.0.8:3100");
-    expect(normalizeServerUrl("http://[fd00::1]:3100")).toBe("http://[fd00::1]:3100");
+    expect(normalizeServerUrl("http://10.0.0.8:7792")).toBe("http://10.0.0.8:7792");
+    expect(normalizeServerUrl("http://[fd00::1]:7792")).toBe("http://[fd00::1]:7792");
   });
 
   it("rejects cleartext link-local addresses used by cloud metadata endpoints", () => {
     expect(normalizeServerUrl("http://169.254.169.254")).toBeNull();
     expect(normalizeServerUrl("http://169.254.1.1:80")).toBeNull();
-    expect(normalizeServerUrl("http://[fe80::1]:3100")).toBeNull();
+    expect(normalizeServerUrl("http://[fe80::1]:7792")).toBeNull();
     // HTTPS to link-local still normalizes; the health probe must match Engaz.
     expect(normalizeServerUrl("https://169.254.169.254")).toBe("https://169.254.169.254");
   });
@@ -79,7 +79,7 @@ describe("managed local open URL", () => {
 
   it("rejects a different loopback origin even when both are local", () => {
     expect(managedLocalOpenUrl("http://127.0.0.1:5199", DEFAULT_LOCAL_WEB_URL)).toBeNull();
-    expect(managedLocalOpenUrl("http://localhost:5173", DEFAULT_LOCAL_WEB_URL)).toBeNull();
+    expect(managedLocalOpenUrl("http://localhost:7791", DEFAULT_LOCAL_WEB_URL)).toBeNull();
     expect(managedLocalOpenUrl("https://engaz.example.com", DEFAULT_LOCAL_WEB_URL)).toBeNull();
   });
 });
@@ -87,10 +87,10 @@ describe("managed local open URL", () => {
 describe("desktop stack token transport", () => {
   it("allows HTTPS and loopback HTTP only", () => {
     expect(maySendDesktopStackToken("https://engaz.example.com")).toBe(true);
-    expect(maySendDesktopStackToken("http://127.0.0.1:5173")).toBe(true);
-    expect(maySendDesktopStackToken("http://localhost:5173")).toBe(true);
-    expect(maySendDesktopStackToken("http://10.0.0.8:5173")).toBe(false);
-    expect(maySendDesktopStackToken("http://engaz.local:5173")).toBe(false);
+    expect(maySendDesktopStackToken("http://127.0.0.1:7791")).toBe(true);
+    expect(maySendDesktopStackToken("http://localhost:7791")).toBe(true);
+    expect(maySendDesktopStackToken("http://10.0.0.8:7791")).toBe(false);
+    expect(maySendDesktopStackToken("http://engaz.local:7791")).toBe(false);
   });
 });
 
@@ -101,16 +101,16 @@ describe("saved setup", () => {
   });
 
   it("normalizes the address it reads back", () => {
-    expect(parseStoredSetup('{"mode":"new","serverUrl":"127.0.0.1:5173/"}')).toEqual({
+    expect(parseStoredSetup('{"mode":"new","serverUrl":"127.0.0.1:7791/"}')).toEqual({
       mode: "new",
-      serverUrl: "http://127.0.0.1:5173",
+      serverUrl: "http://127.0.0.1:7791",
     });
   });
 
   it.each([
     ["not json", "{oops"],
     ["a non-object", '"nope"'],
-    ["an unknown mode", '{"mode":"other","serverUrl":"http://127.0.0.1:5173"}'],
+    ["an unknown mode", '{"mode":"other","serverUrl":"http://127.0.0.1:7791"}'],
     ["a missing address", '{"mode":"new"}'],
     ["an unusable address", '{"mode":"new","serverUrl":"ftp://example.com"}'],
   ])("discards %s so setup runs again", (_label, raw) => {
@@ -119,14 +119,14 @@ describe("saved setup", () => {
 
   it("rejects an untrusted payload that is not a setup", () => {
     expect(parseSetupInput(null)).toBeNull();
-    expect(parseSetupInput({ mode: "new", serverUrl: 5173 })).toBeNull();
+    expect(parseSetupInput({ mode: "new", serverUrl: 7791 })).toBeNull();
   });
 
   it("keeps the new-instance choice on this computer", () => {
-    expect(parseSetupInput({ mode: "new", serverUrl: "http://192.168.1.20:3100" })).toBeNull();
-    expect(parseSetupInput({ mode: "existing", serverUrl: "http://192.168.1.20:3100" })).toEqual({
+    expect(parseSetupInput({ mode: "new", serverUrl: "http://192.168.1.20:7792" })).toBeNull();
+    expect(parseSetupInput({ mode: "existing", serverUrl: "http://192.168.1.20:7792" })).toEqual({
       mode: "existing",
-      serverUrl: "http://192.168.1.20:3100",
+      serverUrl: "http://192.168.1.20:7792",
     });
   });
 });
@@ -169,7 +169,7 @@ describe("startup target", () => {
     });
     expect(
       resolveStartupTarget({
-        saved: { mode: "new", serverUrl: "http://192.168.1.20:3100" },
+        saved: { mode: "new", serverUrl: "http://192.168.1.20:7792" },
       }),
     ).toEqual({ kind: "setup" });
   });

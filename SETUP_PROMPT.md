@@ -32,7 +32,7 @@ Do not ask me to invent secrets; generate strong random values with openssl your
 Preflight:
 
 - Verify Docker Engine and the Compose plugin are installed and the daemon is running.
-- Check whether `127.0.0.1` ports 3100 and 5173 are available.
+- Check whether `127.0.0.1` ports 7792 and 7791 are available.
 
 Setup:
 
@@ -56,8 +56,8 @@ Setup:
 
 Verification:
 
-- Request `http://127.0.0.1:3100/health`. Require `ok: true` and `sandbox: "docker"` (or the remote provider you configured). A missing `SANDBOX_SUPERVISOR_TOKEN` is a setup failure: Compose will not start the supervisor; restore the token and recreate the stack. Do not treat `sandbox: "none"` as success for this path.
-- Open `http://127.0.0.1:5173`, create a local test account with fake data, and complete first-run onboarding.
+- Request `http://127.0.0.1:7792/health`. Require `ok: true` and `sandbox: "docker"` (or the remote provider you configured). A missing `SANDBOX_SUPERVISOR_TOKEN` is a setup failure: Compose will not start the supervisor; restore the token and recreate the stack. Do not treat `sandbox: "none"` as success for this path.
+- Open `http://127.0.0.1:7791`, create a local test account with fake data, and complete first-run onboarding.
 - If a model is connected, send a harmless test message. Open the Agent computer pane and confirm the Docker computer reaches `running` and renders its desktop.
 
 When finished, report the directory path, effective Docker/Compose versions, configured options without secrets, app URL, health result, and how to stop without deleting volumes (`docker compose … down` without `-v`).
@@ -99,7 +99,7 @@ Preflight:
 - Verify Git, Node.js, pnpm, Docker, and Docker Compose.
 - Use a Node.js version supported by `engines.node` and the pnpm version declared in `packageManager` in the root `package.json`. Prefer Corepack; if unavailable, use `npx --yes pnpm@<declared-version>` instead of globally installing a different version. Use that same executable for every later `pnpm` command, including verification and restart commands. Show the effective versions.
 - Verify the Docker daemon is running.
-- Check whether `127.0.0.1` ports 5433 (only if using the optional postgres-host overlay), 3100, 5173, and 7091 are available. Resolve conflicts without touching unrelated workloads.
+- Check whether `127.0.0.1` ports 5433 (only if using the optional postgres-host overlay), 7792, 7791, and 7091 are available. Resolve conflicts without touching unrelated workloads.
 - Ensure `.env` sets a non-empty `POSTGRES_PASSWORD`. When using the optional postgres-host overlay (or any host-side `DATABASE_URL`), that URL must use the same password.
 
 Setup:
@@ -130,8 +130,8 @@ Setup:
 
 Verification:
 
-- Request `http://127.0.0.1:3100/health`. Require `ok: true`, `runtime: "pi"`, `sandbox: "docker"`, `jobs: "graphile"`, and `realtime: "postgres"`. Expect `composio: true` only when its key was configured and `pipedream: true` only when all Pipedream settings were configured. `revision` is `null` unless `GIT_SHA` is set.
-- Open `http://127.0.0.1:5173` in a browser. If browser automation is available, use it for non-sensitive steps; otherwise give me the exact UI steps.
+- Request `http://127.0.0.1:7792/health`. Require `ok: true`, `runtime: "pi"`, `sandbox: "docker"`, `jobs: "graphile"`, and `realtime: "postgres"`. Expect `composio: true` only when its key was configured and `pipedream: true` only when all Pipedream settings were configured. `revision` is `null` unless `GIT_SHA` is set.
+- Open `http://127.0.0.1:7791` in a browser. If browser automation is available, use it for non-sensitive steps; otherwise give me the exact UI steps.
 - Create a local test account with clearly fake data, complete first-run onboarding, and create a test bot. Do not use personal data.
 - If a model is connected, send a harmless test message and confirm the bot replies. If model setup was deferred, explicitly report that the stack is healthy but a first message will fail until a provider is configured; do not call the setup fully usable without that caveat.
 - Open the Agent computer pane and confirm the Docker computer reaches `running` and renders its desktop.

@@ -165,10 +165,10 @@ describe("the images compose file", () => {
   });
 
   it("publishes the web UI on loopback only", () => {
-    expect(compose.services.web?.ports).toEqual(["127.0.0.1:${ENGAZ_WEB_PORT:-5173}:5173"]);
-    expect(compose.services.api?.ports).toEqual(["127.0.0.1:${ENGAZ_API_PORT:-3100}:3100"]);
+    expect(compose.services.web?.ports).toEqual(["127.0.0.1:${ENGAZ_WEB_PORT:-7791}:7791"]);
+    expect(compose.services.api?.ports).toEqual(["127.0.0.1:${ENGAZ_API_PORT:-7792}:7792"]);
     for (const key of ["BETTER_AUTH_URL", "WEB_ORIGIN", "API_URL"]) {
-      expect(compose.services.api?.environment?.[key]).toBe(`\${${key}:-http://127.0.0.1:5173}`);
+      expect(compose.services.api?.environment?.[key]).toBe(`\${${key}:-http://127.0.0.1:7791}`);
     }
     expect(compose.services.postgres?.ports).toBeUndefined();
     expect(compose.services.supervisor?.ports).toBeUndefined();

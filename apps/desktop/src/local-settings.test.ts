@@ -3,7 +3,7 @@ import { LOCAL_SETTINGS_RPC, LOCAL_SETTINGS_TOKEN_HEADER } from "@engaz/contract
 import { describe, expect, it, vi } from "vitest";
 import { requestLocalSettings } from "./local-settings.js";
 
-const target = { origin: "http://127.0.0.1:5173", token: "ab".repeat(32) };
+const target = { origin: "http://127.0.0.1:7791", token: "ab".repeat(32) };
 const pathname = `${LOCAL_SETTINGS_RPC}/models/connect`;
 describe("local settings transport", () => {
   it("loads shared settings contracts in native Node without a TypeScript loader", () => {

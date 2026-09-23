@@ -17,10 +17,10 @@ describe("buildTrustedOrigins", () => {
   it("adds the localhost twin for a 127.0.0.1 web origin", () => {
     expect(
       buildTrustedOrigins({
-        webOrigin: "http://127.0.0.1:5173",
-        baseURL: "http://127.0.0.1:5173",
+        webOrigin: "http://127.0.0.1:7791",
+        baseURL: "http://127.0.0.1:7791",
       }),
-    ).toEqual(expect.arrayContaining(["http://127.0.0.1:5173", "http://localhost:5173"]));
+    ).toEqual(expect.arrayContaining(["http://127.0.0.1:7791", "http://localhost:7791"]));
   });
 
   it("keeps extraOrigins and does not twin non-loopback hosts", () => {

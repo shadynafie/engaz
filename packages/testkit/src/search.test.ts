@@ -192,7 +192,7 @@ describeSearch("workspace search", () => {
 async function signup(app: App, email: string, name: string) {
   const response = await app.request("/api/auth/sign-up/email", {
     method: "POST",
-    headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" },
+    headers: { "content-type": "application/json", origin: "http://127.0.0.1:7791" },
     body: JSON.stringify({ email, password: "test-password-123", name }),
   });
   expect(response.status).toBeLessThan(400);
@@ -215,7 +215,7 @@ async function raw(app: App, cookie: string, proc: string, body: unknown) {
     headers: {
       "content-type": "application/json",
       cookie,
-      origin: "http://127.0.0.1:5173",
+      origin: "http://127.0.0.1:7791",
     },
     body: JSON.stringify({ json: body }),
   });

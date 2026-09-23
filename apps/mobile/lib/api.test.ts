@@ -71,7 +71,7 @@ describe("mobile API authentication", () => {
     await signIn("ada@example.com", "correct horse");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:3100/api/auth/sign-in/email",
+      "http://127.0.0.1:7792/api/auth/sign-in/email",
       expect.objectContaining({
         method: "POST",
         headers: { "content-type": "application/json", origin: "engaz://" },
@@ -89,7 +89,7 @@ describe("mobile API authentication", () => {
     await signUp("new@example.com", "correct horse", "New User");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:3100/api/auth/sign-up/email",
+      "http://127.0.0.1:7792/api/auth/sign-up/email",
       expect.objectContaining({
         method: "POST",
         headers: { "content-type": "application/json", origin: "engaz://" },
@@ -120,7 +120,7 @@ describe("mobile API authentication", () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "http://127.0.0.1:3100/api/auth/request-password-reset",
+      "http://127.0.0.1:7792/api/auth/request-password-reset",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -151,7 +151,7 @@ describe("mobile API authentication", () => {
     await changePassword("old-password", "new-password");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:3100/api/auth/change-password",
+      "http://127.0.0.1:7792/api/auth/change-password",
       expect.objectContaining({
         headers: expect.objectContaining({ authorization: "Bearer session-token" }),
         body: JSON.stringify({
@@ -176,7 +176,7 @@ describe("mobile API authentication", () => {
     await changePassword("old-password", "new-password");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:3100/api/auth/change-password",
+      "http://127.0.0.1:7792/api/auth/change-password",
       expect.objectContaining({
         headers: expect.objectContaining({ authorization: "Bearer session-token" }),
       }),
@@ -196,7 +196,7 @@ describe("mobile API authentication", () => {
 
     expect(selectedSpaceId()).toBe("space-default");
     expect(resumeLiveNotifications).toHaveBeenCalledWith(
-      "http://127.0.0.1:3100",
+      "http://127.0.0.1:7792",
       "session-token",
       "space-default",
     );
@@ -345,8 +345,8 @@ describe("mobile API authentication", () => {
     await signOut();
 
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      "http://127.0.0.1:3100/rpc/notifications/unregisterPush",
-      "http://127.0.0.1:3100/api/auth/sign-out",
+      "http://127.0.0.1:7792/rpc/notifications/unregisterPush",
+      "http://127.0.0.1:7792/api/auth/sign-out",
     ]);
   });
 
@@ -371,8 +371,8 @@ describe("mobile API authentication", () => {
     await pending;
 
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      "http://127.0.0.1:3100/rpc/notifications/unregisterPush",
-      "http://127.0.0.1:3100/api/auth/sign-out",
+      "http://127.0.0.1:7792/rpc/notifications/unregisterPush",
+      "http://127.0.0.1:7792/api/auth/sign-out",
     ]);
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("engaz.session_token");
   });
@@ -405,8 +405,8 @@ describe("mobile API authentication", () => {
     await deleteAccount("correct horse");
 
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      "http://127.0.0.1:3100/rpc/notifications/unregisterPush",
-      "http://127.0.0.1:3100/api/auth/delete-user",
+      "http://127.0.0.1:7792/rpc/notifications/unregisterPush",
+      "http://127.0.0.1:7792/api/auth/delete-user",
     ]);
   });
 
@@ -425,7 +425,7 @@ describe("mobile API authentication", () => {
     });
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "http://127.0.0.1:3100/rpc/bots/get",
+      "http://127.0.0.1:7792/rpc/bots/get",
       expect.objectContaining({
         headers: expect.objectContaining({ authorization: "Bearer session-token" }),
         body: JSON.stringify({ json: { botId: "bot-1" } }),
@@ -862,7 +862,7 @@ describe("mobile API authentication", () => {
     // Stale deleted id is cleared even while the replacement write stays locked.
     expect(storage.has("engaz.space_id")).toBe(false);
     expect(storage.get("engaz.space_rollback")).toBe(
-      JSON.stringify({ apiBase: "http://127.0.0.1:3100", spaceId: "space-personal" }),
+      JSON.stringify({ apiBase: "http://127.0.0.1:7792", spaceId: "space-personal" }),
     );
 
     vi.mocked(SecureStore.setItemAsync).mockImplementation(async (key, value) => {
@@ -911,7 +911,7 @@ describe("mobile API authentication", () => {
       ["engaz.space_id", "space-deleted"],
       [
         "engaz.space_rollback",
-        JSON.stringify({ apiBase: "http://127.0.0.1:3100", spaceId: "space-personal" }),
+        JSON.stringify({ apiBase: "http://127.0.0.1:7792", spaceId: "space-personal" }),
       ],
     ]);
     vi.mocked(SecureStore.getItemAsync).mockImplementation(async (key) => storage.get(key) ?? null);
@@ -928,7 +928,7 @@ describe("mobile API authentication", () => {
     expect(restartedApi.selectedSpaceId()).toBe("space-personal");
     expect(storage.has("engaz.space_id")).toBe(false);
     expect(storage.get("engaz.space_rollback")).toBe(
-      JSON.stringify({ apiBase: "http://127.0.0.1:3100", spaceId: "space-personal" }),
+      JSON.stringify({ apiBase: "http://127.0.0.1:7792", spaceId: "space-personal" }),
     );
   });
 
@@ -967,7 +967,7 @@ describe("mobile API authentication", () => {
   });
 
   it("does not let a stale rollback override a saved deleted-space fallback", async () => {
-    const apiBase = "http://127.0.0.1:3100";
+    const apiBase = "http://127.0.0.1:7792";
     const storage = new Map<string, string>([
       ["engaz.space_id", "space-deleted"],
       ["engaz.space_rollback", JSON.stringify({ apiBase, spaceId: "space-old" })],
@@ -1002,7 +1002,7 @@ describe("mobile API authentication", () => {
   });
 
   it("does not write SPACE_KEY beside a stale rollback when neutralization fails", async () => {
-    const apiBase = "http://127.0.0.1:3100";
+    const apiBase = "http://127.0.0.1:7792";
     const storage = new Map<string, string>([
       ["engaz.space_id", "space-deleted"],
       ["engaz.space_rollback", JSON.stringify({ apiBase, spaceId: "space-old" })],
@@ -1477,7 +1477,7 @@ describe("mobile API authentication", () => {
       "x-engaz-space-id": "space-support",
     });
     expect(storage.get("engaz.space_rollback")).toBe(
-      JSON.stringify({ apiBase: "http://127.0.0.1:3100", spaceId: "space-support" }),
+      JSON.stringify({ apiBase: "http://127.0.0.1:7792", spaceId: "space-support" }),
     );
 
     vi.mocked(SecureStore.setItemAsync).mockImplementation(async (key, value) => {
@@ -1497,7 +1497,7 @@ describe("mobile API authentication", () => {
       ["engaz.api_base", "https://second-server.example"],
       [
         "engaz.space_rollback",
-        JSON.stringify({ apiBase: "http://127.0.0.1:3100", spaceId: "space-support" }),
+        JSON.stringify({ apiBase: "http://127.0.0.1:7792", spaceId: "space-support" }),
       ],
     ]);
     vi.mocked(SecureStore.getItemAsync).mockImplementation(async (key) => storage.get(key) ?? null);
@@ -1566,7 +1566,7 @@ describe("mobile thread subscription", () => {
     await subscribeThread({ botId: "bot-1" }, 3, onEvent, new AbortController().signal);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:3100/rpc/threads/subscribe",
+      "http://127.0.0.1:7792/rpc/threads/subscribe",
       expect.objectContaining({
         headers: expect.objectContaining({ accept: "text/event-stream" }),
         body: JSON.stringify({ json: { botId: "bot-1", cursor: 3 } }),

@@ -35,10 +35,10 @@ describe("setup store", () => {
 
   it("creates the user data directory when it does not exist yet", async () => {
     const nested = path.join(userData, "nested", "profile");
-    await writeSetup(nested, { mode: "new", serverUrl: "http://127.0.0.1:5173" });
+    await writeSetup(nested, { mode: "new", serverUrl: "http://127.0.0.1:7791" });
     await expect(readSetup(nested)).resolves.toEqual({
       mode: "new",
-      serverUrl: "http://127.0.0.1:5173",
+      serverUrl: "http://127.0.0.1:7791",
     });
   });
 

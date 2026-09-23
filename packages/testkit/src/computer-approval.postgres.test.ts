@@ -9,7 +9,7 @@ import { type ModelEmulatorStep, startModelEmulator } from "./model-emulator.js"
 
 type App = { request: (input: string, init?: RequestInit) => Promise<Response> };
 const databaseAvailable = process.env.VERIFY_DATABASE === "1" && Boolean(process.env.DATABASE_URL);
-const fixtureOrigin = "http://127.0.0.1:5173";
+const fixtureOrigin = "http://127.0.0.1:7791";
 
 describe.skipIf(!databaseAvailable)("offline Pi computer approval", () => {
   beforeAll(() => {

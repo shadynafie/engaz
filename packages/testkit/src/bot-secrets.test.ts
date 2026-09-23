@@ -368,7 +368,7 @@ describeIntegration("reusable credential lifecycle", () => {
   async function signup(email: string, name: string) {
     const response = await handles.app.request("/api/auth/sign-up/email", {
       method: "POST",
-      headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" },
+      headers: { "content-type": "application/json", origin: "http://127.0.0.1:7791" },
       body: JSON.stringify({ email, password: "password12", name }),
     });
     expect(response.status).toBeLessThan(400);
@@ -383,7 +383,7 @@ describeIntegration("reusable credential lifecycle", () => {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        origin: "http://127.0.0.1:5173",
+        origin: "http://127.0.0.1:7791",
         cookie,
       },
       body: JSON.stringify({ json: body }),

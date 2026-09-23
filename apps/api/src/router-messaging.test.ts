@@ -256,7 +256,7 @@ function messagingDeps(
     env: {
       defaultProvider: "fake",
       defaultModel: "fake-model",
-      webOrigin: "http://127.0.0.1:5173",
+      webOrigin: "http://127.0.0.1:7791",
       screenProxySecret: "fake-test-secret",
       sandboxProvider: "fake",
     },

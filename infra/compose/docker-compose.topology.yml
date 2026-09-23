@@ -94,10 +94,10 @@ services:
       http_proxy: ${http_proxy:-${HTTP_PROXY:-}}
       https_proxy: ${https_proxy:-${HTTPS_PROXY:-}}
       no_proxy: ${no_proxy:-${NO_PROXY:-}}
-      API_PORT: "3100"
+      API_PORT: "7792"
       API_HOST: "0.0.0.0"
     ports:
-      - "127.0.0.1:${TOPOLOGY_API_PORT:-3199}:3100"
+      - "127.0.0.1:${TOPOLOGY_API_PORT:-3199}:7792"
     volumes:
       - appdata:/data
     depends_on:
@@ -112,17 +112,17 @@ services:
         - CMD
         - node
         - -e
-        - fetch('http://127.0.0.1:3100/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+        - fetch('http://127.0.0.1:7792/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
       interval: 2s
       timeout: 5s
       retries: 45
 
   web:
     image: ${TOPOLOGY_APP_IMAGE:-engaz/app:topology}
-    command: ["pnpm", "--filter", "@engaz/web", "preview", "--host", "0.0.0.0", "--port", "5173"]
+    command: ["pnpm", "--filter", "@engaz/web", "preview", "--host", "0.0.0.0", "--port", "7791"]
     environment:
       NODE_ENV: production
-      API_PROXY_TARGET: http://api:3100
+      API_PROXY_TARGET: http://api:7792
       ENGAZ_HOST: localhost
       SCREEN_PROXY_SECRET: topology-only-screen-proxy-secret-at-least-32-characters
     depends_on:
@@ -133,7 +133,7 @@ services:
         - CMD
         - node
         - -e
-        - fetch('http://127.0.0.1:5173').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+        - fetch('http://127.0.0.1:7791').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
       interval: 2s
       timeout: 5s
       retries: 30

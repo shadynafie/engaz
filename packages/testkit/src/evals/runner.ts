@@ -107,7 +107,7 @@ export async function runTrial(
     const setupActor = async () => {
       const signup = await app.request("/api/auth/sign-up/email", {
         method: "POST",
-        headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" },
+        headers: { "content-type": "application/json", origin: "http://127.0.0.1:7791" },
         body: JSON.stringify({
           email: `eval-${randomUUID()}@example.test`,
           password: "synthetic-eval-password-12",
@@ -461,7 +461,7 @@ export async function runTrial(
 async function rpc<T>(app: App, cookie: string, proc: string, body: unknown = {}): Promise<T> {
   const res = await app.request(`/rpc/${proc}`, {
     method: "POST",
-    headers: { "content-type": "application/json", cookie, origin: "http://127.0.0.1:5173" },
+    headers: { "content-type": "application/json", cookie, origin: "http://127.0.0.1:7791" },
     body: JSON.stringify({ json: body }),
     signal: AbortSignal.timeout(15_000),
   });

@@ -402,7 +402,7 @@ check_ports() {
   if [[ -n "$(docker ps -q --filter label=com.docker.compose.project=engaz 2>/dev/null)" ]]; then
     return 0
   fi
-  for port in "$(env_value ENGAZ_WEB_PORT 5173)" "$(env_value ENGAZ_API_PORT 3100)"; do
+  for port in "$(env_value ENGAZ_WEB_PORT 7791)" "$(env_value ENGAZ_API_PORT 7792)"; do
     if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
       fail "port $port on 127.0.0.1 is already in use. Stop the program using it, or set ENGAZ_WEB_PORT / ENGAZ_API_PORT in .env."
     fi
@@ -442,7 +442,7 @@ else
   docker compose "${compose_args[@]}" up -d ${up_pull_args[@]+"${up_pull_args[@]}"}
 fi
 
-echo "Engaz is starting at http://127.0.0.1:$(env_value ENGAZ_WEB_PORT 5173)"
+echo "Engaz is starting at http://127.0.0.1:$(env_value ENGAZ_WEB_PORT 7791)"
 if [[ -n "$data_dir" ]]; then
   echo "Data and secrets are in $data_dir. Back up that whole folder."
 fi

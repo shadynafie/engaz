@@ -285,7 +285,7 @@ describe("MCP transport seam", () => {
       "server-1",
       {
         oauth: {
-          redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+          redirectUri: "http://127.0.0.1:7791/mcp/oauth/callback",
           tokens: { access_token: "stale-access", refresh_token: "refresh", token_type: "bearer" },
           clientInformation: { client_id: "client-1" },
           discoveryState: {
@@ -351,7 +351,7 @@ describe("MCP transport seam", () => {
       "server-1",
       {
         oauth: {
-          redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+          redirectUri: "http://127.0.0.1:7791/mcp/oauth/callback",
           tokens: {
             access_token: "stale-access",
             refresh_token: "dead-refresh",
@@ -414,7 +414,7 @@ describe("MCP transport seam", () => {
       "server-1",
       {
         oauth: {
-          redirectUri: "http://127.0.0.1:5173/mcp/oauth/callback",
+          redirectUri: "http://127.0.0.1:7791/mcp/oauth/callback",
           clientInformation: { client_id: "client-1" },
           discoveryState: {
             authorizationServerUrl: `http://127.0.0.1:${port}`,

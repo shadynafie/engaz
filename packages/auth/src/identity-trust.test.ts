@@ -111,9 +111,9 @@ describe("loopback trusted origins", () => {
   it("accepts Origin localhost when webOrigin is 127.0.0.1", async () => {
     const f = fixture({
       delivery: false,
-      baseURL: "http://127.0.0.1:5173",
-      webOrigin: "http://127.0.0.1:5173",
-      requestOrigin: "http://localhost:5173",
+      baseURL: "http://127.0.0.1:7791",
+      webOrigin: "http://127.0.0.1:7791",
+      requestOrigin: "http://localhost:7791",
     });
     expect((await f.signup()).status).toBe(200);
   });
@@ -121,9 +121,9 @@ describe("loopback trusted origins", () => {
   it("accepts Origin 127.0.0.1 when webOrigin is localhost", async () => {
     const f = fixture({
       delivery: false,
-      baseURL: "http://localhost:5173",
-      webOrigin: "http://localhost:5173",
-      requestOrigin: "http://127.0.0.1:5173",
+      baseURL: "http://localhost:7791",
+      webOrigin: "http://localhost:7791",
+      requestOrigin: "http://127.0.0.1:7791",
     });
     expect((await f.signup()).status).toBe(200);
   });

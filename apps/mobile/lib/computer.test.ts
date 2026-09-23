@@ -39,31 +39,31 @@ describe("embeddableScreenUrl", () => {
 
   it("keeps loopback screens when the API is also loopback", () => {
     const url = "http://127.0.0.1:16080/embed.html?view_only=true";
-    expect(embeddableScreenUrl(url, "http://127.0.0.1:3100")).toBe(url);
-    expect(embeddableScreenUrl(url, "http://localhost:3100")).toBe(url);
+    expect(embeddableScreenUrl(url, "http://127.0.0.1:7792")).toBe(url);
+    expect(embeddableScreenUrl(url, "http://localhost:7792")).toBe(url);
   });
 
   it("rewrites loopback screens onto the API host for a device or emulator", () => {
     expect(
       embeddableScreenUrl(
         "http://127.0.0.1:16080/embed.html?view_only=false",
-        "http://10.0.2.2:3100",
+        "http://10.0.2.2:7792",
       ),
     ).toBe("http://10.0.2.2:16080/embed.html?view_only=false");
     expect(
-      embeddableScreenUrl("http://localhost:16080/embed.html", "http://192.168.1.20:3100"),
+      embeddableScreenUrl("http://localhost:16080/embed.html", "http://192.168.1.20:7792"),
     ).toBe("http://192.168.1.20:16080/embed.html");
   });
 
   it("returns null when there is no screen", () => {
-    expect(embeddableScreenUrl(null, "http://127.0.0.1:3100")).toBeNull();
+    expect(embeddableScreenUrl(null, "http://127.0.0.1:7792")).toBeNull();
   });
 
   it("does not send unsupported fixture URLs to the native WebView", () => {
     expect(
-      embeddableScreenUrl("fake://screen/fake-team-home/researcher", "http://10.0.2.2:3100"),
+      embeddableScreenUrl("fake://screen/fake-team-home/researcher", "http://10.0.2.2:7792"),
     ).toBeNull();
-    expect(embeddableScreenUrl("not a URL", "http://10.0.2.2:3100")).toBeNull();
+    expect(embeddableScreenUrl("not a URL", "http://10.0.2.2:7792")).toBeNull();
   });
 });
 

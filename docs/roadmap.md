@@ -6,7 +6,7 @@ Updated: 2026-09-23. This is the delivery plan and status record for Engaz v1. C
 
 An enthusiast, solo founder, or small business can run one Engaz installation on a computer or NAS, keep its data in a chosen durable location, create the first owner account, connect a model, create AI agents, teach them skills, and grant each agent explicit access to plugins. The web app is primary. Desktop and mobile connect to the same installation. An owner-controlled HTTPS URL is optional; `engaz.app` is neither a prerequisite nor a claimed live service.
 
-The existing orchestration, apps, and provider architecture are the foundation. Prefer improving these flows over replacing them. Multi-tenant SaaS, billing, a plugin marketplace, and a new logo are outside v1.
+The existing orchestration, apps, and provider architecture are the foundation. Prefer improving these flows over replacing them. Multi-tenant SaaS, billing, and a plugin marketplace are outside v1.
 
 ## Current baseline
 
@@ -16,7 +16,7 @@ The existing orchestration, apps, and provider architecture are the foundation. 
 | Images | Anonymous pulls of app, computer, and updater and a healthy installer startup pass on amd64 and arm64 CI runners after each main publish. | Upgrade, and startup on real NAS and desktop hosts, remain untested. |
 | Setup | Source setup and an image installer exist. | The image installer requires Docker, Compose, curl, and OpenSSL; it does not install Docker or offer a durable host directory. |
 | Data | Postgres and appdata are persisted in Compose volumes; source backup and restore instructions exist. | A portable backup and verified restore for the image installer are missing. A configuration directory alone is insufficient. |
-| Ownership | First registration becomes deployment owner; onboarding connects a model and creates a first agent. | Publicly reachable first-owner claim can be raced; signup policy needs an explicit first-run choice. |
+| Ownership | First registration becomes deployment owner; onboarding connects a model and creates a first agent. | First registration wins by design; the installer binds to 127.0.0.1, so only the host can claim. Signup policy after the owner needs an explicit choice. |
 | Plugins | Integrations, MCP, API-based adapters, and agent toggles exist. | Connection tests, clear health, narrow per-agent tool access, and a safe local MCP route need work. Current MCP assignment can grant all tools. |
 | Skills | Shared skill catalog and bot-scoped taught skills exist; agent instructions can be edited under Advanced. | Their relationship and per-agent assignment are unclear to users. |
 | UI | A shared monochrome token system and reusable web components exist. | Settings and integrations are separated, and key agent controls are hard to find. |
@@ -26,7 +26,7 @@ This baseline describes source and checks, not the safety of an existing install
 
 ## Order of work
 
-Current status: **0 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 planned); 2–5 planned.** Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
+Current status: **0 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 planned, after phase 2); 2 in progress; 3–5 planned.** Phase 2 moved ahead of 1.3–1.4 so the first-run experience is right before lifecycle tooling. Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
 
 ### 0. Restore the release gate
 
@@ -39,7 +39,7 @@ Current status: **0 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 pla
 ### 1. Make installation and recovery safe
 
 1. Extend the image installer in `infra/compose/` to accept an absolute host data directory. Preflight Docker daemon and Compose compatibility, required ports, directory ownership/write access, and free space before writing data. Put Postgres data, shared app/agent data, and the original `.env` secrets under that directory. Test the supervisor's bot-home mounts as well as the web and API containers. **Verified:** `--data-dir` and its preflight checks; CI installs into a folder on amd64 and arm64, writes an agent-computer file, and keeps it across a stack recreate ([PR #6](https://github.com/shadynafie/engaz/pull/6)).
-2. Offer the simplest supported Docker setup path. On explicitly supported Linux distributions, Docker installation may be opt-in with the exact commands shown first. On NAS, macOS, and Windows, provide clear prerequisite instructions when automatic installation is unsafe or unsupported. Never imply Docker was installed automatically until that path is tested. **Verified:** the one-command installer offers Docker's script (or pacman on Arch-based systems) after showing the command; CI installs Docker on fresh amd64 and arm64 Ubuntu runners and reaches a ready Engaz ([PR #8](https://github.com/shadynafie/engaz/pull/8)). The Arch path and real user hosts still need a manual run.
+2. Offer the simplest supported Docker setup path. On explicitly supported Linux distributions, Docker installation may be opt-in with the exact commands shown first. On NAS, macOS, and Windows, provide clear prerequisite instructions when automatic installation is unsafe or unsupported. Never imply Docker was installed automatically until that path is tested. **Verified:** the one-command installer offers Docker's script (or pacman on Arch-based systems) after showing the command; CI installs Docker on fresh amd64 and arm64 Ubuntu runners and reaches a ready Engaz ([PR #8](https://github.com/shadynafie/engaz/pull/8)). The one-line command also installed Docker with pacman on an Arch Linux ARM virtual machine and reached sign-up. NAS and macOS hosts still need a manual run.
 3. Provide `start`, `stop`, `status`, and `upgrade` instructions that retain data. Remove or clearly guard any user-facing path that runs `docker compose down -v`. Changing the Compose project name or moving from existing named volumes needs an explicit migration procedure; never silently create empty replacement volumes.
 4. Provide portable backup and restore for the image installation. Capture a consistent database state, appdata, and original secrets; protect the archive and rehearse restoration into a clean isolated installation. Verify owner sign-in, an agent file, and a decrypted saved credential after restore.
 
@@ -47,11 +47,12 @@ Current status: **0 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 pla
 
 ### 2. Secure first run and remote access
 
-1. Protect the first-owner claim with a one-time setup secret or localhost-only claim. Close it permanently after use. Make later registration and invitations an explicit owner choice; a public endpoint must not allow an unintended account to become owner.
-2. Turn onboarding into a short path: owner account → one working model connection → first agent → first conversation. Optional plugins can be skipped and revisited. Show a real model connection failure before the user reaches a broken chat.
-3. Keep local-only access as the default. For a user-owned public URL, document and validate HTTPS, reverse proxy, and matching auth, web, and API origins. Do not expose Postgres, the sandbox supervisor, or the Docker socket publicly. Desktop and mobile must let the user select their installation and recover from an invalid URL or certificate.
+1. Show the Engaz brand from the first screen: browser tab, installable web app, sign-up page, and desktop and mobile app icons, all generated from one source.
+2. Keep first registration as the owner claim: the installation is reachable only from its host until the owner exists. Make later registration and invitations an explicit owner choice, and let public access (step 4) start only after an owner exists, so a public endpoint never offers the owner claim.
+3. Turn onboarding into a short path: owner account → one working model connection → first agent → first conversation. Optional plugins can be skipped and revisited. Show a real model connection failure before the user reaches a broken chat.
+4. Keep local-only access as the default. For a user-owned public URL, document and validate HTTPS, reverse proxy, and matching auth, web, and API origins. Do not expose Postgres, the sandbox supervisor, or the Docker socket publicly. Desktop and mobile must let the user select their installation and recover from an invalid URL or certificate.
 
-**Gate:** fresh-install tests prove an unclaimed public instance cannot be taken over, the owner can finish first run, a second account follows the chosen signup policy, and local plus optional HTTPS access work across applicable clients.
+**Gate:** fresh-install tests prove public access cannot be enabled before an owner exists, the owner can finish first run, a second account follows the chosen signup policy, and local plus optional HTTPS access work across applicable clients.
 
 ### 3. Make settings and plugins usable
 
@@ -72,7 +73,7 @@ Current status: **0 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 pla
 
 ### 5. Polish and release self-hosted v1
 
-1. Apply the existing semantic tokens and monochrome components to changed screens. Test light/dark, keyboard access, narrow web widths, and native navigation. Bot identity color remains the only identity accent. Choose a logo later.
+1. Apply the existing semantic tokens and monochrome components to changed screens. Test light/dark, keyboard access, narrow web widths, and native navigation. Bot identity color remains the only identity accent.
 2. Verify the same installation with web, Electron, and Expo clients. Release desktop/mobile builds only after their server selection, sign-in, first conversation, plugin permission display, and error recovery are checked. Store listing or update delivery is a separate release gate, not implied by source code.
 3. Make `README.md` the short public user guide and keep technical install, backup, restore, security, and troubleshooting steps in `docs/self-host.md`. Publish versioned images and a tested upgrade/rollback path before calling v1 ready.
 

@@ -1,5 +1,33 @@
 # AGENTS.md
 
+## Product scope and current truth
+
+- Engaz v1 is a **self-hosted, single-installation** AI team workspace for enthusiasts, solo founders, and small businesses. Multi-tenant SaaS is a future direction, not a requirement for current work. One installation may still have multiple invited users and agents.
+- The intended first run is: choose durable storage, start the stack, create the first owner account, connect an LLM provider, then create agents and give them skills and plugin access. An owner-controlled HTTPS URL enables access away from home and companion desktop/mobile apps; a domain is optional. Do not claim that `engaz.app` is owned or live.
+- In product language, **skills** describe an agent's instructions and workflows; **plugins** connect external services or supply tools. Make each agent's plugin access visible and controllable. Prefer narrow action permissions and approvals for consequential writes. Keep MCP transports, API headers, and other implementation details under Advanced.
+- This is a target experience, not a claim about the current UI: Settings is in the user menu, integrations have separate entry points, and skills are edited under agent Advanced settings. The shared skill catalog is not clearly assigned per agent; separate bot-scoped taught skills already exist. Keep those two systems distinct until they are unified. Do not present a saved plugin as tested.
+- Keep the existing minimal monochrome visual system. Use semantic tokens and existing components. Bot identity color is the exception; do not invent a new brand icon or logo until one is chosen.
+- Treat the current repository as a capable foundation, not a finished one-command product. `infra/compose/install-images.sh` currently requires Docker, Compose, curl, and OpenSSL; it does not install Docker. Public Engaz images have not yet been verified as pullable. Do not describe either capability as shipped.
+
+## Self-hosting and live-data boundaries
+
+- A durable installation includes Postgres data, shared application/agent data, and the original `.env` secrets. Preserving only a configuration directory does not preserve the product. Never use `docker compose down -v` on a deployment whose data matters; the root `pnpm compose:down` script includes `-v`.
+- When adding an external host data-directory option, use an absolute path, check ownership and free space, and test Docker's bot-home mounts as well as Postgres and appdata persistence. Provide a backup and an actual restore check. Do not silently migrate existing named volumes or regenerate encryption keys; a Compose project-name change creates different volumes.
+- The first registered account currently becomes deployment owner. Protect the first-owner claim before exposing a new installation publicly, and make later signup/invitation policy explicit. Public access needs HTTPS and matching auth/web/API origins. Keep Postgres, the sandbox supervisor, and the Docker socket off public ports; Docker socket access is host-level authority.
+- Treat an existing user installation as live data. Inspect it read-only unless the user explicitly authorizes a specific change. Development, tests, migrations, and deployment work belong in the repository or isolated test installations. A rebrand commit alone does not migrate an existing installation.
+- The remote MCP client currently rejects ordinary private-network URLs as an SSRF boundary. Do not promise that a local NAS HTTP endpoint works through the public-URL connector; design any local-plugin route with a narrow trust boundary and tests.
+
+## Parallel work
+
+- For substantial independent work, delegate bounded implementation, code review, database/persistence, security, and UI/branding tasks as useful. Give each agent a distinct scope and file ownership; reviewers should inspect changes they did not write. The primary agent integrates findings, runs relevant checks, and reports what is implemented versus proposed.
+
+## Repository map and checks
+
+- This is a pnpm/Turbo monorepo. `apps/api` and `apps/worker` run the service; `apps/web` is the browser UI; `apps/desktop` hosts it in Electron; `apps/mobile` is Expo; `apps/www` is the marketing site. Shared contracts, database, orchestration, adapters, and UI live in `packages/`. Start with `README.md`, `docs/self-host.md`, and the root `package.json` before changing setup behavior.
+- Use `pnpm db:generate`, `pnpm check`, `pnpm lint`, `pnpm test`, and `pnpm build` as relevant. `bash infra/compose/run-smokes.sh` checks the image-installer shell paths. Docker-required checks need a working daemon and Compose plugin; do not treat their absence on a developer machine as proof that the deployment works or fails.
+
+## Existing engineering rules
+
 - This is a public repository: assume all tracked content and diffs are public. Never commit secrets, `.env` files, private URLs, personal/customer data, or real production data; use fake placeholders. Review `git status` and the staged diff before committing, and never force-add ignored files. If private data appears, stop and alert the maintainer.
 - Engaz is one product across web, Electron desktop, and Expo mobile; Electron hosts the web UI. Put shared behavior, contracts, API logic, and reusable UI in packages. Keep only genuinely native navigation, storage, permissions, and interactions platform-specific. Core workflows must cover every applicable surface or degrade safely for an explicit reason.
 - No hosted vendor is required to run the core product. Keep LLMs, sandboxes, memory, voice, integrations, and future external services optional and behind provider-neutral interfaces. Vendor SDKs, configuration, and translation belong only in adapters and composition roots. New providers must reuse shared contracts and deterministic offline conformance tests.

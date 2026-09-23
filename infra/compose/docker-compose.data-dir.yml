@@ -1,0 +1,24 @@
+# Keeps Postgres data and shared app/agent data in the host folder chosen with
+# `bash install-images.sh --data-dir=/absolute/path`, instead of Docker named volumes.
+# The installer records ENGAZ_DATA_DIR and COMPOSE_FILE in that folder's .env.
+services:
+  postgres:
+    volumes: !override
+      - ${ENGAZ_DATA_DIR:?Set ENGAZ_DATA_DIR in .env}/postgres:/var/lib/postgresql/data
+  data-init:
+    volumes: !override
+      - ${ENGAZ_DATA_DIR:?Set ENGAZ_DATA_DIR in .env}/appdata:/data
+  supervisor:
+    volumes: !override
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${ENGAZ_DATA_DIR:?Set ENGAZ_DATA_DIR in .env}/appdata:/data
+  api:
+    volumes: !override
+      - ${ENGAZ_DATA_DIR:?Set ENGAZ_DATA_DIR in .env}/appdata:/data
+  worker:
+    volumes: !override
+      - ${ENGAZ_DATA_DIR:?Set ENGAZ_DATA_DIR in .env}/appdata:/data
+
+volumes:
+  pgdata: !reset null
+  appdata: !reset null

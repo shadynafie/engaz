@@ -29,11 +29,11 @@ Keep the original values in `.env` for this installation, especially `ENCRYPTION
 
 For source development in WSL, keep the checkout and `data` directory in the Linux filesystem (for example, `~/engaz`), and run `pnpm dev` as your normal user. The host-run supervisor matches bot container UID/GID to that user. If Docker Desktop container IPs are unreachable, set `SANDBOX_CONTROL_VIA_LOOPBACK=true` in `.env`; this publishes the token-protected control service on a random loopback port. Leave this unset for the Compose-hosted supervisor.
 
-Compose bot homes mount only their own subdirectory of the application volume using Docker volume semantics. Docker's internal volume paths are never used as host bind mounts.
+Compose bot homes mount only their own subdirectory of the application data. With named volumes they use Docker volume subpaths, and Docker's internal volume paths are never used as host bind mounts. With a host data folder (`--data-dir`), each bot home is a bind mount of its own subdirectory of that folder.
 
 ## Published images (no checkout)
 
-The published image manifests are anonymously accessible for amd64 and arm64, but a fresh image-based installation has not been verified on supported hosts. Use the source-checkout workflow for now. The instructions below describe the image-based workflow being validated.
+CI installs the published images anonymously with the commands below and waits for a healthy stack on amd64 and arm64 Linux after every main publish. Real NAS and desktop hosts, and upgrades, have not been verified yet.
 
 Pull Postgres and `ghcr.io/shadynafie/engaz/app` into any empty folder. No clone or image build.
 Requires Docker Engine 26+ (API 1.45+ for bot home volume subpaths), the Compose plugin, curl, and OpenSSL.
@@ -50,6 +50,27 @@ the installer secret list, non-reuse rules, and recovery, see
 [Self-host secrets checklist](./self-host-secrets.md). To customize the public URL, image tag, or
 optional providers before startup, run `bash install-images.sh --prepare-only`, edit `.env`, then
 run `bash install-images.sh`. Flags may be combined in either order: `--prepare-only`, `--local`.
+
+### Keep data in a folder you choose
+
+By default, Postgres and app data live in Docker named volumes. To keep everything that must
+survive in one host folder, such as a NAS share, give a new installation an absolute path:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh &&
+bash install-images.sh --data-dir=/volume1/engaz
+```
+
+The folder must be empty or not exist yet. The installer checks that Docker is running, Compose is
+2.24 or newer, the web and API ports are free, the folder is writable, and it has at least 10 GB
+free. It then writes `.env` (mode 600), `postgres/`, and `appdata/` there, and records
+`ENGAZ_DATA_DIR` and `COMPOSE_FILE` in `.env`, so `docker compose` commands work from that folder.
+Back up the whole folder: the database and agent files are unreadable without the original `.env`
+secrets. Rerun the same command to update.
+
+The installer refuses a folder that holds other files, and refuses when this Docker host already
+has an Engaz installation in named volumes. Moving an existing installation into a folder needs a
+migration procedure that does not exist yet. Container images still live in Docker's own storage.
 
 `SANDBOX_PROVIDER` defaults to `docker`. The images Compose file runs a sandbox supervisor
 (from the app image, on the internal network only) and pulls `ghcr.io/shadynafie/engaz/computer`.

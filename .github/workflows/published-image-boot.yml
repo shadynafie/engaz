@@ -10,6 +10,9 @@ on:
   pull_request:
     paths:
       - ".github/workflows/published-image-boot.yml"
+      - "infra/compose/install-images.sh"
+      - "infra/compose/docker-compose.images.yml"
+      - "infra/compose/docker-compose.data-dir.yml"
   workflow_dispatch:
 
 permissions:
@@ -80,3 +83,101 @@ jobs:
         if: failure()
         working-directory: ${{ runner.temp }}/engaz
         run: docker compose --env-file .env -f docker-compose.images.yml logs --no-color --tail 200 || true
+
+  data-dir:
+    # Uses this revision's installer and Compose files with the published images, so an
+    # installer change is proven before it reaches main.
+    name: Host data folder ${{ matrix.arch }}
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Use an empty Docker credential store
+        run: |
+          mkdir -p "$RUNNER_TEMP/docker-config"
+          printf '{}\n' > "$RUNNER_TEMP/docker-config/config.json"
+          echo "DOCKER_CONFIG=$RUNNER_TEMP/docker-config" >> "$GITHUB_ENV"
+          # A space in the path proves bind mounts are quoted end to end.
+          echo "DATA=$RUNNER_TEMP/engaz data" >> "$GITHUB_ENV"
+
+      - name: Install into a host data folder
+        run: |
+          mkdir -p "$DATA"
+          cp infra/compose/install-images.sh infra/compose/docker-compose.images.yml \
+            infra/compose/docker-compose.data-dir.yml infra/compose/.env.images.example "$DATA/"
+          cd "$DATA"
+          bash install-images.sh --local "--data-dir=$DATA"
+
+      - name: Check data lives in the folder
+        run: |
+          sudo test -f "$DATA/postgres/PG_VERSION"
+          test "$(stat -c %u "$DATA/appdata")" = 1000
+          test "$(stat -c %a "$DATA/.env")" = 600
+          grep -qxF "ENGAZ_DATA_DIR=$DATA" "$DATA/.env"
+          if docker volume ls -q | grep -E '^engaz_(pgdata|appdata)$'; then
+            echo "::error::named data volumes were created"
+            exit 1
+          fi
+          curl -fsS http://127.0.0.1:3100/health
+
+      - name: Write a file from an agent computer
+        working-directory: ${{ env.DATA }}
+        run: |
+          docker compose exec -T api node - <<'JS'
+          const { mkdir } = require("node:fs/promises");
+          const bot = { botId: "ci-data-dir", spaceId: "ci-space" };
+          const headers = {
+            authorization: `Bearer ${process.env.SANDBOX_SUPERVISOR_TOKEN}`,
+            "content-type": "application/json",
+            "x-engaz-bot-id": bot.botId,
+            "x-engaz-space-id": bot.spaceId,
+          };
+          const call = async (path, body) => {
+            const response = await fetch(`http://supervisor:7091${path}`, {
+              method: "POST",
+              headers,
+              body: JSON.stringify(body),
+            });
+            const json = await response.json();
+            if (!response.ok) throw new Error(`${path}: ${response.status} ${JSON.stringify(json)}`);
+            return json;
+          };
+          (async () => {
+            const homePath = `/data/homes/${bot.botId}`;
+            await mkdir(homePath, { recursive: true });
+            const computer = await call("/computers", { ...bot, homePath });
+            const result = await call(`/computers/${computer.id}/exec`, {
+              argv: ["sh", "-c", "echo home-ok > /home/engaz/probe.txt"],
+            });
+            if (result.code !== 0) throw new Error(`exec failed: ${JSON.stringify(result)}`);
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          JS
+          test "$(sudo cat "$DATA/appdata/homes/ci-data-dir/probe.txt")" = home-ok
+
+      - name: Recreate the stack and keep the data
+        working-directory: ${{ env.DATA }}
+        run: |
+          docker compose down
+          docker compose up -d --wait --wait-timeout 300
+          test "$(sudo cat "$DATA/appdata/homes/ci-data-dir/probe.txt")" = home-ok
+          curl -fsS http://127.0.0.1:3100/health
+
+      - name: Show service logs
+        if: failure()
+        working-directory: ${{ env.DATA }}
+        run: docker compose logs --no-color --tail 200 || true

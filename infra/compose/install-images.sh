@@ -93,21 +93,34 @@ ask() {
 }
 
 install_docker() {
-  local answer
+  local answer os_ids="" install_command
   case "$(uname -s)" in
     Linux)
-      echo "Docker is not installed. Engaz can install it with Docker's official script:"
-      echo "  curl -fsSL https://get.docker.com | sudo sh"
+      if [[ -r /etc/os-release ]]; then
+        os_ids=$(. /etc/os-release && printf '%s %s' "${ID:-}" "${ID_LIKE:-}")
+      fi
+      # Docker's script does not support Arch-based systems; they package Docker themselves.
+      case " $os_ids " in
+        *" arch "* | *" archarm "*) install_command="sudo pacman -Syu --needed docker docker-compose" ;;
+        *) install_command="curl -fsSL https://get.docker.com | sudo sh" ;;
+      esac
+      echo "Docker is not installed. Engaz can install it with:"
+      echo "  $install_command"
       [[ "$interactive" == true ]] || fail "Docker is required. Run the command above, then run this installer again."
       answer=$(ask "Install Docker now? [y/N]")
       [[ "$answer" == [yY] || "$answer" == [yY][eE][sS] ]] \
         || fail "Docker is required. Run the command above, then run this installer again."
-      temporary_file=$(mktemp)
-      curl -fsSL --proto '=https' https://get.docker.com -o "$temporary_file" \
-        || fail "could not download Docker's install script."
-      sudo sh "$temporary_file" || fail "Docker installation failed."
-      rm -f -- "$temporary_file"
-      temporary_file=""
+      if [[ "$install_command" == "sudo pacman "* ]]; then
+        # pacman asks its own questions; answer them from the terminal, not the piped script.
+        sudo pacman -Syu --needed docker docker-compose <&3 || fail "Docker installation failed."
+      else
+        temporary_file=$(mktemp)
+        curl -fsSL --proto '=https' https://get.docker.com -o "$temporary_file" \
+          || fail "could not download Docker's install script."
+        sudo sh "$temporary_file" || fail "Docker installation failed."
+        rm -f -- "$temporary_file"
+        temporary_file=""
+      fi
       if command -v systemctl >/dev/null 2>&1; then
         sudo systemctl enable --now docker >/dev/null 2>&1 || true
       fi
@@ -523,7 +536,24 @@ if [[ "$prepare_only" == true ]]; then
   exit 0
 fi
 
+# A first pull needs room for the images; an update already has most of them.
+readonly MIN_IMAGE_FREE_GB=10
+check_image_space() {
+  local root available_kb
+  [[ "$pull_never" != true ]] || return 0
+  [[ -z "$(docker image ls -q 'ghcr.io/shadynafie/engaz/app' 2>/dev/null)" ]] || return 0
+  root=$(docker info --format '{{.DockerRootDir}}' 2>/dev/null) || return 0
+  # Docker Desktop keeps its storage inside its own VM, which it sizes itself.
+  [[ -n "$root" && -d "$root" ]] || return 0
+  available_kb=$(df -Pk "$root" 2>/dev/null | awk 'NR == 2 { print $4 }')
+  [[ "$available_kb" =~ ^[0-9]+$ ]] || return 0
+  if ((available_kb < MIN_IMAGE_FREE_GB * 1024 * 1024)); then
+    fail "Docker's storage ($root) has $((available_kb / 1024 / 1024)) GB free; the Engaz images need about ${MIN_IMAGE_FREE_GB} GB. Free some space, then run this command again."
+  fi
+}
+
 check_ports
+check_image_space
 prepare_proxy_env
 if [[ "$pull_never" == true ]]; then
   echo "Skipping image pull (--pull-never / --offline); images must already be on this Docker host."

@@ -43,7 +43,13 @@ log="${STUB_DOCKER_LOG:?}"
 
 case "${1:-}" in
   compose) shift ;;
-  info) exit 0 ;;
+  info)
+    if [[ " $* " == *" --format "* ]]; then
+      printf '%s\n' "${STUB_DOCKER_ROOT-}"
+    fi
+    exit 0
+    ;;
+  image) printf '%s\n' "${STUB_DOCKER_IMAGES-}"; exit 0 ;;
   ps)
     # Folder lookups ask for the Compose working directory; other lookups ask whether a
     # stack is running, which is nonempty by default so the host port check is skipped.
@@ -423,5 +429,16 @@ set -e
 [[ ! -e "$tmp/piped/cwd/.env" ]] || fail "piped install should not write into the current folder"
 [[ "$piped_out" == *"Engaz files are in $(cd "$tmp/piped/home/engaz" && pwd)."* ]] \
   || fail "piped install should name its folder: $piped_out"
+
+# A first install needs room in Docker's storage for the images; an update does not.
+setup_work "$tmp/space"
+mkdir -p "$tmp/space/docker-root"
+export STUB_DOCKER_ROOT="$tmp/space/docker-root" STUB_DF_AVAILABLE_KB=5242880
+data_install "$tmp/space"
+expect_data_failure "the Engaz images need about 10 GB"
+export STUB_DOCKER_IMAGES=present
+data_install "$tmp/space"
+[[ "$data_code" -eq 0 ]] || fail "an update with local images should skip the space check: $data_out"
+unset STUB_DOCKER_ROOT STUB_DF_AVAILABLE_KB STUB_DOCKER_IMAGES
 
 echo "ok"

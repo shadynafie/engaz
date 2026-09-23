@@ -238,6 +238,16 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    # Lets the installer's `up --wait` return only once the page can be opened.
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:7791/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
 volumes:
   pgdata:

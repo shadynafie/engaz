@@ -1,6 +1,6 @@
+import type { AvatarStyle } from "@engaz/contracts";
+import { BotAvatar, Button, Field, FieldLabel, Input, Toggle } from "@engaz/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { AvatarStyle } from "@rakazo/contracts";
-import { BotAvatar, Button, Field, FieldLabel, Input, Toggle } from "@rakazo/ui-web";
 import { ChevronDown } from "lucide-react";
 import {
   type KeyboardEvent as ReactKeyboardEvent,

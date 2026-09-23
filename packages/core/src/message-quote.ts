@@ -1,5 +1,5 @@
-import type { MessageBlock } from "@rakazo/contracts";
-import { REPLY_QUOTE_MAX_LENGTH } from "@rakazo/contracts";
+import type { MessageBlock } from "@engaz/contracts";
+import { REPLY_QUOTE_MAX_LENGTH } from "@engaz/contracts";
 import { toText } from "hast-util-to-text";
 import { toHast } from "mdast-util-to-hast";
 import remarkGfm from "remark-gfm";

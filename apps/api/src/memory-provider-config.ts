@@ -1,14 +1,14 @@
-import { ORPCError } from "@orpc/server";
-import type { SecretStore } from "@rakazo/adapter-kit";
+import type { SecretStore } from "@engaz/adapter-kit";
 import {
   classifyMemoryProviderSettings,
   MemoryProviderDeploymentOwnerRequiredError,
   memoryProviderRequiresDeploymentOwner,
   prepareMemoryProviderConnection,
   toStringRecord,
-} from "@rakazo/adapters";
-import type { Actor } from "@rakazo/contracts";
-import { findSpaceMemoryConfig, Prisma, type PrismaClient } from "@rakazo/db";
+} from "@engaz/adapters";
+import type { Actor } from "@engaz/contracts";
+import { findSpaceMemoryConfig, Prisma, type PrismaClient } from "@engaz/db";
+import { ORPCError } from "@orpc/server";
 import { withSerializableRetry } from "./serializable-retry.js";
 
 export interface MemoryProviderConfigDeps {

@@ -13,7 +13,7 @@ import {
   type ModelOAuthSignInMode,
   type ThinkingLevel,
   ThinkingLevelSchema,
-} from "@rakazo/contracts";
+} from "@engaz/contracts";
 import { createManualAnthropicOAuthLogin } from "./pi-anthropic-oauth.js";
 
 export const CHATGPT_OAUTH_PROVIDER = "openai-codex";
@@ -29,20 +29,19 @@ export const SUBSCRIPTION_SIGN_IN_PROVIDERS: Record<
     mode: "device-code",
     loginLabel: "Sign in with ChatGPT Plus/Pro",
     hint: "ChatGPT Plus/Pro",
-    billing:
-      "Sign in with ChatGPT Plus or Pro. Uses your OpenAI subscription. Rakazo does not pay.",
+    billing: "Sign in with ChatGPT Plus or Pro. Uses your OpenAI subscription. Engaz does not pay.",
   },
   [COPILOT_OAUTH_PROVIDER]: {
     mode: "device-code",
     loginLabel: "Sign in with GitHub Copilot",
     hint: "Copilot",
-    billing: "Sign in with GitHub Copilot. Uses your Copilot subscription. Rakazo does not pay.",
+    billing: "Sign in with GitHub Copilot. Uses your Copilot subscription. Engaz does not pay.",
   },
   [XAI_OAUTH_PROVIDER]: {
     mode: "device-code",
     loginLabel: "Sign in with SuperGrok or X Premium",
     hint: "SuperGrok / key",
-    billing: "Sign in with SuperGrok or X Premium, or paste an xAI API key. Rakazo does not pay.",
+    billing: "Sign in with SuperGrok or X Premium, or paste an xAI API key. Engaz does not pay.",
   },
   [ANTHROPIC_OAUTH_PROVIDER]: {
     mode: "auth-url",

@@ -4,14 +4,14 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   desktopOAuthCode,
+  type EngazDesktop,
+  type EngazDesktopOAuthCallback,
   oauthStateOf,
   onDesktopOAuthCallback,
-  type RakazoDesktop,
-  type RakazoDesktopOAuthCallback,
   windowChromeKind,
 } from "./desktop.js";
 
-function desktop(platform: string): RakazoDesktop {
+function desktop(platform: string): EngazDesktop {
   const updateState = {
     phase: "unsupported" as const,
     currentVersion: "0.1.0",
@@ -92,20 +92,20 @@ describe("attempt correlation", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   function bridgeEmitting() {
-    let emit: (callback: RakazoDesktopOAuthCallback) => void = () => undefined;
+    let emit: (callback: EngazDesktopOAuthCallback) => void = () => undefined;
     const unsubscribe = vi.fn();
     vi.stubGlobal("window", {
-      rakazoDesktop: {
+      engazDesktop: {
         ...desktop("linux"),
         oauth: {
-          onCallback: (listener: (callback: RakazoDesktopOAuthCallback) => void) => {
+          onCallback: (listener: (callback: EngazDesktopOAuthCallback) => void) => {
             emit = listener;
             return unsubscribe;
           },
         },
       },
     });
-    return { emit: (c: RakazoDesktopOAuthCallback) => emit(c), unsubscribe };
+    return { emit: (c: EngazDesktopOAuthCallback) => emit(c), unsubscribe };
   }
 
   it("reads the attempt state out of the authorize URL", () => {

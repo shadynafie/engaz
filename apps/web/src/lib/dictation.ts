@@ -1,4 +1,4 @@
-import { readBoundedResponseBytes } from "@rakazo/core";
+import { readBoundedResponseBytes } from "@engaz/core";
 import { selectedSpaceId, withSpaceHeaders } from "./rpc.js";
 
 export type DictationMode = "hold" | "endpoint";

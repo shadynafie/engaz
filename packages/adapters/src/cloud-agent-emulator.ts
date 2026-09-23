@@ -4,8 +4,8 @@ import type {
   CloudAgentProvider,
   CloudAgentReplyRequest,
   CloudAgentSnapshot,
-} from "@rakazo/adapter-kit";
-import { CloudAgentRequestRejected } from "@rakazo/adapter-kit";
+} from "@engaz/adapter-kit";
+import { CloudAgentRequestRejected } from "@engaz/adapter-kit";
 
 interface EmulatorAgent {
   id: string;

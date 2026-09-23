@@ -1,5 +1,3 @@
-import { t } from "@lingui/core/macro";
-import { Trans } from "@lingui/react/macro";
 import {
   BotAvatar,
   DEFAULT_GROK_BOT_COLOR,
@@ -12,7 +10,9 @@ import {
   GROK_BOT_COLORS,
   GrokShapePreview,
   parseBotAvatar,
-} from "@rakazo/ui-web";
+} from "@engaz/ui-web";
+import { t } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
 import { Check, Pencil, Upload, X } from "lucide-react";
 import { type ClipboardEvent, type DragEvent, useRef, useState } from "react";
 

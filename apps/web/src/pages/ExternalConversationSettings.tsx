@@ -1,12 +1,12 @@
-import { Trans, useLingui } from "@lingui/react/macro";
 import type {
   AutomatedSenderPolicies,
   AutomatedSenderPolicyMode,
   Bot,
   ExternalConversation,
   ExternalConversationPolicy,
-} from "@rakazo/contracts";
-import { Button } from "@rakazo/ui-web";
+} from "@engaz/contracts";
+import { Button } from "@engaz/ui-web";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SuccessPop } from "../components/ai/primitives";

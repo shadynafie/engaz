@@ -2,7 +2,7 @@
 
 Engaz is an open-source AI team workspace for solo founders and small businesses. Give each agent a role, connect the tools it needs, and keep work, approvals, and outcomes in one place.
 
-This project is based on [Rakazo](https://github.com/elie222/rakazo), licensed under [Apache 2.0](./LICENSE). The existing agent runtime, API, web app, desktop app, and mobile app are the starting point. Engaz is in its foundation stage; the product experience and technical names inherited from Rakazo are being updated incrementally. This repository does not yet publish Engaz Docker images or a hosted service.
+Engaz builds on an Apache-2.0 licensed project. Its original copyright and source attribution are retained in [LICENSE](./LICENSE) and [NOTICE](./NOTICE). The agent runtime, API, web app, desktop app, and mobile app are the starting point. Engaz is in its foundation stage and does not yet operate a hosted service.
 
 ## Product direction
 
@@ -13,7 +13,7 @@ This project is based on [Rakazo](https://github.com/elie222/rakazo), licensed u
 
 ## Run from source
 
-You need Node.js 22.22.2 or newer in the 22.x line, Node.js 24.x, or Node.js 26+, plus pnpm 9 and Docker. The current workspace still uses the inherited `@rakazo/*` package names and Compose configuration.
+You need Node.js 22.22.2 or newer in the 22.x line, Node.js 24.x, or Node.js 26+, plus pnpm 9 and Docker.
 
 ```bash
 git clone https://github.com/shadynafie/engaz.git
@@ -32,7 +32,7 @@ pnpm sandbox:build
 pnpm dev
 ```
 
-The [self-hosting guide](./docs/self-host.md) describes the inherited deployment in detail. Review its Rakazo image names and example domains before using it for Engaz; those references do not identify Engaz releases.
+The [self-hosting guide](./docs/self-host.md) describes the deployment in detail. Published Engaz container images are not yet verified; use the source workflow above until an Engaz release is available.
 
 ## Development
 

@@ -1,9 +1,9 @@
+import { ChatMarkdown } from "@engaz/chat-ui/web";
+import type { ThreadMessage } from "@engaz/contracts";
+import { isApprovalAskBlock, isSecretAskBlock, selectedAskActionLabel } from "@engaz/core";
+import { Button, Input } from "@engaz/ui-web";
 import { t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { ChatMarkdown } from "@rakazo/chat-ui/web";
-import type { ThreadMessage } from "@rakazo/contracts";
-import { isApprovalAskBlock, isSecretAskBlock, selectedAskActionLabel } from "@rakazo/core";
-import { Button, Input } from "@rakazo/ui-web";
 import { useState } from "react";
 
 export type AskBlock = Extract<ThreadMessage["blocks"][number], { kind: "ask" }>;

@@ -1,10 +1,10 @@
-import type { RealtimeFanout } from "@rakazo/adapter-kit";
+import type { RealtimeFanout } from "@engaz/adapter-kit";
 import {
   type BotSecretDestination,
   type MessageBlock,
   MessageBlock as MessageBlockSchema,
   type ProductEvent,
-} from "@rakazo/contracts";
+} from "@engaz/contracts";
 import {
   blocksToAgentHistoryText,
   isApprovalAskBlock,
@@ -12,8 +12,8 @@ import {
   messagingChannelId,
   resolveAskChoice,
   sanitizeJsonValue,
-} from "@rakazo/core";
-import { getLogger } from "@rakazo/logging";
+} from "@engaz/core";
+import { getLogger } from "@engaz/logging";
 import { cancelRunsInTransaction } from "./cancel-runs.js";
 import type { Prisma, PrismaClient } from "./client.js";
 import { expireComputerExecutionLeases } from "./computers.js";

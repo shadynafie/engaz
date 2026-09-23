@@ -1,6 +1,5 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import { COMPUTER_UPDATE_STAGES, type ComputerUpdate } from "@rakazo/contracts";
-import { computerUpdateNeedsAttention, computerUpdateStages } from "@rakazo/core";
+import { COMPUTER_UPDATE_STAGES, type ComputerUpdate } from "@engaz/contracts";
+import { computerUpdateNeedsAttention, computerUpdateStages } from "@engaz/core";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +14,8 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-} from "@rakazo/ui-web";
+} from "@engaz/ui-web";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { CheckCircle2, Circle, CircleAlert, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { computerUpdates } from "../lib/computer-updates";

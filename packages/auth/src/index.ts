@@ -1,6 +1,6 @@
-import type { TransactionalEmail, TransactionalEmailProvider } from "@rakazo/adapter-kit";
-import { emailAllowed, isMessagingEmail, parseAllowlist, signupPolicyFromEnv } from "@rakazo/core";
-import { bootstrapUserSpace, type PrismaClient } from "@rakazo/db";
+import type { TransactionalEmail, TransactionalEmailProvider } from "@engaz/adapter-kit";
+import { emailAllowed, isMessagingEmail, parseAllowlist, signupPolicyFromEnv } from "@engaz/core";
+import { bootstrapUserSpace, type PrismaClient } from "@engaz/db";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -37,7 +37,7 @@ export async function resolveSignupPolicy(
 
 export function createAuth(prisma: PrismaClient, env: AuthEnv) {
   return betterAuth({
-    appName: "Rakazo",
+    appName: "Engaz",
     secret: env.secret,
     baseURL: env.baseURL,
     trustedOrigins: buildTrustedOrigins(env),
@@ -215,9 +215,9 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
 export function verificationEmail(email: string, url: string): TransactionalEmail {
   return {
     to: email,
-    subject: "Verify your Rakazo email",
-    text: `Verify your email, then return to Rakazo to sign in:\n\n${url}\n\nThis link expires in one hour. If you did not register, ignore this email.`,
-    html: `<p><a href="${escapeHtml(url)}">Verify email</a>, then return to Rakazo to sign in.</p><p>This link expires in one hour. If you did not register, ignore this email.</p>`,
+    subject: "Verify your Engaz email",
+    text: `Verify your email, then return to Engaz to sign in:\n\n${url}\n\nThis link expires in one hour. If you did not register, ignore this email.`,
+    html: `<p><a href="${escapeHtml(url)}">Verify email</a>, then return to Engaz to sign in.</p><p>This link expires in one hour. If you did not register, ignore this email.</p>`,
   };
 }
 
@@ -230,16 +230,16 @@ export function passwordResetEmail(
   const safeUrl = escapeHtml(resetUrl);
   return {
     to: user.email,
-    subject: "Reset your Rakazo password",
+    subject: "Reset your Engaz password",
     text: [
       `Hi ${name},`,
       "",
-      "Reset your Rakazo password using this link:",
+      "Reset your Engaz password using this link:",
       resetUrl,
       "",
       "This link expires in one hour. If you did not request this, you can ignore this email.",
     ].join("\n"),
-    html: `<p>Hi ${safeName},</p><p>Reset your Rakazo password:</p><p><a href="${safeUrl}">Reset password</a></p><p>This link expires in one hour. If you did not request this, you can ignore this email.</p>`,
+    html: `<p>Hi ${safeName},</p><p>Reset your Engaz password:</p><p><a href="${safeUrl}">Reset password</a></p><p>This link expires in one hour. If you did not request this, you can ignore this email.</p>`,
   };
 }
 

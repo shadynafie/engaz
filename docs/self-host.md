@@ -35,17 +35,31 @@ Compose bot homes mount only their own subdirectory of the application data. Wit
 
 CI installs the published images anonymously with the commands below and waits for a healthy stack on amd64 and arm64 Linux after every main publish. Real NAS and desktop hosts, and upgrades, have not been verified yet.
 
-Pull Postgres and `ghcr.io/shadynafie/engaz/app` into any empty folder. No clone or image build.
-Requires Docker Engine 26+ (API 1.45+ for bot home volume subpaths), the Compose plugin, curl, and OpenSSL.
+No clone or image build is needed. Run one command in a terminal:
 
 ```bash
-mkdir -p engaz && cd engaz &&
-curl -fsSLO https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh &&
-bash install-images.sh
+curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash
 ```
 
-The installer downloads `docker-compose.images.yml` and `.env.images.example`, creates `.env` with
-random secrets, then pulls and starts the images. It preserves an existing `.env` when rerun. For
+The installer:
+
+1. Checks for Docker. On Linux it offers to install Docker with Docker's official script
+   (`curl -fsSL https://get.docker.com | sudo sh`) and asks before running it. On macOS and
+   Windows, install Docker Desktop first (on Windows, run the command inside WSL).
+2. Asks where to keep data. Press Enter for Docker's own storage, or type a folder path; see
+   [Keep data in a folder you choose](#keep-data-in-a-folder-you-choose).
+3. Downloads `docker-compose.images.yml` and `.env.images.example` into `~/engaz` (or the data
+   folder), creates `.env` with random secrets, pulls the images, and waits until Engaz is healthy.
+4. Prints the address to open, `http://127.0.0.1:7791`, where the first account completes setup.
+
+Run the same command again to update. It finds the existing installation, keeps its `.env`, and
+refuses to create a second installation on the same Docker host. Without a keyboard (for example,
+in automation), it asks nothing: it uses Docker storage unless `--data-dir` is given, and stops if
+Docker is missing. Flags go after `bash -s --`, for example `| bash -s -- --data-dir=/volume1/engaz`.
+
+Requires the Compose plugin, curl, and OpenSSL; Docker Engine 26+ (API 1.45+) is needed for bot home
+volume subpaths. If Docker was just installed, the installer uses `sudo` for Docker commands during
+that run instead of changing group membership. For
 the installer secret list, non-reuse rules, and recovery, see
 [Self-host secrets checklist](./self-host-secrets.md). To customize the public URL, image tag, or
 optional providers before startup, run `bash install-images.sh --prepare-only`, edit `.env`, then
@@ -57,16 +71,15 @@ By default, Postgres and app data live in Docker named volumes. To keep everythi
 survive in one host folder, such as a NAS share, give a new installation an absolute path:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh &&
-bash install-images.sh --data-dir=/volume1/engaz
+curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash -s -- --data-dir=/volume1/engaz
 ```
 
-The folder must be empty or not exist yet. The installer checks that Docker is running, Compose is
+Typing the same path at the installer's data question does the same. The folder must be empty or not exist yet. The installer checks that Docker is running, Compose is
 2.24 or newer, the web and API ports are free, the folder is writable, and it has at least 10 GB
 free. It then writes `.env` (mode 600), `postgres/`, and `appdata/` there, and records
 `ENGAZ_DATA_DIR` and `COMPOSE_FILE` in `.env`, so `docker compose` commands work from that folder.
 Back up the whole folder: the database and agent files are unreadable without the original `.env`
-secrets. Rerun the same command to update.
+secrets.
 
 The installer refuses a folder that holds other files, and refuses when this Docker host already
 has an Engaz installation in named volumes. Moving an existing installation into a folder needs a

@@ -26,7 +26,7 @@ This baseline describes source and checks, not the safety of an existing install
 
 ## Order of work
 
-Current status: **0 verified; 1 in progress (1.1 in review); 2–5 planned.** Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
+Current status: **0 verified; 1 in progress (1.1 verified, 1.2 in review); 2–5 planned.** Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
 
 ### 0. Restore the release gate
 
@@ -38,7 +38,7 @@ Current status: **0 verified; 1 in progress (1.1 in review); 2–5 planned.** Ea
 
 ### 1. Make installation and recovery safe
 
-1. Extend the image installer in `infra/compose/` to accept an absolute host data directory. Preflight Docker daemon and Compose compatibility, required ports, directory ownership/write access, and free space before writing data. Put Postgres data, shared app/agent data, and the original `.env` secrets under that directory. Test the supervisor's bot-home mounts as well as the web and API containers.
+1. Extend the image installer in `infra/compose/` to accept an absolute host data directory. Preflight Docker daemon and Compose compatibility, required ports, directory ownership/write access, and free space before writing data. Put Postgres data, shared app/agent data, and the original `.env` secrets under that directory. Test the supervisor's bot-home mounts as well as the web and API containers. **Verified:** `--data-dir` and its preflight checks; CI installs into a folder on amd64 and arm64, writes an agent-computer file, and keeps it across a stack recreate ([PR #6](https://github.com/shadynafie/engaz/pull/6)).
 2. Offer the simplest supported Docker setup path. On explicitly supported Linux distributions, Docker installation may be opt-in with the exact commands shown first. On NAS, macOS, and Windows, provide clear prerequisite instructions when automatic installation is unsafe or unsupported. Never imply Docker was installed automatically until that path is tested.
 3. Provide `start`, `stop`, `status`, and `upgrade` instructions that retain data. Remove or clearly guard any user-facing path that runs `docker compose down -v`. Changing the Compose project name or moving from existing named volumes needs an explicit migration procedure; never silently create empty replacement volumes.
 4. Provide portable backup and restore for the image installation. Capture a consistent database state, appdata, and original secrets; protect the archive and rehearse restoration into a clean isolated installation. Verify owner sign-in, an agent file, and a decrypted saved credential after restore.

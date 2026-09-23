@@ -44,8 +44,16 @@ log="${STUB_DOCKER_LOG:?}"
 case "${1:-}" in
   compose) shift ;;
   info) exit 0 ;;
-  # Nonempty by default: a running stack skips the host port check.
-  ps) printf '%s\n' "${STUB_DOCKER_PS-running}"; exit 0 ;;
+  ps)
+    # Folder lookups ask for the Compose working directory; other lookups ask whether a
+    # stack is running, which is nonempty by default so the host port check is skipped.
+    if [[ " $* " == *" --format "* ]]; then
+      printf '%s\n' "${STUB_DOCKER_PROJECT_DIR-}"
+    else
+      printf '%s\n' "${STUB_DOCKER_PS-running}"
+    fi
+    exit 0
+    ;;
   volume) printf '%s\n' "${STUB_DOCKER_VOLUMES-}"; exit 0 ;;
   *) echo "STUB: unexpected docker $*" >&2; exit 1 ;;
 esac
@@ -168,6 +176,7 @@ run_install() {
     export STUB_DOCKER_LOG="$work/docker.log"
     export STUB_CURL_LOG="$work/curl.log"
     export PATH="$work/bin:$PATH"
+    export ENGAZ_NONINTERACTIVE="${ENGAZ_NONINTERACTIVE-1}"
     cd "$work/cwd"
     bash "$src" "$@"
   )
@@ -193,7 +202,7 @@ set -e
 [[ "$offline_out" == *"Using local docker-compose.images.yml"* ]] || fail "--offline did not keep local compose file"
 [[ "$offline_out" == *"Using local .env.images.example"* ]] || fail "--offline did not keep local env example"
 [[ "$offline_out" == *"Skipping image pull"* ]] || fail "--offline did not skip image pull"
-[[ "$offline_out" == *"Engaz is starting"* ]] || fail "--offline did not start"
+[[ "$offline_out" == *"Open http://127.0.0.1:7791 in your browser to set it up."* ]] || fail "--offline did not start"
 [[ ! -s "$tmp/offline/curl.log" ]] || fail "--offline should not curl when files are local: $(cat "$tmp/offline/curl.log")"
 has_compose_pull "$tmp/offline" && fail "--offline should not run compose pull"
 has_up_pull_never "$tmp/offline" || fail "--offline should pass --pull never to compose up: $(cat "$tmp/offline/docker.log")"
@@ -226,7 +235,7 @@ unset STUB_COMPOSE_UP_HELP STUB_COMPOSE_SHORT
 [[ "$old_out" == *"cannot enforce pull-never on this Compose version; startup fails if an image is missing locally"* ]] \
   || fail "old Compose --offline missing soft warning: $old_out"
 [[ "$old_out" != *"Engaz setup failed:"* ]] || fail "old Compose --offline should not hard-fail: $old_out"
-[[ "$old_out" == *"Engaz is starting"* ]] || fail "old Compose --offline should continue: $old_out"
+[[ "$old_out" == *"Open http://127.0.0.1:7791 in your browser to set it up."* ]] || fail "old Compose --offline should continue: $old_out"
 has_compose_pull "$tmp/old" && fail "old Compose --offline should not run compose pull"
 if grep -F -e ' --pull never' "$tmp/old/docker.log" >/dev/null; then
   fail "old Compose up should not receive --pull never: $(cat "$tmp/old/docker.log")"
@@ -282,6 +291,7 @@ set +e
 data_out="$(
   export STUB_DOCKER_LOG="$tmp/data/docker.log" STUB_CURL_LOG="$tmp/data/curl.log"
   export PATH="$tmp/data/bin:$PATH"
+  export ENGAZ_NONINTERACTIVE=1
   cd "$store" && bash "$src" 2>&1
 )"
 data_code=$?
@@ -309,7 +319,7 @@ setup_work "$tmp/volumes"
 export STUB_DOCKER_VOLUMES=engaz_pgdata
 data_install "$tmp/volumes" "--data-dir=$tmp/volumes/store"
 unset STUB_DOCKER_VOLUMES
-expect_data_failure "keeps its data in Docker volumes"
+expect_data_failure "already has an Engaz database (volume engaz_pgdata)"
 [[ ! -e "$tmp/volumes/store/.env" ]] || fail "volume refusal should not write .env"
 
 setup_work "$tmp/old-data"
@@ -349,5 +359,66 @@ time.sleep(30)
   wait "$listener" 2>/dev/null || true
   expect_data_failure "port $(cat "$port_file") on 127.0.0.1 is already in use"
 fi
+
+# Interactive questions: Enter keeps Docker storage; a ~/ path becomes a data folder.
+setup_work "$tmp/ask-enter"
+rm "$tmp/ask-enter/cwd/.env"
+printf '\n' > "$tmp/ask-enter/answers"
+set +e
+ask_out="$(ENGAZ_NONINTERACTIVE=0 ENGAZ_TTY="$tmp/ask-enter/answers" run_install "$tmp/ask-enter" 2>&1)"
+ask_code=$?
+set -e
+[[ "$ask_code" -eq 0 ]] || fail "Enter at the data question exited $ask_code: $ask_out"
+[[ "$ask_out" == *"Where should Engaz keep its data?"* ]] || fail "data question was not asked: $ask_out"
+[[ -f "$tmp/ask-enter/cwd/.env" ]] || fail "Enter should install in the current folder"
+grep -q '^ENGAZ_DATA_DIR=' "$tmp/ask-enter/cwd/.env" && fail "Enter should keep Docker storage"
+
+setup_work "$tmp/ask-path"
+rm "$tmp/ask-path/cwd/.env"
+mkdir -p "$tmp/ask-path/home"
+printf '~/engaz-data\n' > "$tmp/ask-path/answers"
+set +e
+ask_out="$(HOME="$tmp/ask-path/home" ENGAZ_NONINTERACTIVE=0 ENGAZ_TTY="$tmp/ask-path/answers" \
+  run_install "$tmp/ask-path" 2>&1)"
+ask_code=$?
+set -e
+[[ "$ask_code" -eq 0 ]] || fail "a typed data folder exited $ask_code: $ask_out"
+ask_store="$(cd "$tmp/ask-path/home/engaz-data" && pwd -P)"
+grep -qxF "ENGAZ_DATA_DIR=$ask_store" "$ask_store/.env" || fail "typed ~/ folder was not used: $ask_out"
+
+# Rerunning from anywhere updates the installation Compose already knows about.
+setup_work "$tmp/update"
+mkdir -p "$tmp/update/installed"
+cp "$tmp/update/cwd/.env" "$tmp/update/installed/.env"
+rm "$tmp/update/cwd/.env"
+export STUB_DOCKER_PROJECT_DIR="$tmp/update/installed"
+data_install "$tmp/update"
+[[ "$data_code" -eq 0 ]] || fail "update from another folder exited $data_code: $data_out"
+[[ "$data_out" == *"Updating the Engaz installation in $tmp/update/installed"* ]] || fail "update did not find the installation: $data_out"
+[[ ! -e "$tmp/update/cwd/.env" ]] || fail "update must not create a second .env"
+data_install "$tmp/update" "--data-dir=$tmp/update/other"
+expect_data_failure "Engaz is already installed in $tmp/update/installed"
+rm "$tmp/update/installed/.env"
+data_install "$tmp/update"
+expect_data_failure "but its .env is missing"
+unset STUB_DOCKER_PROJECT_DIR
+
+# `curl ... | bash` has no script folder, so a new installation goes to ~/engaz.
+setup_work "$tmp/piped"
+rm "$tmp/piped/cwd/.env"
+mkdir -p "$tmp/piped/home"
+set +e
+piped_out="$(
+  export STUB_DOCKER_LOG="$tmp/piped/docker.log" STUB_CURL_LOG="$tmp/piped/curl.log"
+  export PATH="$tmp/piped/bin:$PATH" HOME="$tmp/piped/home" ENGAZ_NONINTERACTIVE=1
+  cd "$tmp/piped/cwd" && bash < "$src" 2>&1
+)"
+piped_code=$?
+set -e
+[[ "$piped_code" -eq 0 ]] || fail "piped install exited $piped_code: $piped_out"
+[[ -f "$tmp/piped/home/engaz/.env" ]] || fail "piped install should use ~/engaz: $piped_out"
+[[ ! -e "$tmp/piped/cwd/.env" ]] || fail "piped install should not write into the current folder"
+[[ "$piped_out" == *"Engaz files are in $(cd "$tmp/piped/home/engaz" && pwd)."* ]] \
+  || fail "piped install should name its folder: $piped_out"
 
 echo "ok"

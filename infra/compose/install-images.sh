@@ -71,15 +71,82 @@ fail() {
   exit 1
 }
 
-for command_name in curl docker openssl; do
+for command_name in curl openssl; do
   command -v "$command_name" >/dev/null 2>&1 || fail "'$command_name' is required."
 done
 
-docker compose version >/dev/null 2>&1 || fail "the Docker Compose plugin is required."
-if [[ "$prepare_only" != true ]]; then
-  docker info >/dev/null 2>&1 \
-    || fail "cannot reach the Docker daemon. Start Docker, or give this user access to it, then retry."
+# Questions read the keyboard even when this script arrives through `curl ... | bash`.
+# ENGAZ_TTY lets the installer smokes answer them from a file.
+readonly TTY="${ENGAZ_TTY:-/dev/tty}"
+interactive=false
+if [[ "${ENGAZ_NONINTERACTIVE:-}" != 1 ]] && (: <"$TTY") 2>/dev/null; then
+  exec 3<"$TTY"
+  interactive=true
 fi
+
+# Answers come from one open descriptor so each question reads the next line.
+ask() {
+  local answer=""
+  printf '%s ' "$1" >&2
+  IFS= read -r answer <&3 || answer=""
+  printf '%s' "$answer"
+}
+
+install_docker() {
+  local answer
+  case "$(uname -s)" in
+    Linux)
+      echo "Docker is not installed. Engaz can install it with Docker's official script:"
+      echo "  curl -fsSL https://get.docker.com | sudo sh"
+      [[ "$interactive" == true ]] || fail "Docker is required. Run the command above, then run this installer again."
+      answer=$(ask "Install Docker now? [y/N]")
+      [[ "$answer" == [yY] || "$answer" == [yY][eE][sS] ]] \
+        || fail "Docker is required. Run the command above, then run this installer again."
+      temporary_file=$(mktemp)
+      curl -fsSL --proto '=https' https://get.docker.com -o "$temporary_file" \
+        || fail "could not download Docker's install script."
+      sudo sh "$temporary_file" || fail "Docker installation failed."
+      rm -f -- "$temporary_file"
+      temporary_file=""
+      if command -v systemctl >/dev/null 2>&1; then
+        sudo systemctl enable --now docker >/dev/null 2>&1 || true
+      fi
+      ;;
+    Darwin)
+      fail "Docker is not installed. Install Docker Desktop from https://docs.docker.com/desktop/setup/install/mac-install/, open it once, then run this command again."
+      ;;
+    *)
+      fail "Docker is not installed. Install Docker Desktop (on Windows, run this command inside WSL) or Docker Engine, then run this command again."
+      ;;
+  esac
+}
+
+# A new Linux Docker user is usually not in the docker group yet. Docker access is
+# root-equivalent, so use sudo for this run rather than changing group membership.
+use_docker() {
+  local sudo_args=(-n)
+  docker info >/dev/null 2>&1 && return 0
+  if [[ "$(uname -s)" == Linux ]] && command -v sudo >/dev/null 2>&1; then
+    [[ "$interactive" == true ]] && sudo_args=()
+    if sudo ${sudo_args[@]+"${sudo_args[@]}"} docker info >/dev/null 2>&1; then
+      echo "Using sudo for Docker. To use Docker without sudo later: sudo usermod -aG docker $(id -un)"
+      docker() { sudo docker "$@"; }
+      return 0
+    fi
+    fail "cannot reach the Docker daemon. Start it with: sudo systemctl start docker"
+  fi
+  fail "cannot reach the Docker daemon. Start Docker, then run this command again."
+}
+
+if ! command -v docker >/dev/null 2>&1; then
+  [[ "$prepare_only" != true ]] || fail "'docker' is required."
+  install_docker
+fi
+if [[ "$prepare_only" != true ]]; then
+  use_docker
+fi
+docker compose version >/dev/null 2>&1 \
+  || fail "the Docker Compose plugin is required. Install Docker Desktop, or the docker-compose-plugin package from Docker's repository."
 
 # The data-dir Compose file uses !override and !reset, added in Compose 2.24.
 compose_supports_data_dir() {
@@ -93,9 +160,16 @@ compose_supports_data_dir() {
   ((major > 2 || (major == 2 && minor >= 24)))
 }
 
+# Compose labels every container with the folder it was started from.
+existing_install_dir() {
+  [[ "$prepare_only" != true ]] || return 0
+  docker ps -a --filter label=com.docker.compose.project=engaz \
+    --format '{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | awk 'NF' | head -n 1
+}
+
 # Everything that must survive (Postgres data, app/agent data, and .env secrets)
-# lives under one host folder. New installations only: existing named-volume data
-# is never moved or shadowed here.
+# lives under one host folder. New installations only: existing data is never
+# moved or shadowed here.
 prepare_data_dir() {
   local entry name available_kb
   [[ "$data_dir" == /* ]] || fail "--data-dir must be an absolute path."
@@ -129,9 +203,6 @@ prepare_data_dir() {
         *) fail "$data_dir is not empty. Choose an empty folder for a new installation." ;;
       esac
     done
-    if [[ -n "$(docker volume ls -q --filter name=^engaz_pgdata$ 2>/dev/null)" ]]; then
-      fail "this Docker host already has an Engaz installation that keeps its data in Docker volumes. Moving it to a folder needs a migration that is not available yet."
-    fi
   fi
 
   available_kb=$(df -Pk "$data_dir" | awk 'NR == 2 { print $4 }')
@@ -144,6 +215,41 @@ prepare_data_dir() {
   cd -- "$data_dir"
   echo "Keeping Engaz data in $data_dir"
 }
+
+ask_data_dir() {
+  local answer
+  echo "Where should Engaz keep its data?" >&2
+  answer=$(ask "Press Enter to use Docker's own storage, or type a folder path:")
+  answer="${answer#"${answer%%[![:space:]]*}"}"
+  answer="${answer%"${answer##*[![:space:]]}"}"
+  [[ -n "$answer" ]] || return 0
+  case "$answer" in
+    "~") answer="$HOME" ;;
+    "~/"*) answer="$HOME/${answer#"~/"}" ;;
+    /*) ;;
+    *) answer="$PWD/$answer" ;;
+  esac
+  data_dir="$answer"
+}
+
+# Rerunning the one-line command updates the installation it finds. A second
+# installation would get new secrets that cannot read the existing data.
+if [[ ! -f "$ENV_FILE" ]]; then
+  existing_dir=$(existing_install_dir)
+  if [[ -n "$existing_dir" && "$existing_dir" != "$PWD" ]]; then
+    [[ -z "$data_dir" ]] || fail "Engaz is already installed in $existing_dir. Run this command without --data-dir to update it."
+    [[ -f "$existing_dir/$ENV_FILE" ]] || fail "Engaz is already installed in $existing_dir, but its .env is missing."
+    cd -- "$existing_dir"
+    echo "Updating the Engaz installation in $existing_dir"
+  elif [[ -z "$data_dir" ]]; then
+    [[ "$interactive" != true ]] || ask_data_dir
+    # `curl ... | bash` has no script folder; keep the files in one predictable place.
+    if [[ -z "$data_dir" && ! -f "${BASH_SOURCE[0]:-}" ]]; then
+      mkdir -p -- "$HOME/engaz"
+      cd -- "$HOME/engaz"
+    fi
+  fi
+fi
 
 # A rerun from inside a data folder keeps using it even without --data-dir; starting
 # without the data-dir Compose file would switch to empty named volumes.
@@ -384,6 +490,9 @@ fi
 if [[ -e "$ENV_FILE" ]]; then
   echo "Keeping existing .env."
 else
+  if [[ "$prepare_only" != true && -n "$(docker volume ls -q --filter name=^engaz_pgdata$ 2>/dev/null)" ]]; then
+    fail "this Docker host already has an Engaz database (volume engaz_pgdata) from an earlier installation. Run this command from that installation's folder, which holds its .env secrets."
+  fi
   create_env
 fi
 
@@ -435,14 +544,30 @@ if [[ "$pull_never" == true ]]; then
   fi
 fi
 # bash 3.2 + set -u: "${arr[@]}" aborts when arr is empty.
+url="http://127.0.0.1:$(env_value ENGAZ_WEB_PORT 7791)"
+
+# Healthy containers are not enough: the port must answer from the host, as the browser sees it.
+url_answers() {
+  local attempt
+  for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
+    curl -fsS --noproxy '*' --max-time 5 -o /dev/null "$url/" 2>/dev/null && return 0
+    sleep 1
+  done
+  return 1
+}
+
 if grep -q -- '--wait-timeout' <<<"$compose_up_help"; then
   echo "Waiting for healthy services."
   docker compose "${compose_args[@]}" up -d ${up_pull_args[@]+"${up_pull_args[@]}"} --wait --wait-timeout 300
 else
   docker compose "${compose_args[@]}" up -d ${up_pull_args[@]+"${up_pull_args[@]}"}
 fi
-
-echo "Engaz is starting at http://127.0.0.1:$(env_value ENGAZ_WEB_PORT 7791)"
+if url_answers; then
+  echo "Engaz is ready. Open $url in your browser to set it up."
+else
+  echo "Engaz is starting. In a minute, open $url in your browser to set it up."
+fi
+echo "Engaz files are in $PWD. Run this command again to update."
 if [[ -n "$data_dir" ]]; then
   echo "Data and secrets are in $data_dir. Back up that whole folder."
 fi

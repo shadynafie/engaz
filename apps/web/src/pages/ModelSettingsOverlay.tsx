@@ -1,5 +1,4 @@
-import { Plural, Trans, useLingui } from "@lingui/react/macro";
-import type { Me, ThinkingLevel } from "@rakazo/contracts";
+import type { Me, ThinkingLevel } from "@engaz/contracts";
 import {
   DEFAULT_MODEL_CONTEXT_WINDOW,
   DEFAULT_MODEL_MAX_TOKENS,
@@ -11,8 +10,8 @@ import {
   parseModelContextWindow,
   parseModelMaxImagesPerPrompt,
   parseModelMaxTokens,
-} from "@rakazo/contracts";
-import { createModelProbe, initialModelProbeState } from "@rakazo/core";
+} from "@engaz/contracts";
+import { createModelProbe, initialModelProbeState } from "@engaz/core";
 import {
   Button,
   Dialog,
@@ -25,7 +24,8 @@ import {
   ModelThinkingOptions,
   NativeSelect,
   NativeSelectOption,
-} from "@rakazo/ui-web";
+} from "@engaz/ui-web";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { ChevronDown, X } from "lucide-react";
 import {
   type KeyboardEvent as ReactKeyboardEvent,

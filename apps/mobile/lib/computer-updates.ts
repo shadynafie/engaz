@@ -1,5 +1,5 @@
-import type { ComputerUpdate } from "@rakazo/contracts";
-import { createComputerUpdates } from "@rakazo/core";
+import type { ComputerUpdate } from "@engaz/contracts";
+import { createComputerUpdates } from "@engaz/core";
 import { rpc } from "./api";
 export const computerUpdates = createComputerUpdates({
   list: () => rpc<ComputerUpdate[]>("computer/updates"),

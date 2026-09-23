@@ -1,6 +1,6 @@
+import type { ScratchpadItem } from "@engaz/contracts";
+import { Button, Checkbox, Input } from "@engaz/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { ScratchpadItem } from "@rakazo/contracts";
-import { Button, Checkbox, Input } from "@rakazo/ui-web";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 

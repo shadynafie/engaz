@@ -1,9 +1,4 @@
-import type {
-  ComputerStatus,
-  ProductEvent,
-  ThreadMessage,
-  ThreadSnapshot,
-} from "@rakazo/contracts";
+import type { ComputerStatus, ProductEvent, ThreadMessage, ThreadSnapshot } from "@engaz/contracts";
 import { describe, expect, it } from "vitest";
 import {
   activeThreadRuns,

@@ -1,7 +1,7 @@
-import { type ComputerUpdate, ComputerUpdateSchema } from "@rakazo/contracts";
-import { ACTIVE_RUN_STATUSES } from "@rakazo/core";
-import type { PrismaClient } from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+import { type ComputerUpdate, ComputerUpdateSchema } from "@engaz/contracts";
+import { ACTIVE_RUN_STATUSES } from "@engaz/core";
+import type { PrismaClient } from "@engaz/db";
+import { getLogger } from "@engaz/logging";
 import { scheduleComputerSleep } from "./computer-idle.js";
 import {
   ComputerBusyError,

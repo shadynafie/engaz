@@ -3,6 +3,7 @@ import {
   ABOUT_MARKDOWN,
   AGENT_INSTRUCTIONS,
   HOME_MARKDOWN,
+  SUPPORT_MARKDOWN,
   getMarkdownAlternate,
   getMarkdownDocument,
   markdownResponse,
@@ -33,8 +34,8 @@ describe("agent content negotiation", () => {
   });
 
   it("maps canonical and trailing-slash page paths to Markdown documents", () => {
-    expect(getMarkdownDocument("/")).toContain("# Rakazo");
-    expect(getMarkdownDocument("/about/")).toContain("# About Rakazo");
+    expect(getMarkdownDocument("/")).toContain("# Engaz");
+    expect(getMarkdownDocument("/about/")).toContain("# About Engaz");
     expect(getMarkdownAlternate("/")).toBe("/index.md");
     expect(getMarkdownAlternate("/support/")).toBe("/support.md");
     expect(getMarkdownDocument("/missing")).toBeUndefined();
@@ -42,17 +43,15 @@ describe("agent content negotiation", () => {
     expect(getMarkdownAlternate("/changelog")).toBeUndefined();
   });
 
-  it("publishes specific when-to-use instructions for agents", () => {
-    expect(HOME_MARKDOWN).toContain("open source Grok Bot alternative");
-    expect(ABOUT_MARKDOWN).toContain("open source Grok Bot alternative");
-    expect(AGENT_INSTRUCTIONS).toContain("open source Grok Bot alternative");
-    expect(AGENT_INSTRUCTIONS).toContain("## When to use Rakazo");
-    expect(AGENT_INSTRUCTIONS).toContain("## How an agent should use Rakazo");
-    expect(AGENT_INSTRUCTIONS).toContain("Self-hosting is available now");
+  it("links to the project and describes its current scope", () => {
+    expect(HOME_MARKDOWN).toContain("solo founders and small businesses");
+    expect(ABOUT_MARKDOWN).toContain("early development");
+    expect(AGENT_INSTRUCTIONS).toContain("self-hosting guide");
+    expect(SUPPORT_MARKDOWN).toContain("private vulnerability reporting");
   });
 
   it("returns cache-safe Markdown responses and omits bodies for HEAD", async () => {
-    const response = markdownResponse("# Rakazo\n");
+    const response = markdownResponse("# Engaz\n");
     expect(response.headers.get("content-type")).toBe(
       "text/markdown; charset=utf-8",
     );
@@ -60,9 +59,9 @@ describe("agent content negotiation", () => {
       '</llms.txt>; rel="describedby"; type="text/plain"',
     );
     expect(response.headers.get("vary")).toBe("Accept, Accept-Encoding");
-    await expect(response.text()).resolves.toBe("# Rakazo\n");
+    await expect(response.text()).resolves.toBe("# Engaz\n");
 
-    const headResponse = markdownResponse("# Rakazo\n", "HEAD", 404);
+    const headResponse = markdownResponse("# Engaz\n", "HEAD", 404);
     expect(headResponse.status).toBe(404);
     await expect(headResponse.text()).resolves.toBe("");
   });

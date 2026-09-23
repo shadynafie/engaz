@@ -4,9 +4,9 @@ import {
   dispatchBackgroundJob,
   type JobPublisher,
   type JobWorkerHost,
-} from "@rakazo/adapter-kit";
-import { isTooManyDatabaseConnections } from "@rakazo/db";
-import { runCorrelatedJob, unwrapJobPayload, wrapJobPayload } from "@rakazo/logging";
+} from "@engaz/adapter-kit";
+import { isTooManyDatabaseConnections } from "@engaz/db";
+import { runCorrelatedJob, unwrapJobPayload, wrapJobPayload } from "@engaz/logging";
 import { makeWorkerUtils, type Runner, run, type WorkerUtils } from "graphile-worker";
 import type { Pool } from "pg";
 

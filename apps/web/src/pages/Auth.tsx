@@ -1,6 +1,6 @@
+import { readBoundedJsonResponse, signupRequiresEmailVerification } from "@engaz/core";
+import { Button, Input, Label } from "@engaz/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { readBoundedJsonResponse, signupRequiresEmailVerification } from "@rakazo/core";
-import { Button, Input, Label } from "@rakazo/ui-web";
 import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";

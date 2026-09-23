@@ -1,6 +1,6 @@
-import { runContinueJob } from "@rakazo/adapter-kit";
-import { MessageBlock } from "@rakazo/contracts";
-import { botMessageHopExhausted, nextBotMessageHop, renderGroupMembersContext } from "@rakazo/core";
+import { runContinueJob } from "@engaz/adapter-kit";
+import { MessageBlock } from "@engaz/contracts";
+import { botMessageHopExhausted, nextBotMessageHop, renderGroupMembersContext } from "@engaz/core";
 import {
   appendEventInTransaction,
   createThreadMessageInTransaction,
@@ -8,8 +8,8 @@ import {
   lockOwnedGroup,
   type PrismaClient,
   touchGroupUpdatedAt,
-} from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@engaz/db";
+import { getLogger } from "@engaz/logging";
 import type { ExecutorDeps } from "./executor.js";
 
 export async function handoffToGroupBot(

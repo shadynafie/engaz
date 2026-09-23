@@ -1,5 +1,4 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { implement, ORPCError } from "@orpc/server";
 import type {
   AdapterContext,
   AgentHomeStore,
@@ -8,7 +7,7 @@ import type {
   JobPublisher,
   MemoryStore,
   SandboxProvider,
-} from "@rakazo/adapter-kit";
+} from "@engaz/adapter-kit";
 import {
   computerControlExpireJobKey,
   messagingDeliverJob,
@@ -16,7 +15,7 @@ import {
   routineWakeupJob,
   runContinueJob,
   runJobKey,
-} from "@rakazo/adapter-kit";
+} from "@engaz/adapter-kit";
 import type {
   CloudAgentConnection,
   ComposioProvider,
@@ -27,7 +26,7 @@ import type {
   MemoryProviderResolver,
   PiOAuthLogins,
   RemoteConnectorDependencies,
-} from "@rakazo/adapters";
+} from "@engaz/adapters";
 import {
   acquireComputerExecutionLease,
   applyTeachingDesktopInput,
@@ -80,15 +79,15 @@ import {
   toComputerRef,
   touchRunningComputer,
   verifyMcpInstall,
-} from "@rakazo/adapters";
-import type { Auth } from "@rakazo/auth";
-import type { Actor, ComputerStatus, McpServer, Me, SpaceNavigation } from "@rakazo/contracts";
+} from "@engaz/adapters";
+import type { Auth } from "@engaz/auth";
+import type { Actor, ComputerStatus, McpServer, Me, SpaceNavigation } from "@engaz/contracts";
 import {
   appContract,
   IntegrationProviderIdSchema,
   OPENAI_COMPATIBLE_PROVIDER_ID,
   usableModelId,
-} from "@rakazo/contracts";
+} from "@engaz/contracts";
 import {
   ACTIVE_RUN_STATUSES,
   AttachmentValidationError,
@@ -97,8 +96,8 @@ import {
   hasMixedOneShotSchedule,
   isOneShotRoutineCrons,
   nextCronDateAcrossStrict,
-} from "@rakazo/core";
-import type { PrismaClient, ThreadEvents } from "@rakazo/db";
+} from "@engaz/core";
+import type { PrismaClient, ThreadEvents } from "@engaz/db";
 import {
   appendEventInTransaction,
   BotSectionNameConflictError,
@@ -136,8 +135,9 @@ import {
   selectSpaceModelPreference,
   selectSpaceVoicePreference,
   touchGroupUpdatedAt,
-} from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@engaz/db";
+import { getLogger } from "@engaz/logging";
+import { implement, ORPCError } from "@orpc/server";
 import { deleteAgentSecret, listAgentSecrets, putAgentSecret } from "./agent-secrets.js";
 import { createAgentSkillsService } from "./agent-skills.js";
 import { aiConsentStatus, allowAiConsent } from "./ai-consent.js";

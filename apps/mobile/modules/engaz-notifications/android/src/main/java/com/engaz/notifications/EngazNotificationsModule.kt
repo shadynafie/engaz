@@ -1,4 +1,4 @@
-package com.rakazo.notifications
+package com.engaz.notifications
 
 import android.app.NotificationManager
 import android.content.Intent
@@ -7,9 +7,9 @@ import android.provider.Settings
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
-class RakazoNotificationsModule : Module() {
+class EngazNotificationsModule : Module() {
   override fun definition() = ModuleDefinition {
-    Name("RakazoNotifications")
+    Name("EngazNotifications")
 
     AsyncFunction("getSettings") {
       NotificationStorage(context()).settings.toMap()
@@ -26,23 +26,23 @@ class RakazoNotificationsModule : Module() {
       storage.spaceId = spaceId
       storage.settings = NotificationSettings.fromMap(value)
       if (storage.settings.liveConnection && endpoint.isNotBlank() && token.isNotBlank()) {
-        RakazoNotificationService.start(context)
+        EngazNotificationService.start(context)
       } else {
-        RakazoNotificationService.stop(context)
+        EngazNotificationService.stop(context)
       }
     }
 
     AsyncFunction("resume") { endpoint: String, token: String, spaceId: String ->
       val context = context()
       if (endpoint.isNotBlank() && !isAllowedNotificationEndpoint(endpoint)) {
-        RakazoNotificationService.stop(context)
+        EngazNotificationService.stop(context)
       } else {
         val storage = NotificationStorage(context)
         storage.endpoint = endpoint
         storage.token = token
         storage.spaceId = spaceId
         if (storage.settings.liveConnection && endpoint.isNotBlank() && token.isNotBlank()) {
-          RakazoNotificationService.start(context)
+          EngazNotificationService.start(context)
         }
       }
     }
@@ -50,17 +50,17 @@ class RakazoNotificationsModule : Module() {
     AsyncFunction("stop") { clearSession: Boolean ->
       val context = context()
       if (clearSession) {
-        RakazoNotificationService.clearSession(context)
+        EngazNotificationService.clearSession(context)
         val storage = NotificationStorage(context)
         storage.token = ""
         storage.spaceId = ""
       } else {
-        RakazoNotificationService.stop(context)
+        EngazNotificationService.stop(context)
       }
     }
 
     AsyncFunction("setOpenThread") { botId: String?, threadId: String? ->
-      RakazoNotificationService.setOpenThread(context(), botId, threadId)
+      EngazNotificationService.setOpenThread(context(), botId, threadId)
     }
 
     AsyncFunction("openSettings") {

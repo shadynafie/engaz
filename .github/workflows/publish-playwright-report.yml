@@ -17,7 +17,9 @@ concurrency:
 
 jobs:
   publish:
+    # Enable only after this repository has its own S3 secrets, variables, and public gallery URL.
     if: >-
+      vars.PLAYWRIGHT_REPORT_ENABLED == 'true' &&
       (github.event.workflow_run.conclusion == 'success' ||
        github.event.workflow_run.conclusion == 'failure' ||
        github.event.workflow_run.conclusion == 'timed_out') &&
@@ -172,7 +174,7 @@ jobs:
                 "$review_path" \
                 "$changed_paths_file"
           )"
-          marker="<!-- rakazo-playwright-screenshots -->"
+          marker="<!-- engaz-playwright-screenshots -->"
           comment_id="$(gh api --paginate --slurp \
             "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" | \
             jq -r --arg marker "$marker" \

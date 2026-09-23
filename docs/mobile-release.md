@@ -1,12 +1,13 @@
 # Mobile builds and store releases
 
-Rakazo's public repository does not contain production App Store Connect,
+Engaz's public repository does not contain production App Store Connect,
 Google Play, Apple team, or private EAS submission identifiers. Those values
 belong in the release operator's private configuration.
 
-Self-hosters normally do not need to publish their own mobile app: the Rakazo
-client can select a compatible server from the sign-in screen. If you distribute
-your own branded build, use your own Expo and store accounts.
+The mobile client can select a compatible self-hosted server from its sign-in
+screen. A public Engaz store build has not yet been verified. To build the
+client now, use your own Expo project; store distribution also needs your own
+store accounts.
 
 ## Configure a build
 
@@ -17,7 +18,7 @@ your own branded build, use your own Expo and store accounts.
 4. Keep store application IDs, team IDs, signing credentials, API keys, and
    review-account credentials out of Git.
 5. Before a native iOS or Android build, run
-   `pnpm --filter @rakazo/mobile exec expo install --check`. Attachment pickers
+   `pnpm --filter @engaz/mobile exec expo install --check`. Attachment pickers
    and other Expo native modules must match the SDK (SDK 57 needs
    `expo-image-picker@~57.0.11`, not 17.x). Use `pnpm exec expo install --fix`
    from `apps/mobile` if that check fails.
@@ -41,25 +42,7 @@ and review account on a physical device.
 
 ## Over-the-air updates
 
-Production and preview builds include `expo-updates` and use the corresponding
-EAS Update channel. The runtime version follows the public app version, so bump
-`expo.version` whenever native code, config plugins, permissions, or native
-dependencies change, then create and submit new store builds.
-
-After the full GitHub Actions test suite passes on `main`, CI publishes a
-production OTA update when the revision only changes the mobile JavaScript,
-TypeScript, or bundled CSS. CI deliberately skips OTA publishing when native
-configuration, modules, dependencies, assets, or the update workflow changed.
-The repository needs an `EXPO_TOKEN` Actions secret with access to the linked
-Expo project.
-
-To publish a compatible update manually from `apps/mobile`:
-
-```sh
-eas update --platform all --channel production --environment production --message "Short description"
-```
-
-Installed release builds download a compatible update in the background on
-launch and apply it after the next restart. Builds created before
-`expo-updates` was configured cannot receive OTA updates and must be replaced
-with a new iOS and Android build once.
+Engaz does not currently configure an EAS Update project or publish OTA updates
+from CI. An operator who links a new Expo project must configure and verify its
+update channels before using `eas update`. Changes to native code, config
+plugins, permissions, or native dependencies require new store builds.

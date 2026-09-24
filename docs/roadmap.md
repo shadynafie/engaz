@@ -57,7 +57,7 @@ Current status: **0 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 pla
 ### 3. Make settings and plugins usable
 
 1. Give Settings and Plugins clear entry points from the main workspace and from an agent. Reuse the existing overlays and components. Preserve context when returning to a conversation; keep transport, headers, and API details under Advanced.
-2. Give every saved plugin a truthful state: untested, connected, or needs attention, with last check and a retry. A saved credential is not a passed connection test. Cover auth, capability discovery, expired access, and unavailable services.
+2. Give every saved plugin a truthful state: untested, connected, or needs attention, with last check and a retry. A saved credential is not a passed connection test. Cover auth, capability discovery, expired access, and unavailable services. **In progress:** MCP servers are checked when added, edited, or signed in to, and on demand. Each shows working (with its tools), sign in needed, or needs attention with the reason; agent runs update the same status. An unreachable server is not saved. OpenAPI and GraphQL sources still use their own check.
 3. Show the exact tools or actions exposed by a plugin and which agents can use them. New assignments should start with narrow permissions; revocation takes effect immediately. Consequential writes follow approval policy, with visible activity history.
 4. Add local MCP support through an explicitly local trust path. Retain the remote client's private-network SSRF protection. Test redirect, DNS rebinding, and private-host behavior at the boundary; do not make a general public URL field accept arbitrary LAN addresses.
 

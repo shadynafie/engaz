@@ -20,14 +20,18 @@ import {
   lazyCatalogTools,
   resolveCatalogCall,
 } from "./lazy-tool-catalog.js";
+import { MCP_CHECK_TIMEOUT_MS, type McpCheckResult, mcpCheckFailure } from "./mcp-check.js";
 import type { McpOAuthBroker, OAuthMaterial } from "./mcp-oauth.js";
-import { oauthMaterialSecrets } from "./mcp-oauth.js";
+import { McpReauthorizationRequiredError, oauthMaterialSecrets } from "./mcp-oauth.js";
 import { McpSession } from "./mcp-transport.js";
 import type { RemoteTransportDependencies } from "./remote-mcp.js";
 import type { EncryptedSecretStore } from "./secrets.js";
 
 type SessionEntry = { session: McpSession; revision: number; material: OAuthMaterial };
 type PendingSession = { revision: number; promise: Promise<McpSession> };
+
+// A working server is re-recorded at most this often, so runs do not write on every turn.
+const WORKING_RECHECK_MS = 10 * 60_000;
 
 /** Runtime MCP connector. Authorization is re-checked against the bot assignment on every call. */
 /**
@@ -133,6 +137,7 @@ export class McpConnector implements ConnectorProvider {
           const session = await this.sessionFor(assignment.server, context);
           const listed = await session.listTools({ signal: context.signal });
           reportAllowlistDrift(assignment, listed.tools, context);
+          await this.recordWorking(assignment.server, listed.tools);
           return listed.tools
             .filter(
               (tool) =>
@@ -162,6 +167,10 @@ export class McpConnector implements ConnectorProvider {
           const key = this.sessionKey(assignment.server, context);
           const material = this.sessions.get(key)?.material;
           await this.evict(key);
+          await this.recordCheck(
+            assignment.server.id,
+            mcpCheckFailure(error, material ? oauthMaterialSecrets(material) : []),
+          );
           await this.recordDiscoveryFailure(
             assignment.server.slug,
             error,
@@ -212,6 +221,61 @@ export class McpConnector implements ConnectorProvider {
       },
       secrets,
     );
+  }
+
+  /**
+   * Connects afresh, lists the server's tools, and records the outcome as its status.
+   * The session is closed afterwards so a check never replaces one a run is using.
+   */
+  async check(server: McpServer, context: AdapterContext): Promise<McpCheckResult> {
+    const checkContext = {
+      ...context,
+      signal: AbortSignal.any([context.signal, AbortSignal.timeout(MCP_CHECK_TIMEOUT_MS)]),
+    };
+    let connected: { session: McpSession; material: OAuthMaterial } | undefined;
+    let result: McpCheckResult;
+    try {
+      connected = await this.connectSession(server, checkContext);
+      const listed = await connected.session.listTools({ signal: checkContext.signal });
+      result = { status: "working", message: null, tools: listed.tools.map((tool) => tool.name) };
+    } catch (error) {
+      result = mcpCheckFailure(error, connected ? oauthMaterialSecrets(connected.material) : []);
+    } finally {
+      await connected?.session.close().catch(() => undefined);
+    }
+    await this.recordCheck(server.id, result);
+    return result;
+  }
+
+  private async recordWorking(server: McpServer, tools: Array<{ name: string }>): Promise<void> {
+    const fresh =
+      server.checkStatus === "working" &&
+      server.checkedAt !== null &&
+      Date.now() - server.checkedAt.getTime() < WORKING_RECHECK_MS;
+    if (fresh) return;
+    await this.recordCheck(server.id, {
+      status: "working",
+      message: null,
+      tools: tools.map((tool) => tool.name),
+    });
+  }
+
+  private async recordCheck(serverId: string, result: McpCheckResult): Promise<void> {
+    try {
+      await this.prisma.mcpServer.updateMany({
+        where: { id: serverId },
+        data: {
+          checkStatus: result.status,
+          checkMessage: result.message,
+          checkedAt: new Date(),
+          // Keep the last known tools while a server is down; they are what it offers.
+          ...(result.status === "working" ? { tools: result.tools } : {}),
+        },
+      });
+    } catch (error) {
+      // The status is advisory; a failed write must not break discovery or a run.
+      getLogger().warn("could not record MCP server check", { serverId, error });
+    }
   }
 
   async *execute(call: ConnectorCall, context: AdapterContext): AsyncIterable<ConnectorEvent> {
@@ -387,6 +451,8 @@ export class McpConnector implements ConnectorProvider {
       return { session, material };
     } catch (error) {
       await session.close().catch(() => undefined);
+      // Carries no secrets; its type is how callers tell "needs sign-in" from "broken".
+      if (error instanceof McpReauthorizationRequiredError) throw error;
       // Redact here, while the material is still in hand. This one rejection is handed
       // to every caller waiting on the same pending connect, and none of them can see
       // the secrets: the session never reached `sessions`. Sanitizing per caller would

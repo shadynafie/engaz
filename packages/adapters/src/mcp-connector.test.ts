@@ -802,6 +802,89 @@ describe("MCP connector session cache", () => {
   });
 });
 
+describe("MCP server check", () => {
+  const context = {
+    operationId: "check",
+    traceId: "check",
+    spaceId: "w1",
+    userId: "u1",
+    signal: new AbortController().signal,
+  };
+
+  function checkPrisma() {
+    return { mcpServer: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) } };
+  }
+
+  it("records a working server and the tools it offers", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mcpFetch({
+        failNext: false,
+        initializations: 0,
+        tools: [
+          { name: "search", inputSchema: { type: "object" } },
+          { name: "fetch", inputSchema: { type: "object" } },
+        ],
+      }),
+    );
+    const prisma = checkPrisma();
+    const connector = new McpConnector(prisma as never, {} as never, { network: TEST_NETWORK });
+
+    await expect(connector.check(SERVER as never, context)).resolves.toEqual({
+      status: "working",
+      message: null,
+      tools: ["search", "fetch"],
+    });
+    expect(prisma.mcpServer.updateMany).toHaveBeenCalledWith({
+      where: { id: "server-1" },
+      data: expect.objectContaining({
+        checkStatus: "working",
+        checkMessage: null,
+        tools: ["search", "fetch"],
+      }),
+    });
+  });
+
+  it("records why a server cannot be used and keeps its last known tools", async () => {
+    vi.stubGlobal("fetch", mcpFetch({ failNext: true, initializations: 0 }));
+    const prisma = checkPrisma();
+    const connector = new McpConnector(prisma as never, {} as never, { network: TEST_NETWORK });
+
+    const result = await connector.check(SERVER as never, context);
+
+    expect(result).toMatchObject({ status: "failing", message: expect.any(String) });
+    const data = prisma.mcpServer.updateMany.mock.calls[0]?.[0].data;
+    expect(data).toMatchObject({ checkStatus: "failing" });
+    expect(data).not.toHaveProperty("tools");
+  });
+
+  it("reports a local command as turned off when stdio is disabled", async () => {
+    const connector = new McpConnector(checkPrisma() as never, {} as never);
+    const stdio = { ...SERVER, transport: "stdio", endpoint: null, command: "npx" };
+
+    await expect(connector.check(stdio as never, context)).resolves.toMatchObject({
+      status: "failing",
+      message: "Local commands are turned off. Set MCP_STDIO_ENABLED=true in .env to allow them.",
+    });
+  });
+
+  it("marks a run's working server as checked", async () => {
+    vi.stubGlobal("fetch", mcpFetch({ failNext: false, initializations: 0 }));
+    const prisma = {
+      ...checkPrisma(),
+      botMcpServer: { findMany: vi.fn().mockResolvedValue([ASSIGNMENT]) },
+    };
+    const connector = new McpConnector(prisma as never, {} as never, { network: TEST_NETWORK });
+
+    await connector.discoverTools({ ...context, botId: "bot-1" } as never);
+
+    expect(prisma.mcpServer.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ checkStatus: "working" }) }),
+    );
+    await connector.close();
+  });
+});
+
 describe("allowlistDrift", () => {
   it("names the allowed tools the server no longer offers", () => {
     const offered = [{ name: "echo" }, { name: "upper" }];

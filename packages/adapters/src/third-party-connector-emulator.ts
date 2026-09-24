@@ -40,6 +40,8 @@ export class ThirdPartyConnectorEmulator {
     if (url.hostname === "mcp.example.test" || url.hostname === "executor.example.test") {
       return this.mcp(url, init);
     }
+    // Stands in for the local Executor app at its default address.
+    if (url.hostname === "localhost" && url.port === "8765") return this.mcp(url, init);
     if (url.hostname === "api.example.test") return this.openapi(url, init);
     if (url.hostname === "graphql.example.test") return this.graphql(url, init);
     if (url.hostname === "catalog.example.test") return this.catalog(url);
@@ -353,7 +355,8 @@ function urlFromPinnedFetch(input: string | URL | Request, init?: RequestInit): 
 
 function parseBody(body: RequestInit["body"] | undefined): Record<string, unknown> {
   if (typeof body === "string") return JSON.parse(body) as Record<string, unknown>;
-  if (body instanceof Uint8Array) {
+  // The MCP client buffers request bodies as an ArrayBuffer before sending them.
+  if (body instanceof Uint8Array || body instanceof ArrayBuffer) {
     return JSON.parse(new TextDecoder().decode(body)) as Record<string, unknown>;
   }
   return {};

@@ -16,6 +16,12 @@ msgstr ""
 msgid " (unread)"
 msgstr "（未读）"
 
+#. placeholder {0}: row.tools.offered
+#. placeholder {1}: row.tools.allowed
+#. placeholder {2}: row.tools.allowed
+msgid "{0, plural, one {{1} of # tool} other {{2} of # tools}}"
+msgstr ""
+
 #. placeholder {0}: group.entries.length
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# 个模型} other {# 个模型}}"
@@ -175,8 +181,14 @@ msgstr "动态"
 msgid "Add"
 msgstr "添加"
 
+msgid "Add a command."
+msgstr ""
+
 msgid "Add a model in Settings to use this."
 msgstr "请在设置中添加模型后再使用。"
+
+msgid "Add a name."
+msgstr ""
 
 msgid "Add a run time for this one-shot."
 msgstr "为此一次性任务添加运行时间。"
@@ -186,12 +198,6 @@ msgstr ""
 
 msgid "Add a schedule, webhook, GitHub, or message trigger to run this routine."
 msgstr ""
-
-msgid "Add a server name."
-msgstr "请填写服务器名称。"
-
-msgid "Add a stdio command."
-msgstr "请填写 stdio 命令。"
 
 msgid "Add another"
 msgstr ""
@@ -220,7 +226,7 @@ msgstr "添加服务器"
 msgid "Add server URL"
 msgstr ""
 
-msgid "Add the server URL."
+msgid "Add the server address."
 msgstr ""
 
 msgid "Add to routine"
@@ -249,6 +255,12 @@ msgstr "Agent 电脑"
 
 msgid "Agent connections"
 msgstr "Agent 连接"
+
+msgid "Agents"
+msgstr ""
+
+msgid "Agents that can use it"
+msgstr ""
 
 msgid "Agents:"
 msgstr "Agent："
@@ -655,9 +667,6 @@ msgstr "电脑未开启。请设置 SANDBOX_PROVIDER=docker 并提供 SANDBOX_SU
 
 msgid "Configured by deployment"
 msgstr "由部署配置"
-
-msgid "Configured servers"
-msgstr "已配置的服务器"
 
 msgid "Confirm delete"
 msgstr "确认删除"
@@ -1197,6 +1206,9 @@ msgstr "拖放或粘贴图片"
 
 msgid "Duplicate"
 msgstr "复制"
+
+msgid "e.g. Files"
+msgstr ""
 
 msgid "e.g. Hivenet Agent, Presales, Timesheets bot"
 msgstr "例如 Hivenet Agent、Presales、工时表机器人"
@@ -1744,6 +1756,9 @@ msgstr "新建工作区"
 msgid "No agent connections yet."
 msgstr "还没有 Agent 连接。"
 
+msgid "No agent uses it yet"
+msgstr ""
+
 msgid "No apps match your search."
 msgstr "没有匹配的应用。"
 
@@ -1779,9 +1794,6 @@ msgstr "没有匹配的模型"
 
 msgid "No MCP or API tool sources installed yet."
 msgstr "还没有安装 MCP 或 API 工具源。"
-
-msgid "No MCP servers yet."
-msgstr "还没有 MCP 服务器。"
 
 msgid "No messages with {peerBotName} yet."
 msgstr "还没有与 {peerBotName} 的消息。"
@@ -2189,6 +2201,9 @@ msgstr "例行任务"
 msgid "Routines"
 msgstr "例行任务"
 
+msgid "Run a command on the Engaz server instead"
+msgstr ""
+
 msgid "Run at"
 msgstr "运行时间"
 
@@ -2291,11 +2306,11 @@ msgstr "正在发送…"
 msgid "Sentry alert"
 msgstr "Sentry 告警"
 
-msgid "Server integrations"
+msgid "Server address"
 msgstr ""
 
-msgid "Server name"
-msgstr "服务器名称"
+msgid "Server integrations"
+msgstr ""
 
 msgid "Server URL"
 msgstr "服务器 URL"
@@ -2637,6 +2652,7 @@ msgid "Use this model"
 msgstr "使用此模型"
 
 #. placeholder {0}: invite.usedByEmail
+#. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
 msgstr ""
 

@@ -692,6 +692,8 @@ export const McpServerCheckSchema = z.object({
   message: z.string().nullable(),
   checkedAt: z.string().nullable(),
   tools: z.array(z.string()),
+  /** What each tool does, in the server's own words, when it says. */
+  toolDescriptions: z.record(z.string(), z.string()).optional(),
 });
 export type McpServerCheck = z.infer<typeof McpServerCheckSchema>;
 

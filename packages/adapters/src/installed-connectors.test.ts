@@ -658,7 +658,7 @@ describe("tool source status and agent access", () => {
     await expect(provider.check(install, context())).resolves.toEqual({
       status: "working",
       message: null,
-      tools: ["list_orders"],
+      tools: [{ name: "list_orders" }],
     });
   });
 });

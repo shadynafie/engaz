@@ -25,6 +25,11 @@ test("the owner chooses which of a server's tools an agent may use", async ({ pa
       message: null,
       checkedAt: "2026-09-25T10:00:00.000Z",
       tools: ["search", "scrape", "screenshot"],
+      toolDescriptions: {
+        search: "Search the web",
+        scrape: "Read a web page as text",
+        screenshot: "Take a screenshot of a web page",
+      },
     },
     enabled: true,
     revision: 1,
@@ -72,7 +77,9 @@ test("the owner chooses which of a server's tools an agent may use", async ({ pa
   await page.getByText("Integrations", { exact: true }).click();
   await page.getByTestId("integrations-mcp").click();
   await expect(page.getByText("Crawler", { exact: true })).toBeVisible();
-  await page.locator("summary", { hasText: "Tools" }).click();
+  // With one server its details are already open.
+  await expect(page.getByText("Take a screenshot of a web page")).toBeVisible();
+  await expect(page.getByText("Used by Chief")).toBeVisible();
   const screenshotTool = page.getByRole("checkbox", { name: "screenshot" });
   await expect(screenshotTool).toBeChecked();
   await screenshotTool.click();

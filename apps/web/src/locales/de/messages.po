@@ -16,6 +16,12 @@ msgstr ""
 msgid " (unread)"
 msgstr " (ungelesen)"
 
+#. placeholder {0}: row.tools.offered
+#. placeholder {1}: row.tools.allowed
+#. placeholder {2}: row.tools.allowed
+msgid "{0, plural, one {{1} of # tool} other {{2} of # tools}}"
+msgstr ""
+
 #. placeholder {0}: group.entries.length
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# Modell} other {# Modelle}}"
@@ -175,7 +181,13 @@ msgstr "Aktivität"
 msgid "Add"
 msgstr "Hinzufügen"
 
+msgid "Add a command."
+msgstr ""
+
 msgid "Add a model in Settings to use this."
+msgstr ""
+
+msgid "Add a name."
 msgstr ""
 
 msgid "Add a run time for this one-shot."
@@ -186,12 +198,6 @@ msgstr ""
 
 msgid "Add a schedule, webhook, GitHub, or message trigger to run this routine."
 msgstr ""
-
-msgid "Add a server name."
-msgstr "Gib einen Servernamen ein."
-
-msgid "Add a stdio command."
-msgstr "Gib einen stdio-Befehl ein."
 
 msgid "Add another"
 msgstr ""
@@ -220,7 +226,7 @@ msgstr "Server hinzufügen"
 msgid "Add server URL"
 msgstr ""
 
-msgid "Add the server URL."
+msgid "Add the server address."
 msgstr ""
 
 msgid "Add to routine"
@@ -248,6 +254,12 @@ msgid "Agent computer"
 msgstr "Agent-Computer"
 
 msgid "Agent connections"
+msgstr ""
+
+msgid "Agents"
+msgstr ""
+
+msgid "Agents that can use it"
 msgstr ""
 
 msgid "Agents:"
@@ -655,9 +667,6 @@ msgstr "Computer sind aus. Setze SANDBOX_PROVIDER=docker mit SANDBOX_SUPERVISOR_
 
 msgid "Configured by deployment"
 msgstr "Durch die Bereitstellung konfiguriert"
-
-msgid "Configured servers"
-msgstr "Konfigurierte Server"
 
 msgid "Confirm delete"
 msgstr "Löschen bestätigen"
@@ -1197,6 +1206,9 @@ msgstr "Bild ziehen, ablegen oder einfügen"
 
 msgid "Duplicate"
 msgstr "Duplizieren"
+
+msgid "e.g. Files"
+msgstr ""
 
 msgid "e.g. Hivenet Agent, Presales, Timesheets bot"
 msgstr "z. B. Hivenet Agent, Presales, Zeiterfassungs-Bot"
@@ -1744,6 +1756,9 @@ msgstr ""
 msgid "No agent connections yet."
 msgstr ""
 
+msgid "No agent uses it yet"
+msgstr ""
+
 msgid "No apps match your search."
 msgstr "Keine Apps entsprechen deiner Suche."
 
@@ -1779,9 +1794,6 @@ msgstr "Keine passenden Modelle"
 
 msgid "No MCP or API tool sources installed yet."
 msgstr "Noch keine MCP- oder API-Toolquellen installiert."
-
-msgid "No MCP servers yet."
-msgstr "Noch keine MCP-Server."
 
 msgid "No messages with {peerBotName} yet."
 msgstr "Noch keine Nachrichten mit {peerBotName}."
@@ -2189,6 +2201,9 @@ msgstr "Routine"
 msgid "Routines"
 msgstr "Routinen"
 
+msgid "Run a command on the Engaz server instead"
+msgstr ""
+
 msgid "Run at"
 msgstr ""
 
@@ -2291,11 +2306,11 @@ msgstr "Wird gesendet…"
 msgid "Sentry alert"
 msgstr ""
 
-msgid "Server integrations"
+msgid "Server address"
 msgstr ""
 
-msgid "Server name"
-msgstr "Servername"
+msgid "Server integrations"
+msgstr ""
 
 msgid "Server URL"
 msgstr "Server-URL"
@@ -2637,6 +2652,7 @@ msgid "Use this model"
 msgstr "Dieses Modell verwenden"
 
 #. placeholder {0}: invite.usedByEmail
+#. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
 msgstr ""
 

@@ -344,7 +344,11 @@ export class InstalledConnectorProvider implements ConnectorProvider {
     let result: McpCheckResult;
     try {
       credential = await this.loadCredential(install, context);
-      result = { status: "working", message: null, tools: await this.probe(install, credential) };
+      result = {
+        status: "working",
+        message: null,
+        tools: (await this.probe(install, credential)).map((name) => ({ name })),
+      };
     } catch (error) {
       result = mcpCheckFailure(error, credential ? [credential] : []);
     }

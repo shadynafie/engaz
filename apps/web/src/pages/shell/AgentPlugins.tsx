@@ -1,10 +1,15 @@
 import type { BotMcpServer, CapabilityInstall, McpServer } from "@engaz/contracts";
 import { Button } from "@engaz/ui-web";
-import { Trans } from "@lingui/react/macro";
+import { Plural, Trans } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import { rpc } from "../../lib/rpc";
 
-type Row = { id: string; name: string; status: string; detail?: string };
+type Row = {
+  id: string;
+  name: string;
+  status: string;
+  tools?: { allowed: number; offered: number };
+};
 
 /** The plugins this agent can use right now, and where to change that. */
 export function AgentPlugins({ botId, onManage }: { botId: string; onManage?: () => void }) {
@@ -62,8 +67,14 @@ export function AgentPlugins({ botId, onManage }: { botId: string; onManage?: ()
                 }`}
               />
               <span className="min-w-0 flex-1 truncate">{row.name}</span>
-              {row.detail ? (
-                <span className="shrink-0 text-[12px] text-muted-foreground">{row.detail}</span>
+              {row.tools ? (
+                <span className="shrink-0 text-[12px] text-muted-foreground">
+                  <Plural
+                    value={row.tools.offered}
+                    one={`${row.tools.allowed} of # tool`}
+                    other={`${row.tools.allowed} of # tools`}
+                  />
+                </span>
               ) : null}
             </li>
           ))}
@@ -92,7 +103,7 @@ function pluginRows(
         id: server.id,
         name: server.name,
         status: server.check.status,
-        detail: offered.length > 0 ? `${allowed}/${offered.length}` : undefined,
+        tools: offered.length > 0 ? { allowed, offered: offered.length } : undefined,
       },
     ];
   });

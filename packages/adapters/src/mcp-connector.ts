@@ -19,7 +19,12 @@ import {
   lazyCatalogTools,
   resolveCatalogCall,
 } from "./lazy-tool-catalog.js";
-import { MCP_CHECK_TIMEOUT_MS, type McpCheckResult, mcpCheckFailure } from "./mcp-check.js";
+import {
+  MCP_CHECK_TIMEOUT_MS,
+  type McpCheckResult,
+  mcpCheckFailure,
+  summarizeMcpTools,
+} from "./mcp-check.js";
 import type { McpOAuthBroker, OAuthMaterial } from "./mcp-oauth.js";
 import { McpReauthorizationRequiredError, oauthMaterialSecrets } from "./mcp-oauth.js";
 import { McpSession } from "./mcp-transport.js";
@@ -245,7 +250,7 @@ export class McpConnector implements ConnectorProvider {
     try {
       connected = await this.connectSession(server, checkContext);
       const listed = await connected.session.listTools({ signal: checkContext.signal });
-      result = { status: "working", message: null, tools: listed.tools.map((tool) => tool.name) };
+      result = { status: "working", message: null, tools: summarizeMcpTools(listed.tools) };
     } catch (error) {
       result = mcpCheckFailure(error, connected ? oauthMaterialSecrets(connected.material) : []);
     } finally {
@@ -255,7 +260,10 @@ export class McpConnector implements ConnectorProvider {
     return result;
   }
 
-  private async recordWorking(server: McpServer, tools: Array<{ name: string }>): Promise<void> {
+  private async recordWorking(
+    server: McpServer,
+    tools: ReadonlyArray<{ name: string; description?: string }>,
+  ): Promise<void> {
     const fresh =
       server.checkStatus === "working" &&
       server.checkedAt !== null &&
@@ -264,7 +272,7 @@ export class McpConnector implements ConnectorProvider {
     await this.recordCheck(server.id, {
       status: "working",
       message: null,
-      tools: tools.map((tool) => tool.name),
+      tools: summarizeMcpTools(tools),
     });
   }
 

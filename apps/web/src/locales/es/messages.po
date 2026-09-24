@@ -16,6 +16,12 @@ msgstr ""
 msgid " (unread)"
 msgstr " (sin leer)"
 
+#. placeholder {0}: row.tools.offered
+#. placeholder {1}: row.tools.allowed
+#. placeholder {2}: row.tools.allowed
+msgid "{0, plural, one {{1} of # tool} other {{2} of # tools}}"
+msgstr ""
+
 #. placeholder {0}: group.entries.length
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# modelo} other {# modelos}}"
@@ -175,8 +181,14 @@ msgstr "Actividad"
 msgid "Add"
 msgstr "Agregar"
 
+msgid "Add a command."
+msgstr ""
+
 msgid "Add a model in Settings to use this."
 msgstr "Agrega un modelo en Configuración para usarlo."
+
+msgid "Add a name."
+msgstr ""
 
 msgid "Add a run time for this one-shot."
 msgstr "Agrega una hora de ejecución para este one-shot."
@@ -186,12 +198,6 @@ msgstr ""
 
 msgid "Add a schedule, webhook, GitHub, or message trigger to run this routine."
 msgstr ""
-
-msgid "Add a server name."
-msgstr "Agrega un nombre de servidor."
-
-msgid "Add a stdio command."
-msgstr "Agrega un comando stdio."
 
 msgid "Add another"
 msgstr ""
@@ -220,7 +226,7 @@ msgstr "Agregar servidor"
 msgid "Add server URL"
 msgstr ""
 
-msgid "Add the server URL."
+msgid "Add the server address."
 msgstr ""
 
 msgid "Add to routine"
@@ -249,6 +255,12 @@ msgstr "Computadora del agente"
 
 msgid "Agent connections"
 msgstr "Conexiones de agentes"
+
+msgid "Agents"
+msgstr ""
+
+msgid "Agents that can use it"
+msgstr ""
 
 msgid "Agents:"
 msgstr "Agentes:"
@@ -655,9 +667,6 @@ msgstr "Las computadoras están apagadas. Configura SANDBOX_PROVIDER=docker con 
 
 msgid "Configured by deployment"
 msgstr "Configurado por el despliegue"
-
-msgid "Configured servers"
-msgstr "Servidores configurados"
 
 msgid "Confirm delete"
 msgstr "Confirmar eliminación"
@@ -1197,6 +1206,9 @@ msgstr "Arrastra, suelta o pega una imagen"
 
 msgid "Duplicate"
 msgstr "Duplicar"
+
+msgid "e.g. Files"
+msgstr ""
 
 msgid "e.g. Hivenet Agent, Presales, Timesheets bot"
 msgstr "p. ej. Hivenet Agent, Presales, bot de hojas de horas"
@@ -1744,6 +1756,9 @@ msgstr "Nuevo space"
 msgid "No agent connections yet."
 msgstr "Aún no hay conexiones de agentes."
 
+msgid "No agent uses it yet"
+msgstr ""
+
 msgid "No apps match your search."
 msgstr "Ninguna app coincide con tu búsqueda."
 
@@ -1779,9 +1794,6 @@ msgstr "No hay modelos coincidentes"
 
 msgid "No MCP or API tool sources installed yet."
 msgstr ""
-
-msgid "No MCP servers yet."
-msgstr "Aún no hay servidores MCP."
 
 msgid "No messages with {peerBotName} yet."
 msgstr "Aún no hay mensajes con {peerBotName}."
@@ -2189,6 +2201,9 @@ msgstr "Rutina"
 msgid "Routines"
 msgstr "Rutinas"
 
+msgid "Run a command on the Engaz server instead"
+msgstr ""
+
 msgid "Run at"
 msgstr "Ejecutar a las"
 
@@ -2291,11 +2306,11 @@ msgstr "Enviando…"
 msgid "Sentry alert"
 msgstr "Alerta de Sentry"
 
-msgid "Server integrations"
+msgid "Server address"
 msgstr ""
 
-msgid "Server name"
-msgstr "Nombre del servidor"
+msgid "Server integrations"
+msgstr ""
 
 msgid "Server URL"
 msgstr "URL del servidor"
@@ -2637,6 +2652,7 @@ msgid "Use this model"
 msgstr "Usar este modelo"
 
 #. placeholder {0}: invite.usedByEmail
+#. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
 msgstr ""
 

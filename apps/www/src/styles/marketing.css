@@ -180,18 +180,27 @@
 .workbench-hero__eyelid {
   position: absolute;
   z-index: 1;
-  top: calc(58.4% + var(--pointer-y, 0px));
-  width: 7.8%;
-  height: 25.4%;
+  top: calc(58% + var(--pointer-y, 0px));
+  width: 8%;
+  height: 26%;
   border-radius: 42%;
-  background: var(--primary);
-  box-shadow: inset 0 8px 13px rgba(0, 0, 0, 0.55);
+  background: var(--primary-foreground);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.1);
   transform: scaleY(0);
   transform-origin: top;
   animation: workbench-blink 7.4s ease-in-out infinite;
 }
-.workbench-hero__eyelid--left { left: calc(38.1% + var(--pointer-x, 0px)); }
-.workbench-hero__eyelid--right { left: calc(54.2% + var(--pointer-x, 0px)); }
+.workbench-hero__eyelid::after {
+  position: absolute;
+  top: 50%;
+  right: 12%;
+  left: 12%;
+  border-top: 2px solid var(--primary);
+  border-radius: 50%;
+  content: "";
+}
+.workbench-hero__eyelid--left { left: calc(38% + var(--pointer-x, 0px)); }
+.workbench-hero__eyelid--right { left: calc(54% + var(--pointer-x, 0px)); }
 .workbench-hero__baseline {
   display: flex;
   align-items: center;

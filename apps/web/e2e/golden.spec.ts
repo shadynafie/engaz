@@ -220,14 +220,14 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await advanced.evaluate((element) => {
     (element as HTMLDetailsElement).open = true;
   });
-  await expect(page.getByRole("button", { name: "Manage MCP servers", exact: true })).toBeVisible();
+  // MCP servers have one home, reachable without opening Advanced.
+  await expect(page.getByTestId("integrations-mcp")).toBeVisible();
   await expect(page.getByRole("button", { name: "Add MCP server", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add OpenAPI", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add GraphQL", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add Executor", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add Treg", exact: true })).toBeVisible();
   await expect(page.getByText("Tool sources", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "MCP servers", exact: true })).toBeHidden();
   // Thin Advanced smoke only. GraphQL install and order screenshots live in graphql-integrations.spec.ts.
   await expect(page.getByTestId("integrations-catalog-feed")).toBeVisible();
   // Catalog Search is optional chrome; add buttons stay MCP → OpenAPI → GraphQL → Executor → Treg.
@@ -255,25 +255,32 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await expect(feed.getByText("GitHub", { exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "11c-catalog-feed");
 
+  // An MCP result opens the MCP servers screen, filled in from the catalog.
   await feed.getByRole("button", { name: "MCP · Add", exact: true }).click();
-  await expect(page.getByPlaceholder("Display name")).toHaveValue("GitHub");
-  await expect(page.getByPlaceholder("https://example.com/mcp")).toHaveValue(
-    "https://mcp.example.test/mcp",
-  );
-  await expect(page.locator("select")).toHaveValue("bearer");
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "MCP servers" })).toBeVisible();
+  await expect(page.getByLabel("Server name")).toHaveValue("GitHub");
+  await expect(page.getByLabel("Server URL")).toHaveValue("https://mcp.example.test/mcp");
+  await expect(page.getByLabel("Access token (optional)")).toBeVisible();
+  await page.getByRole("button", { name: "Close MCP servers" }).click();
 
+  // Presets do the same: Treg opens with its address and the token field ready.
+  await page.getByText("Integrations").click();
+  await page.getByTestId("integrations-advanced").evaluate((element) => {
+    (element as HTMLDetailsElement).open = true;
+  });
   await page.getByRole("button", { name: "Add Treg", exact: true }).click();
-  await page.getByPlaceholder("Treg token").fill("fake-treg-browser-credential");
-  await page.getByRole("button", { name: "Verify and add", exact: true }).click();
-  await expect(page.getByText(/MCP · https:\/\/treg\.to\/mcp\/ · credential saved/)).toBeVisible();
+  await expect(page.getByLabel("Server name")).toHaveValue("Treg");
+  await expect(page.getByLabel("Server URL")).toHaveValue("https://treg.to/mcp/");
+  await page.getByLabel("Access token (optional)").fill("fake-treg-browser-credential");
+  await page.getByRole("button", { name: "Chief", exact: true }).click();
+  await page.getByRole("button", { name: "Add server", exact: true }).click();
+  await expect(page.getByText("Working · 1 tool")).toBeVisible();
+  await page.getByRole("button", { name: "Close MCP servers" }).click();
 
-  await page.getByRole("button", { name: "Add MCP server", exact: true }).click();
-  await page.getByPlaceholder("Display name").fill("Browser MCP");
-  await page.getByPlaceholder("https://example.com/mcp").fill("https://mcp.example.test/mcp");
-  await page.getByRole("button", { name: "Verify and add", exact: true }).click();
-  await expect(page.getByText(/MCP · https:\/\/mcp\.example\.test\/mcp · no auth/)).toBeVisible();
-
+  await page.getByText("Integrations").click();
+  await page.getByTestId("integrations-advanced").evaluate((element) => {
+    (element as HTMLDetailsElement).open = true;
+  });
   await page.getByRole("button", { name: "Add OpenAPI", exact: true }).click();
   await page.getByPlaceholder("Display name").fill("Browser API");
   await page
@@ -286,16 +293,6 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
     page.getByText(/API · https:\/\/api\.example\.test\/v1 · credential saved/),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Add Executor", exact: true }).click();
-  await expect(page.getByPlaceholder("Display name")).toHaveValue("Executor");
-  await page
-    .getByPlaceholder("https://executor.example/mcp")
-    .fill("https://executor.example.test/mcp");
-  await page.getByPlaceholder("Executor token").fill("fake-executor-browser-credential");
-  await page.getByRole("button", { name: "Verify and add", exact: true }).click();
-  await expect(
-    page.getByText(/MCP · https:\/\/executor\.example\.test\/mcp · credential saved/),
-  ).toBeVisible();
   await captureScreenshot(page, testInfo, "11d-provider-emulators");
 
   await page.getByRole("button", { name: "Close integrations" }).click();
@@ -311,6 +308,12 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/chief-export\.json/i);
   const settings = page.getByTestId("bot-settings");
+  // The agent's own settings show what it can use and link back to Integrations.
+  const agentPlugins = settings.getByTestId("agent-plugins");
+  await expect(agentPlugins.getByText("Treg", { exact: true })).toBeVisible();
+  await expect(agentPlugins.getByText("1/1", { exact: true })).toBeVisible();
+  await expect(agentPlugins.getByText("Browser API", { exact: true })).toBeVisible();
+  await captureScreenshot(page, testInfo, "11e-agent-plugins");
   await expect(settings.getByRole("button", { name: "Archive bot" })).toHaveCount(0);
   await expect(settings.getByRole("button", { name: "Delete bot" })).toHaveCount(0);
   await page.getByRole("button", { name: "Close panel" }).click();

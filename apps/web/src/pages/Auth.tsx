@@ -1,4 +1,8 @@
-import { readBoundedJsonResponse, signupRequiresEmailVerification } from "@engaz/core";
+import {
+  readBoundedJsonResponse,
+  SIGNUP_INVITE_HEADER,
+  signupRequiresEmailVerification,
+} from "@engaz/core";
 import { Button, EngazMark, Input, Label } from "@engaz/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Eye, EyeOff } from "lucide-react";
@@ -8,7 +12,12 @@ import { authClient } from "../lib/auth";
 import { clearSpaceSelection } from "../lib/rpc";
 
 type AuthMode = "in" | "up" | "forgot";
-type PasswordResetCapabilities = { passwordReset: boolean; resetUrl: string | null };
+type AuthCapabilities = {
+  passwordReset: boolean;
+  resetUrl: string | null;
+  /** The owner exists and new accounts need an invitation link. */
+  invitationRequired?: boolean;
+};
 
 const fieldClass = "mt-2 h-12 rounded-xl px-4 text-base md:text-base";
 const submitClass = "mt-3 h-12 w-full rounded-xl text-base";
@@ -27,12 +36,16 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   const [resetSent, setResetSent] = useState(false);
   // Signup triggers a session refresh that remounts the anonymous auth page.
   const sent = resetSent || searchParams.get("verify") === "email";
-  const [reset, setReset] = useState<PasswordResetCapabilities | null>(null);
+  const [reset, setReset] = useState<AuthCapabilities | null>(null);
+  const invite = searchParams.get("invite");
+  const needsInvite = mode === "up" && !invite && reset?.invitationRequired === true;
   const passwordFieldId = mode === "in" ? "current-password" : "new-password";
   const title = sent ? (
     <Trans>Check your email</Trans>
   ) : mode === "in" ? (
     <Trans>Sign in to Engaz</Trans>
+  ) : needsInvite ? (
+    <Trans>Invitation needed</Trans>
   ) : mode === "up" ? (
     <Trans>Create your Engaz</Trans>
   ) : (
@@ -40,14 +53,13 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   );
 
   useEffect(() => {
-    if (mode === "up") return;
     let active = true;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), AUTH_CAPABILITIES_TIMEOUT_MS);
     void fetch("/api/auth/capabilities", { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error("Could not load authentication capabilities");
-        return readBoundedJsonResponse<PasswordResetCapabilities>(
+        return readBoundedJsonResponse<AuthCapabilities>(
           response,
           MAX_AUTH_CAPABILITIES_RESPONSE_BYTES,
           controller.signal,
@@ -58,10 +70,10 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
       })
       .catch(() => undefined)
       .finally(() => clearTimeout(timer));
+    // Let the request finish and ignore it: sign-up navigates away as soon as it succeeds,
+    // and an aborted request would read as a failure.
     return () => {
       active = false;
-      clearTimeout(timer);
-      controller.abort();
     };
   }, [mode]);
 
@@ -92,6 +104,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
               email,
               password,
               name: name || email.split("@")[0] || "User",
+              fetchOptions: invite ? { headers: { [SIGNUP_INVITE_HEADER]: invite } } : undefined,
             })
           : await authClient.signIn.email({ email, password });
       if (result.error) {
@@ -114,7 +127,16 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
 
   return (
     <AuthFrame onSubmit={submit} title={title}>
-      {sent ? (
+      {needsInvite ? (
+        <div className="w-full text-center">
+          <p className="text-muted-foreground">
+            <Trans>Ask the owner of this Engaz for an invitation link.</Trans>
+          </p>
+          <Link to="/sign-in" className="mt-8 inline-block font-medium text-foreground">
+            <Trans>Back to sign in</Trans>
+          </Link>
+        </div>
+      ) : sent ? (
         <div className="w-full text-center">
           <Link to="/sign-in" className="font-medium text-foreground">
             <Trans>Back to sign in</Trans>
@@ -210,7 +232,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
             )}
           </Button>
           <p className="mt-8 text-muted-foreground">
-            {mode === "in" ? (
+            {mode === "in" && reset?.invitationRequired ? null : mode === "in" ? (
               <>
                 <Trans>Don’t have an account?</Trans>{" "}
                 <Link to="/sign-up" className="font-medium text-foreground">

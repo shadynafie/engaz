@@ -43,6 +43,17 @@ describe("signup policy", () => {
         signupsEnabled: "false",
         signupAllowlist: " You@Example.com, @company.test ",
       }),
-    ).toEqual({ enabled: false, allowlist: ["you@example.com", "@company.test"] });
+    ).toEqual({
+      enabled: false,
+      allowlist: ["you@example.com", "@company.test"],
+      inviteOnly: true,
+    });
+    expect(
+      signupPolicyFromEnv({
+        signupsEnabled: "true",
+        signupAllowlist: "",
+        signupsInviteOnly: "false",
+      }).inviteOnly,
+    ).toBe(false);
   });
 });

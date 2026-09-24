@@ -5,6 +5,7 @@ import type { PrismaClient } from "./client.js";
 export interface SignupPolicyEnv {
   signupsEnabled: string | undefined;
   signupAllowlist: string | undefined;
+  signupsInviteOnly?: string | undefined;
 }
 
 function newId(): string {
@@ -96,6 +97,7 @@ export async function bootstrapUserSpace(
       ownerUserId: claimDeploymentOwner ? user.id : null,
       signupsEnabled: policy.enabled,
       signupAllowlist: policy.allowlist.join(","),
+      signupsInviteOnly: policy.inviteOnly,
       signupPolicyInitialized: true,
     },
     update: {},

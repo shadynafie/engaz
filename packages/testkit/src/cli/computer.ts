@@ -38,6 +38,8 @@ async function main() {
     WEB_ORIGIN: "http://127.0.0.1:7791",
     DATA_DIR: dataDir,
     SIGNUPS_ENABLED: "true",
+    // Test accounts sign up freely; invitations are covered by their own suite.
+    SIGNUPS_INVITE_ONLY: "false",
     SIGNUP_ALLOWLIST: "",
   };
   try {

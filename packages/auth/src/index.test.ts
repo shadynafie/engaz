@@ -69,6 +69,7 @@ describe("resolveSignupPolicy", () => {
     ).resolves.toEqual({
       enabled: false,
       allowlist: ["you@example.com", "@company.test"],
+      invitationRequired: false,
     });
   });
 
@@ -87,7 +88,11 @@ describe("resolveSignupPolicy", () => {
         signupsEnabled: "false",
         signupAllowlist: "existing-policy@example.com",
       }),
-    ).resolves.toEqual({ enabled: false, allowlist: ["existing-policy@example.com"] });
+    ).resolves.toEqual({
+      enabled: false,
+      allowlist: ["existing-policy@example.com"],
+      invitationRequired: false,
+    });
   });
 
   it("uses live deployment settings as the effective policy after initial seeding", async () => {
@@ -105,6 +110,33 @@ describe("resolveSignupPolicy", () => {
         signupsEnabled: "false",
         signupAllowlist: "environment-only@example.com",
       }),
-    ).resolves.toEqual({ enabled: false, allowlist: ["approved@example.com"] });
+    ).resolves.toEqual({
+      enabled: false,
+      allowlist: ["approved@example.com"],
+      invitationRequired: false,
+    });
+  });
+
+  it("requires an invitation only once the owner exists", async () => {
+    const settings = {
+      ownerUserId: null as string | null,
+      signupsEnabled: true,
+      signupAllowlist: "",
+      signupsInviteOnly: true,
+      signupPolicyInitialized: true,
+    };
+    const prisma = { deploymentSettings: { findUnique: vi.fn(async () => settings) } };
+    const env = { signupsEnabled: "true", signupAllowlist: "" };
+    await expect(resolveSignupPolicy(prisma as never, env)).resolves.toMatchObject({
+      invitationRequired: false,
+    });
+    settings.ownerUserId = "owner-1";
+    await expect(resolveSignupPolicy(prisma as never, env)).resolves.toMatchObject({
+      invitationRequired: true,
+    });
+    settings.signupsInviteOnly = false;
+    await expect(resolveSignupPolicy(prisma as never, env)).resolves.toMatchObject({
+      invitationRequired: false,
+    });
   });
 });

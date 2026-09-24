@@ -179,6 +179,8 @@ function performanceEnvironment(databaseUrl: string): NodeJS.ProcessEnv {
     ENGAZ_PERFORMANCE_ASSET_DELAY_MS: String(assetDelayMs),
     DATA_DIR: path.join(temporaryRoot, "data"),
     SIGNUPS_ENABLED: "true",
+    // Test accounts sign up freely; invitations are covered by their own suite.
+    SIGNUPS_INVITE_ONLY: "false",
     SIGNUP_ALLOWLIST: "",
     PUBLIC_POSTHOG_KEY: "",
     CI: "",

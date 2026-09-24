@@ -172,6 +172,8 @@ function configureEnvironment() {
     API_URL: HOST_API_URL,
     DATA_DIR,
     SIGNUPS_ENABLED: "true",
+    // Test accounts sign up freely; invitations are covered by their own suite.
+    SIGNUPS_INVITE_ONLY: "false",
     SIGNUP_ALLOWLIST: "",
     CI: "1",
   });

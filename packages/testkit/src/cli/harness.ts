@@ -75,6 +75,8 @@ async function main() {
     process.env.PLAYWRIGHT_BASE_URL = webOrigin;
     process.env.DATA_DIR = path.join(reportDir, "data");
     process.env.SIGNUPS_ENABLED = "true";
+    // Test accounts sign up freely; invitations are covered by their own suite.
+    process.env.SIGNUPS_INVITE_ONLY = "false";
     process.env.SIGNUP_ALLOWLIST = "";
     process.env.CI = "1";
 
@@ -90,6 +92,7 @@ async function main() {
         "packages/testkit/src/pi-offline.postgres.test.ts",
         "packages/testkit/src/computer-approval.postgres.test.ts",
         "packages/testkit/src/mcp-check.postgres.test.ts",
+        "packages/testkit/src/signup-invites.postgres.test.ts",
         "packages/testkit/src/eval-history.postgres.test.ts",
         "packages/testkit/src/eval-customer-support.postgres.test.ts",
         "packages/testkit/src/journeys.test.ts",

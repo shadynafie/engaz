@@ -16,6 +16,12 @@ msgstr ""
 msgid " (unread)"
 msgstr " (unread)"
 
+#. placeholder {0}: row.tools.offered
+#. placeholder {1}: row.tools.allowed
+#. placeholder {2}: row.tools.allowed
+msgid "{0, plural, one {{1} of # tool} other {{2} of # tools}}"
+msgstr "{0, plural, one {{1} of # tool} other {{2} of # tools}}"
+
 #. placeholder {0}: group.entries.length
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# model} other {# models}}"
@@ -175,8 +181,14 @@ msgstr "Activity"
 msgid "Add"
 msgstr "Add"
 
+msgid "Add a command."
+msgstr "Add a command."
+
 msgid "Add a model in Settings to use this."
 msgstr "Add a model in Settings to use this."
+
+msgid "Add a name."
+msgstr "Add a name."
 
 msgid "Add a run time for this one-shot."
 msgstr "Add a run time for this one-shot."
@@ -186,12 +198,6 @@ msgstr "Add a schedule, webhook, GitHub, or message trigger"
 
 msgid "Add a schedule, webhook, GitHub, or message trigger to run this routine."
 msgstr "Add a schedule, webhook, GitHub, or message trigger to run this routine."
-
-msgid "Add a server name."
-msgstr "Add a server name."
-
-msgid "Add a stdio command."
-msgstr "Add a stdio command."
 
 msgid "Add another"
 msgstr "Add another"
@@ -220,8 +226,8 @@ msgstr "Add server"
 msgid "Add server URL"
 msgstr "Add server URL"
 
-msgid "Add the server URL."
-msgstr "Add the server URL."
+msgid "Add the server address."
+msgstr "Add the server address."
 
 msgid "Add to routine"
 msgstr "Add to routine"
@@ -249,6 +255,12 @@ msgstr "Agent computer"
 
 msgid "Agent connections"
 msgstr "Agent connections"
+
+msgid "Agents"
+msgstr "Agents"
+
+msgid "Agents that can use it"
+msgstr "Agents that can use it"
 
 msgid "Agents:"
 msgstr "Agents:"
@@ -655,9 +667,6 @@ msgstr "Computers are off. Set SANDBOX_PROVIDER=docker with SANDBOX_SUPERVISOR_T
 
 msgid "Configured by deployment"
 msgstr "Configured by deployment"
-
-msgid "Configured servers"
-msgstr "Configured servers"
 
 msgid "Confirm delete"
 msgstr "Confirm delete"
@@ -1197,6 +1206,9 @@ msgstr "Drag, drop, or paste an image"
 
 msgid "Duplicate"
 msgstr "Duplicate"
+
+msgid "e.g. Files"
+msgstr "e.g. Files"
 
 msgid "e.g. Hivenet Agent, Presales, Timesheets bot"
 msgstr "e.g. Hivenet Agent, Presales, Timesheets bot"
@@ -1744,6 +1756,9 @@ msgstr "New space"
 msgid "No agent connections yet."
 msgstr "No agent connections yet."
 
+msgid "No agent uses it yet"
+msgstr "No agent uses it yet"
+
 msgid "No apps match your search."
 msgstr "No apps match your search."
 
@@ -1779,9 +1794,6 @@ msgstr "No matching models"
 
 msgid "No MCP or API tool sources installed yet."
 msgstr "No MCP or API tool sources installed yet."
-
-msgid "No MCP servers yet."
-msgstr "No MCP servers yet."
 
 msgid "No messages with {peerBotName} yet."
 msgstr "No messages with {peerBotName} yet."
@@ -2189,6 +2201,9 @@ msgstr "Routine"
 msgid "Routines"
 msgstr "Routines"
 
+msgid "Run a command on the Engaz server instead"
+msgstr "Run a command on the Engaz server instead"
+
 msgid "Run at"
 msgstr "Run at"
 
@@ -2291,11 +2306,11 @@ msgstr "Sending…"
 msgid "Sentry alert"
 msgstr "Sentry alert"
 
+msgid "Server address"
+msgstr "Server address"
+
 msgid "Server integrations"
 msgstr "Server integrations"
-
-msgid "Server name"
-msgstr "Server name"
 
 msgid "Server URL"
 msgstr "Server URL"
@@ -2637,6 +2652,7 @@ msgid "Use this model"
 msgstr "Use this model"
 
 #. placeholder {0}: invite.usedByEmail
+#. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
 msgstr "Used by {0}"
 

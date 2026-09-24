@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
-import { createServer, type Server } from "node:http";
+import { createServer, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -31,13 +31,56 @@ async function startMcpServer(tools: string[]): Promise<{ url: string; server: S
         serverInfo: { name: "fixture", version: "1" },
       });
     } else if (message.method === "tools/list") {
-      reply({ tools: tools.map((name) => ({ name, inputSchema: { type: "object" } })) });
+      reply({
+        tools: tools.map((name) => ({
+          name,
+          description: `Use ${name}.\n\nArgs: none`,
+          inputSchema: { type: "object" },
+        })),
+      });
     } else {
       response.writeHead(202).end();
     }
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   return { url: `http://localhost:${(server.address() as AddressInfo).port}/mcp`, server };
+}
+
+/** An older server that speaks only SSE: a GET stream carries every reply. */
+async function startSseMcpServer(): Promise<{ url: string; server: Server }> {
+  let stream: ServerResponse | undefined;
+  const server = createServer(async (request, response) => {
+    if (request.method === "GET" && request.url === "/sse") {
+      response.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
+      response.write("event: endpoint\ndata: /messages\n\n");
+      stream = response;
+      return;
+    }
+    if (request.method !== "POST" || request.url !== "/messages") {
+      return void response.writeHead(405).end();
+    }
+    let body = "";
+    for await (const chunk of request) body += chunk;
+    response.writeHead(202).end();
+    const message = JSON.parse(body) as { id?: number; method?: string };
+    const result =
+      message.method === "initialize"
+        ? {
+            protocolVersion: "2024-11-05",
+            capabilities: { tools: {} },
+            serverInfo: { name: "legacy", version: "1" },
+          }
+        : message.method === "tools/list"
+          ? { tools: [{ name: "lookup", inputSchema: { type: "object" } }] }
+          : undefined;
+    if (result && message.id !== undefined) {
+      stream?.write(
+        `event: message\ndata: ${JSON.stringify({ jsonrpc: "2.0", id: message.id, result })}\n\n`,
+      );
+    }
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return { url: `http://localhost:${(server.address() as AddressInfo).port}/sse`, server };
 }
 
 describe.skipIf(!databaseAvailable)("MCP server connection check", () => {
@@ -75,7 +118,12 @@ describe.skipIf(!databaseAvailable)("MCP server connection check", () => {
         transport: "streamable_http",
         endpoint: mcp.url,
       });
-      expect(added.check).toMatchObject({ status: "working", tools: ["search", "fetch"] });
+      expect(added.check).toMatchObject({
+        status: "working",
+        tools: ["search", "fetch"],
+        // The owner sees what each tool does, without the argument notes meant for the model.
+        toolDescriptions: { search: "Use search.", fetch: "Use fetch." },
+      });
       expect(added.check.checkedAt).toEqual(expect.any(String));
 
       // Giving an agent the server grants the tools it offers now, not whatever it adds later.
@@ -104,6 +152,23 @@ describe.skipIf(!databaseAvailable)("MCP server connection check", () => {
       const memberLocal = await create(handles.app, member, mcp.url);
       expect(memberLocal.status).toBe(403);
       expect(await memberLocal.text()).toContain("Only the owner can add servers");
+
+      // The owner never picks a connection type: an SSE-only server is found on its own.
+      const legacy = await startSseMcpServer();
+      try {
+        const sse = await rpc<McpServer>(handles.app, cookie, "mcp/servers/create", {
+          slug: "legacy",
+          name: "Legacy",
+          transport: "streamable_http",
+          endpoint: legacy.url,
+        });
+        expect(sse).toMatchObject({ transport: "sse", check: { status: "working" } });
+        expect(sse.check.tools).toEqual(["lookup"]);
+        await rpc(handles.app, cookie, "mcp/servers/remove", { id: sse.id });
+      } finally {
+        legacy.server.closeAllConnections();
+        legacy.server.close();
+      }
 
       const unreachable = await create(handles.app, cookie, "http://localhost:9/mcp");
       expect(unreachable.status).toBe(400);

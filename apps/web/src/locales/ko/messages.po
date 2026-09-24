@@ -16,6 +16,12 @@ msgstr ""
 msgid " (unread)"
 msgstr " (읽지 않음)"
 
+#. placeholder {0}: row.tools.offered
+#. placeholder {1}: row.tools.allowed
+#. placeholder {2}: row.tools.allowed
+msgid "{0, plural, one {{1} of # tool} other {{2} of # tools}}"
+msgstr ""
+
 #. placeholder {0}: group.entries.length
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {모델 #개} other {모델 #개}}"
@@ -175,8 +181,14 @@ msgstr "활동"
 msgid "Add"
 msgstr "추가"
 
+msgid "Add a command."
+msgstr ""
+
 msgid "Add a model in Settings to use this."
 msgstr "이 기능을 사용하려면 설정에서 모델을 추가하세요."
+
+msgid "Add a name."
+msgstr ""
 
 msgid "Add a run time for this one-shot."
 msgstr "이 일회성 실행의 시간을 추가하세요."
@@ -186,12 +198,6 @@ msgstr ""
 
 msgid "Add a schedule, webhook, GitHub, or message trigger to run this routine."
 msgstr ""
-
-msgid "Add a server name."
-msgstr "서버 이름을 입력하세요."
-
-msgid "Add a stdio command."
-msgstr "stdio 명령을 입력하세요."
 
 msgid "Add another"
 msgstr ""
@@ -220,7 +226,7 @@ msgstr "서버 추가"
 msgid "Add server URL"
 msgstr ""
 
-msgid "Add the server URL."
+msgid "Add the server address."
 msgstr ""
 
 msgid "Add to routine"
@@ -249,6 +255,12 @@ msgstr "Agent 컴퓨터"
 
 msgid "Agent connections"
 msgstr "Agent 연결"
+
+msgid "Agents"
+msgstr ""
+
+msgid "Agents that can use it"
+msgstr ""
 
 msgid "Agents:"
 msgstr "사용 Bot:"
@@ -655,9 +667,6 @@ msgstr "컴퓨터가 꺼져 있습니다. SANDBOX_PROVIDER=docker와 SANDBOX_SUP
 
 msgid "Configured by deployment"
 msgstr "서버에서 설정됨"
-
-msgid "Configured servers"
-msgstr "연결된 서버"
 
 msgid "Confirm delete"
 msgstr "삭제 확인"
@@ -1197,6 +1206,9 @@ msgstr "이미지를 끌어다 놓거나 붙여넣으세요"
 
 msgid "Duplicate"
 msgstr "복제"
+
+msgid "e.g. Files"
+msgstr ""
 
 msgid "e.g. Hivenet Agent, Presales, Timesheets bot"
 msgstr "예: Hivenet Agent, Presales, 근무표 봇"
@@ -1744,6 +1756,9 @@ msgstr "새 스페이스"
 msgid "No agent connections yet."
 msgstr "아직 Agent 연결이 없습니다."
 
+msgid "No agent uses it yet"
+msgstr ""
+
 msgid "No apps match your search."
 msgstr "검색 결과가 없습니다."
 
@@ -1779,9 +1794,6 @@ msgstr "일치하는 모델 없음"
 
 msgid "No MCP or API tool sources installed yet."
 msgstr "아직 추가된 MCP 또는 API 도구가 없습니다."
-
-msgid "No MCP servers yet."
-msgstr "아직 연결된 MCP 서버가 없습니다."
 
 msgid "No messages with {peerBotName} yet."
 msgstr "{peerBotName}와의 메시지가 아직 없습니다."
@@ -2189,6 +2201,9 @@ msgstr "자동 실행"
 msgid "Routines"
 msgstr "자동 실행"
 
+msgid "Run a command on the Engaz server instead"
+msgstr ""
+
 msgid "Run at"
 msgstr "실행 시간"
 
@@ -2291,11 +2306,11 @@ msgstr "보내는 중…"
 msgid "Sentry alert"
 msgstr "Sentry 알림"
 
-msgid "Server integrations"
+msgid "Server address"
 msgstr ""
 
-msgid "Server name"
-msgstr "서버 이름"
+msgid "Server integrations"
+msgstr ""
 
 msgid "Server URL"
 msgstr "서버 URL"
@@ -2637,6 +2652,7 @@ msgid "Use this model"
 msgstr "이 모델 사용"
 
 #. placeholder {0}: invite.usedByEmail
+#. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
 msgstr ""
 

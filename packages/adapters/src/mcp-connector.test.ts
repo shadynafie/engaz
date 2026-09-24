@@ -837,7 +837,11 @@ describe("MCP server check", () => {
         failNext: false,
         initializations: 0,
         tools: [
-          { name: "search", inputSchema: { type: "object" } },
+          {
+            name: "search",
+            description: "Search the web.\n\nArgs:\n  query: what to look for",
+            inputSchema: { type: "object" },
+          },
           { name: "fetch", inputSchema: { type: "object" } },
         ],
       }),
@@ -848,14 +852,15 @@ describe("MCP server check", () => {
     await expect(connector.check(SERVER as never, context)).resolves.toEqual({
       status: "working",
       message: null,
-      tools: ["search", "fetch"],
+      // The owner reads the first paragraph; argument docs are for the model.
+      tools: [{ name: "search", description: "Search the web." }, { name: "fetch" }],
     });
     expect(prisma.mcpServer.updateMany).toHaveBeenCalledWith({
       where: { id: "server-1" },
       data: expect.objectContaining({
         checkStatus: "working",
         checkMessage: null,
-        tools: ["search", "fetch"],
+        tools: [{ name: "search", description: "Search the web." }, { name: "fetch" }],
       }),
     });
   });

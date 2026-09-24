@@ -16,6 +16,12 @@ msgstr ""
 msgid " (unread)"
 msgstr " (непрочитано)"
 
+#. placeholder {0}: row.tools.offered
+#. placeholder {1}: row.tools.allowed
+#. placeholder {2}: row.tools.allowed
+msgid "{0, plural, one {{1} of # tool} other {{2} of # tools}}"
+msgstr ""
+
 #. placeholder {0}: group.entries.length
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# модель} few {# модели} many {# моделей} other {# модели}}"
@@ -175,8 +181,14 @@ msgstr "Активность"
 msgid "Add"
 msgstr "Добавить"
 
+msgid "Add a command."
+msgstr ""
+
 msgid "Add a model in Settings to use this."
 msgstr "Чтобы использовать это, добавьте модель в настройках."
+
+msgid "Add a name."
+msgstr ""
 
 msgid "Add a run time for this one-shot."
 msgstr "Добавьте время выполнения для разового запуска."
@@ -186,12 +198,6 @@ msgstr "Добавьте расписание, вебхук, GitHub или тр�
 
 msgid "Add a schedule, webhook, GitHub, or message trigger to run this routine."
 msgstr "Добавьте расписание, вебхук, GitHub или триггер сообщения для запуска этой задачи."
-
-msgid "Add a server name."
-msgstr "Добавьте имя сервера."
-
-msgid "Add a stdio command."
-msgstr "Добавьте команду stdio."
 
 msgid "Add another"
 msgstr "Добавить еще"
@@ -220,7 +226,7 @@ msgstr "Добавить сервер"
 msgid "Add server URL"
 msgstr "Добавьте URL сервера"
 
-msgid "Add the server URL."
+msgid "Add the server address."
 msgstr ""
 
 msgid "Add to routine"
@@ -249,6 +255,12 @@ msgstr "Компьютер агента"
 
 msgid "Agent connections"
 msgstr "Подключения агента"
+
+msgid "Agents"
+msgstr ""
+
+msgid "Agents that can use it"
+msgstr ""
 
 msgid "Agents:"
 msgstr "Агенты:"
@@ -655,9 +667,6 @@ msgstr "Компьютеры выключены. Установите SANDBOX_PR
 
 msgid "Configured by deployment"
 msgstr "Настраивается путем развертывания"
-
-msgid "Configured servers"
-msgstr "Настроенные серверы"
 
 msgid "Confirm delete"
 msgstr "Подтвердить удаление"
@@ -1197,6 +1206,9 @@ msgstr "Перетащите или вставьте изображение"
 
 msgid "Duplicate"
 msgstr "Дублировать"
+
+msgid "e.g. Files"
+msgstr ""
 
 msgid "e.g. Hivenet Agent, Presales, Timesheets bot"
 msgstr "напр. Hivenet Agent, Presales, бот табелей"
@@ -1744,6 +1756,9 @@ msgstr "Новое пространство"
 msgid "No agent connections yet."
 msgstr "Агентских подключений пока нет."
 
+msgid "No agent uses it yet"
+msgstr ""
+
 msgid "No apps match your search."
 msgstr "Нет приложений, соответствующих вашему запросу."
 
@@ -1779,9 +1794,6 @@ msgstr "Нет подходящих моделей"
 
 msgid "No MCP or API tool sources installed yet."
 msgstr "Источники инструментов MCP или API пока не установлены."
-
-msgid "No MCP servers yet."
-msgstr "Серверов MCP пока нет."
 
 msgid "No messages with {peerBotName} yet."
 msgstr "Сообщений с {peerBotName} пока нет."
@@ -2189,6 +2201,9 @@ msgstr "Задача"
 msgid "Routines"
 msgstr "Задачи"
 
+msgid "Run a command on the Engaz server instead"
+msgstr ""
+
 msgid "Run at"
 msgstr "Запустить в"
 
@@ -2291,11 +2306,11 @@ msgstr "Отправка…"
 msgid "Sentry alert"
 msgstr "Оповещение Sentry"
 
+msgid "Server address"
+msgstr ""
+
 msgid "Server integrations"
 msgstr "Интеграции сервера"
-
-msgid "Server name"
-msgstr "Имя сервера"
 
 msgid "Server URL"
 msgstr "URL-адрес сервера"
@@ -2637,6 +2652,7 @@ msgid "Use this model"
 msgstr "Используйте эту модель"
 
 #. placeholder {0}: invite.usedByEmail
+#. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
 msgstr ""
 

@@ -80,6 +80,7 @@ import {
   screenLeaseIdForRun,
   scriptedCatalogEntry,
   serializeModelSecret,
+  storedMcpTools,
   takeoverLeaseMs,
   toComputerRef,
   touchRunningComputer,
@@ -372,6 +373,7 @@ function mcpServerDto(
     row.headers && typeof row.headers === "object" && !Array.isArray(row.headers)
       ? Object.keys(row.headers)
       : [];
+  const tools = storedMcpTools(row.tools);
   return {
     id: row.id,
     spaceId: row.spaceId,
@@ -390,9 +392,10 @@ function mcpServerDto(
       status: McpCheckStatusSchema.catch("unchecked").parse(row.checkStatus),
       message: row.checkMessage,
       checkedAt: row.checkedAt?.toISOString() ?? null,
-      tools: Array.isArray(row.tools)
-        ? row.tools.filter((tool): tool is string => typeof tool === "string")
-        : [],
+      tools: tools.map((tool) => tool.name),
+      toolDescriptions: Object.fromEntries(
+        tools.flatMap((tool) => (tool.description ? [[tool.name, tool.description]] : [])),
+      ),
     },
     enabled: row.enabled,
     revision: row.revision,
@@ -3088,8 +3091,22 @@ export function createRouter(deps: RouterDeps) {
               },
             });
           });
+          let checked = await checkedMcpServer(row, context.actor, context.signal);
+          // Older servers speak only SSE. Try it before giving up so nobody has to know
+          // which one a server uses, unless the server clearly wasn't the problem.
+          if (
+            checked.check.status === "failing" &&
+            row.transport === "streamable_http" &&
+            !MCP_NOT_A_TRANSPORT_FAILURE.test(checked.check.message ?? "")
+          ) {
+            const sse = await deps.prisma.mcpServer.update({
+              where: { id: row.id },
+              data: { transport: "sse" },
+            });
+            const retried = await checkedMcpServer(sse, context.actor, context.signal);
+            if (retried.check.status !== "failing") checked = retried;
+          }
           // A server that cannot be reached is not kept; one waiting for sign-in is.
-          const checked = await checkedMcpServer(row, context.actor, context.signal);
           if (checked.check.status === "failing") {
             await deleteMcpServer(row, context.actor);
             throw new ORPCError("BAD_REQUEST", {
@@ -5283,13 +5300,15 @@ function signupInviteDto(row: {
  * reach the agent unasked. Until the server has been reached once there is no list to
  * pin, so the agent gets whatever it offers.
  */
+/** Check failures that another connection type would not fix. */
+const MCP_NOT_A_TRANSPORT_FAILURE =
+  /couldn't reach|access token|refused access|https:\/\/|points where|isn't allowed|turned off/i;
+
 export function initialToolAccess(tools: unknown): {
   allowAllTools: boolean;
   allowedTools: string[];
 } {
-  const known = Array.isArray(tools)
-    ? tools.filter((name): name is string => typeof name === "string")
-    : [];
+  const known = storedMcpTools(tools).map((tool) => tool.name);
   return known.length > 0
     ? { allowAllTools: false, allowedTools: known }
     : { allowAllTools: true, allowedTools: [] };

@@ -257,9 +257,9 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
 
   // An MCP result opens the MCP servers screen, filled in from the catalog.
   await feed.getByRole("button", { name: "MCP · Add", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "MCP servers" })).toBeVisible();
-  await expect(page.getByLabel("Server name")).toHaveValue("GitHub");
-  await expect(page.getByLabel("Server URL")).toHaveValue("https://mcp.example.test/mcp");
+  await expect(page.getByRole("heading", { name: "Add MCP server" })).toBeVisible();
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue("GitHub");
+  await expect(page.getByLabel("Server address")).toHaveValue("https://mcp.example.test/mcp");
   await expect(page.getByLabel("Access token (optional)")).toBeVisible();
   await page.getByRole("button", { name: "Close MCP servers" }).click();
 
@@ -269,12 +269,16 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
     (element as HTMLDetailsElement).open = true;
   });
   await page.getByRole("button", { name: "Add Treg", exact: true }).click();
-  await expect(page.getByLabel("Server name")).toHaveValue("Treg");
-  await expect(page.getByLabel("Server URL")).toHaveValue("https://treg.to/mcp/");
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Treg");
+  await expect(page.getByLabel("Server address")).toHaveValue("https://treg.to/mcp/");
   await page.getByLabel("Access token (optional)").fill("fake-treg-browser-credential");
-  await page.getByRole("button", { name: "Chief", exact: true }).click();
-  await page.getByRole("button", { name: "Add server", exact: true }).click();
+  await page.getByRole("checkbox", { name: "Chief", exact: true }).check();
+  await captureScreenshot(page, testInfo, "11b2-add-mcp-server");
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
   await expect(page.getByText("Working · 1 tool")).toBeVisible();
+  await expect(page.getByText("Used by Chief")).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Chief" })).toBeChecked();
+  await captureScreenshot(page, testInfo, "11b3-mcp-server-added");
   await page.getByRole("button", { name: "Close MCP servers" }).click();
 
   await page.getByText("Integrations").click();
@@ -311,7 +315,7 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   // The agent's own settings show what it can use and link back to Integrations.
   const agentPlugins = settings.getByTestId("agent-plugins");
   await expect(agentPlugins.getByText("Treg", { exact: true })).toBeVisible();
-  await expect(agentPlugins.getByText("1/1", { exact: true })).toBeVisible();
+  await expect(agentPlugins.getByText("1 of 1 tool", { exact: true })).toBeVisible();
   await expect(agentPlugins.getByText("Browser API", { exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "11e-agent-plugins");
   await expect(settings.getByRole("button", { name: "Archive bot" })).toHaveCount(0);

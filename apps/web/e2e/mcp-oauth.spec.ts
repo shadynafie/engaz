@@ -104,12 +104,9 @@ test("connects an MCP server through the OAuth popup callback", async ({ page },
   await expect(page.getByRole("heading", { name: "MCP servers" })).toBeVisible();
   await expect(page.getByText("Linear MCP", { exact: true })).toBeVisible();
   await expect(page.getByText("Sign in needed", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Access token (optional)")).toBeHidden();
+  // Transport details stay out of the way; the list shows what the owner acts on.
+  await expect(page.getByText("streamable http", { exact: false })).toBeHidden();
   await captureScreenshot(page, testInfo, "mcp-oauth-ready");
-
-  await page.getByText("Advanced", { exact: true }).click();
-  await expect(page.getByLabel("Access token (optional)")).toBeVisible();
-  await page.getByText("Advanced", { exact: true }).click();
 
   const popupPromise = page.waitForEvent("popup");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();

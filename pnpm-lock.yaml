@@ -394,9 +394,9 @@ importers:
       '@astrojs/sitemap':
         specifier: 3.7.4
         version: 3.7.4
-      '@engaz/core':
+      '@engaz/ui-tokens':
         specifier: workspace:*
-        version: link:../../packages/core
+        version: link:../../packages/ui-tokens
       '@engaz/ui-web':
         specifier: workspace:*
         version: link:../../packages/ui-web

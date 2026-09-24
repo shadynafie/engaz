@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import { lightTokens } from "@engaz/ui-tokens";
 import { getMarkdownAlternate } from "../agent-content";
 import {
   DEFAULT_LOCALE,
@@ -49,13 +50,13 @@ const homeUrls = Object.fromEntries(
 ---
 
 <!doctype html>
-<html lang={htmlLang}>
+<html lang={htmlLang} data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="robots" content="index, follow, max-image-preview:large" />
-    <meta name="theme-color" content="#FDFDFD" />
+    <meta name="theme-color" content={lightTokens.background} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />

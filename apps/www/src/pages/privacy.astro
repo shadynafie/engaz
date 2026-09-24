@@ -1,17 +1,13 @@
 ---
 import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
-import { fetchGithubStars, formatStarCount } from "../github";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { GITHUB_URL } from "../site";
-
-const stars = await fetchGithubStars();
-const starsLabel = stars === null ? "Star" : formatStarCount(stars);
 ---
 
 <BaseLayout title="Privacy · Engaz" description="How data flows in a self-hosted Engaz installation.">
   <div class="container">
-    <Header starsLabel={starsLabel} />
+    <Header />
     <main id="main" class="privacy-copy">
       <h1>Privacy</h1>
       <p>Engaz does not currently offer a hosted service. This page describes the open-source software, not a privacy policy for an installation run by someone else.</p>

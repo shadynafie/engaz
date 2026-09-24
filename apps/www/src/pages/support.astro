@@ -1,17 +1,13 @@
 ---
 import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
-import { fetchGithubStars, formatStarCount } from "../github";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { DOCS_URL, GITHUB_URL } from "../site";
-
-const stars = await fetchGithubStars();
-const starsLabel = stars === null ? "Star" : formatStarCount(stars);
 ---
 
 <BaseLayout title="Support · Engaz" description="Help with Engaz self-hosting and development.">
   <div class="container">
-    <Header starsLabel={starsLabel} />
+    <Header />
     <main id="main" class="privacy-copy">
       <h1>Engaz support</h1>
       <p>Start with the <a href={DOCS_URL}>self-hosting guide</a>. For reproducible bugs and questions, use <a href={`${GITHUB_URL}/issues`}>GitHub Issues</a>. Do not include passwords, API keys, tokens, or private data.</p>

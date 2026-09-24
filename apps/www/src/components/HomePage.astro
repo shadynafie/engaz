@@ -14,9 +14,6 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import "../styles/marketing.css";
 import { DOCS_URL, GITHUB_URL, SITE_NAME, SITE_URL } from "../site";
 
-type Props = { heroStudy?: boolean };
-
-const heroStudy = Astro.props.heroStudy ?? false;
 const locale: Locale = isLocale(Astro.currentLocale)
   ? Astro.currentLocale
   : DEFAULT_LOCALE;
@@ -24,6 +21,8 @@ const copy = getHomeCopy(locale);
 const homeHref = localeHomePath(locale);
 const pageUrl = new URL(homeHref, SITE_URL).toString();
 const teamImages = ["chief", "designer", "engineer", "accountant"];
+const installCommand = "curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash";
+const installDocsUrl = `${DOCS_URL}#published-images-no-checkout`;
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -56,16 +55,15 @@ const structuredData = {
 ---
 
 <BaseLayout
-  title={heroStudy ? "Engaz hero study" : copy.title}
+  title={copy.title}
   description={copy.description}
-  structuredData={heroStudy ? undefined : structuredData}
+  {structuredData}
   locale={locale}
   skipLabel={copy.skipToContent}
-  homeAlternates={!heroStudy}
-  noindex={heroStudy}
+  homeAlternates
   ogImageAlt={copy.ogImageAlt}
 >
-  <div class:list={["workbench", heroStudy && "workbench--hero-study"]}>
+  <div class="workbench">
     <div class="workbench__opening">
       <div class="container">
         <Header locale={locale} copy={copy.nav} homeHref={homeHref} />
@@ -85,7 +83,7 @@ const structuredData = {
               <h1>{copy.hero.heading}</h1>
               <p>{copy.hero.lead}</p>
               <div class="workbench-actions">
-                <Button href={DOCS_URL} external>{copy.hero.getStarted}</Button>
+                <Button href="#how-it-works">{copy.hero.getStarted}</Button>
                 <a class="workbench-text-link" href={GITHUB_URL} target="_blank" rel="noreferrer">
                   {copy.hero.viewOnGithub}<span aria-hidden="true">↗</span>
                 </a>
@@ -93,9 +91,9 @@ const structuredData = {
             </div>
             <div class="workbench-hero__mark" aria-hidden="true">
               <div class="workbench-hero__portrait">
-                <img src={heroStudy ? "/brand/engaz-directional-open.webp" : "/brand/engaz-matte-hero-white.webp"} width="1440" height="960" alt="" fetchpriority="high" />
-                <img class="workbench-hero__blink-half" src={heroStudy ? "/brand/engaz-directional-half.webp" : "/brand/engaz-matte-hero-half.webp"} width="1440" height="960" alt="" />
-                <img class="workbench-hero__blink-closed" src={heroStudy ? "/brand/engaz-directional-closed.webp" : "/brand/engaz-matte-hero-closed.webp"} width="1440" height="960" alt="" />
+                <img src="/brand/engaz-directional-open.webp" width="1440" height="960" alt="" fetchpriority="high" />
+                <img class="workbench-hero__blink-half" src="/brand/engaz-directional-half.webp" width="1440" height="960" alt="" />
+                <img class="workbench-hero__blink-closed" src="/brand/engaz-directional-closed.webp" width="1440" height="960" alt="" />
               </div>
             </div>
           </div>
@@ -183,6 +181,23 @@ const structuredData = {
             <h2>{copy.roster.heading}</h2>
             <p>{copy.roster.copy}</p>
           </div>
+          <div class="workbench-install" data-reveal>
+            <div class="workbench-install__meta">
+              <span>{copy.roster.installLabel}</span>
+              <a href={installDocsUrl} target="_blank" rel="noreferrer">{copy.roster.installGuide} ↗</a>
+            </div>
+            <div class="workbench-install__line">
+              <code data-install-command tabindex="0">{installCommand}</code>
+              <button
+                type="button"
+                data-copy-install
+                data-copy-label={copy.roster.copyCommand}
+                data-copied-label={copy.roster.copiedCommand}
+                data-copy-failed={copy.hero.copyFailed}
+              ><span data-copy-status aria-live="polite">{copy.roster.copyCommand}</span></button>
+            </div>
+            <p>{copy.roster.installRequirements}</p>
+          </div>
           <ol class="workbench-setup__steps">
             {copy.roster.steps.map((step, index) => (
               <li data-reveal>
@@ -245,6 +260,23 @@ const structuredData = {
 <script>
   const root = document.querySelector(".workbench");
   if (root) {
+    const copyButton = root.querySelector<HTMLButtonElement>("[data-copy-install]");
+    const command = root.querySelector<HTMLElement>("[data-install-command]")?.textContent?.trim();
+    const copyStatus = copyButton?.querySelector<HTMLElement>("[data-copy-status]");
+    let copyReset = 0;
+    copyButton?.addEventListener("click", async () => {
+      if (!command || !copyStatus) return;
+      clearTimeout(copyReset);
+      try {
+        await navigator.clipboard.writeText(command);
+        copyStatus.textContent = copyButton.dataset.copiedLabel ?? "";
+      } catch {
+        copyStatus.textContent = copyButton.dataset.copyFailed ?? "";
+      }
+      copyReset = window.setTimeout(() => {
+        copyStatus.textContent = copyButton.dataset.copyLabel ?? "";
+      }, 2200);
+    });
     const motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (motion && "IntersectionObserver" in window) {
       root.classList.add("workbench--motion");

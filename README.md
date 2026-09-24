@@ -4,11 +4,11 @@
 
 Engaz is built for people who want to run their own installation on a computer or NAS. You can use it on your local network and, with your own HTTPS address, reach it while away. The web app is the main interface; desktop and mobile clients are also part of the project.
 
-> **Current status:** Engaz is in its foundation stage. The simpler installer is not ready yet; the documented setup today is from source. Engaz does not offer a hosted service.
+> **Current status:** Engaz is in active development. A published-image installer is available and passes fresh-start checks on amd64 and arm64 Linux CI runners. Real NAS and desktop installs, upgrades, and restore still need verification. Engaz does not offer a hosted service.
 
 ## Start here
 
-1. **Set up your installation.** Follow the [self-hosting guide](./docs/self-host.md#local-source-checkout). It covers the required software, configuration, and startup steps. Docker, Node.js, and pnpm are needed for the current source setup. If you plan to make Engaz public, set the [signup and email policy](./docs/self-host.md#public-signup-policy) before the first start.
+1. **Set up your installation.** Use the [published-image installer](./docs/self-host.md#published-images-no-checkout) or follow the [source setup](./docs/self-host.md#local-source-checkout). The guide covers prerequisites, storage, and startup. If you plan to make Engaz public, set the [signup and email policy](./docs/self-host.md#public-signup-policy) before the first start.
 2. **Create your account.** Open the local address shown in the guide and register. The first account becomes the installation owner.
 3. **Build your team.** Follow the in-app onboarding to connect a model and create your first agent. You can then teach agents skills and connect supported services through integrations, including MCP and API-based tools.
 

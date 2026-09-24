@@ -22,7 +22,11 @@ test("English homepage shows the current self-hosted product", async ({ page }, 
   await expect(page.locator("main")).not.toContainText(/Grok Bot|Cloud waitlist|nothing phones home/i);
 
   const setup = page.locator(".workbench-hero").getByRole("link", { name: "Set up Engaz" });
-  await expect(setup).toHaveAttribute("href", /docs\/self-host\.md$/);
+  await expect(setup).toHaveAttribute("href", "#how-it-works");
+  await expect(page.locator("#how-it-works [data-install-command]")).toHaveText(
+    "curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash",
+  );
+  await expect(page.locator("#how-it-works").getByRole("button", { name: "Copy command" })).toBeVisible();
   await captureScreenshot(page, testInfo, "marketing-homepage-desktop");
 });
 
@@ -33,6 +37,6 @@ test("Chinese homepage retains the same setup path", async ({ page }, testInfo) 
   await expect(page.locator("#team li")).toHaveCount(4);
   await expect(page.locator("#how-it-works li")).toHaveCount(3);
   await expect(page.locator(".workbench-hero").getByRole("link", { name: "设置 Engaz" }))
-    .toHaveAttribute("href", /docs\/self-host\.md$/);
+    .toHaveAttribute("href", "#how-it-works");
   await captureScreenshot(page, testInfo, "marketing-homepage-zh");
 });

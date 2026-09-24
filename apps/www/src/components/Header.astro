@@ -26,7 +26,7 @@ const NAV_LINKS = [
   { href: localeHashPath(locale, "team"), label: copy.bots },
   { href: localeHashPath(locale, "product"), label: copy.product },
   { href: localeHashPath(locale, "why-engaz"), label: copy.openSource },
-  { href: localeHashPath(locale, "selfhost"), label: copy.selfHost },
+  { href: localeHashPath(locale, "how-it-works"), label: copy.selfHost },
   { href: DOCS_URL, label: copy.docs, external: true },
 ];
 
@@ -48,7 +48,7 @@ const externalAttrs = { target: "_blank", rel: "noreferrer" };
   </div>
   <div class="site-header__right">
     <div class="site-header__cta">
-      <Button href={DOCS_URL} size="sm" external>{setupLabel}</Button>
+      <Button href={localeHashPath(locale, "how-it-works")} size="sm">{setupLabel}</Button>
     </div>
     <details class="site-menu" data-site-menu>
       <summary class="site-menu__toggle" aria-label={copy.menu}>

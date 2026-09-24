@@ -13,8 +13,8 @@
   background: var(--primary);
   color: var(--primary-foreground);
 }
-.workbench--hero-study .workbench__opening,
-.workbench--hero-study .workbench-hero { background: var(--panel); }
+.workbench__opening,
+.workbench-hero { background: var(--panel); }
 
 .workbench .site-header {
   position: relative;
@@ -169,26 +169,18 @@
   width: min(80vw, 1120px);
   aspect-ratio: 3 / 2;
   transform: translateY(-52%);
-  animation: workbench-mark-in 1600ms cubic-bezier(0.17, 0.67, 0.2, 1) both;
+  animation: workbench-study-light-in 1250ms ease-out both;
 }
 .workbench-hero__portrait {
   position: relative;
   width: 100%;
   height: 100%;
-  mask-image: radial-gradient(ellipse, #000 50%, transparent 78%);
+  mask-image:
+    linear-gradient(to right, transparent, #000 20%, #000 96%, transparent),
+    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  mask-composite: intersect;
   transform: translate3d(var(--pointer-x, 0px), var(--pointer-y, 0px), 0);
   transition: transform 800ms cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-.workbench-hero__mark::after {
-  position: absolute;
-  z-index: 2;
-  right: -1%;
-  bottom: -1%;
-  left: -1%;
-  height: 32%;
-  background: linear-gradient(transparent, var(--primary) 92%);
-  content: "";
-  pointer-events: none;
 }
 .workbench-hero__portrait img {
   position: absolute;
@@ -202,14 +194,6 @@
 .workbench-hero__blink-closed { opacity: 0; }
 .workbench-hero__blink-half { animation: workbench-blink-half 13s linear infinite; }
 .workbench-hero__blink-closed { animation: workbench-blink-closed 13s linear infinite; }
-.workbench--hero-study .workbench-hero__portrait {
-  mask-image:
-    linear-gradient(to right, transparent, #000 20%, #000 96%, transparent),
-    linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
-  mask-composite: intersect;
-}
-.workbench--hero-study .workbench-hero__mark::after { display: none; }
-.workbench--hero-study .workbench-hero__mark { animation: workbench-study-light-in 1250ms ease-out both; }
 .workbench-hero__baseline {
   display: flex;
   align-items: center;
@@ -447,8 +431,61 @@
   font-size: 18px;
   line-height: 1.65;
 }
+.workbench-install {
+  margin-top: 78px;
+  border-radius: 3px;
+  background: var(--primary);
+  padding: 28px 32px 24px;
+  color: var(--primary-foreground);
+}
+.workbench-install__meta,
+.workbench-install__line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.workbench-install__meta {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.workbench-install__meta a { color: inherit; text-decoration: underline; text-underline-offset: 4px; }
+.workbench-install__line { margin-top: 30px; }
+.workbench-install code {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: clamp(12px, 1vw, 13px);
+  line-height: 1.7;
+  white-space: nowrap;
+}
+.workbench-install code::before { content: "$ "; color: var(--primary-foreground); opacity: 0.65; }
+.workbench-install button {
+  flex: 0 0 auto;
+  border: 1px solid var(--primary-foreground);
+  border-radius: 3px;
+  background: transparent;
+  padding: 10px 15px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+.workbench-install button:hover,
+.workbench-install button:focus-visible { background: var(--primary-foreground); color: var(--primary); }
+.workbench-install > p {
+  margin: 28px 0 0;
+  color: var(--primary-foreground);
+  font-size: 13px;
+  line-height: 1.55;
+  opacity: 0.7;
+}
 .workbench-setup__steps {
-  margin: 105px 0 0;
+  margin: 70px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -579,14 +616,6 @@
   from { opacity: 0.65; transform: translateY(18px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes workbench-mark-in {
-  from { opacity: 0.35; filter: brightness(0.55) blur(6px); transform: translateY(-49%) perspective(1000px) rotateY(-8deg) scale(0.96); }
-  to { opacity: 1; filter: brightness(1) blur(0); transform: translateY(-52%) perspective(1000px) rotateY(0) scale(1); }
-}
-@keyframes workbench-mark-mobile-in {
-  from { opacity: 0.4; filter: brightness(0.6) blur(4px); transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; filter: brightness(1) blur(0); transform: none; }
-}
 @keyframes workbench-study-light-in {
   from { opacity: 0.3; filter: brightness(0.35); }
   to { opacity: 1; filter: brightness(1); }
@@ -632,7 +661,7 @@
   .workbench-hero__copy { padding-block: 245px 90px; }
   .workbench-hero h1 { max-width: 600px; font-size: clamp(57px, 14.6vw, 90px); }
   .workbench-hero__copy > p { max-width: 420px; margin-top: 27px; font-size: 16px; }
-  .workbench-hero__mark { top: 10px; right: -3%; width: min(78vw, 320px); transform: none; animation: workbench-mark-mobile-in 1200ms ease-out both; }
+  .workbench-hero__mark { top: 10px; right: -3%; width: min(78vw, 320px); transform: none; }
   .workbench-actions { gap: 15px 24px; margin-top: 30px; }
   .workbench-actions .button--primary { min-height: 52px; padding-inline: 20px; font-size: 15px; }
   .workbench-text-link { font-size: 14px; }
@@ -671,7 +700,13 @@
   .workbench-setup__intro { display: block; }
   .workbench-setup h2 { margin-top: 24px; font-size: clamp(51px, 13vw, 80px); }
   .workbench-setup__intro > p:last-child { margin-top: 25px; font-size: 16px; }
-  .workbench-setup__steps { margin-top: 55px; }
+  .workbench-install { margin-top: 48px; padding: 20px 18px; }
+  .workbench-install__meta { align-items: start; font-size: 9px; }
+  .workbench-install__line { display: block; margin-top: 22px; }
+  .workbench-install code { font-size: 12px; }
+  .workbench-install button { margin-top: 18px; padding: 8px 10px; font-size: 11px; }
+  .workbench-install > p { margin-top: 22px; font-size: 12px; }
+  .workbench-setup__steps { margin-top: 45px; }
   .workbench-setup__steps li { grid-template-columns: 74px 1fr; gap: 12px; align-items: start; padding-block: 27px; }
   .workbench-setup__number { padding-top: 4px; font-size: 65px; }
   .workbench-setup__steps h3 { font-size: 26px; }

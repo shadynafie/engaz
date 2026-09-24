@@ -49,6 +49,11 @@ export type HomeCopy = {
     eyebrow: string;
     heading: string;
     copy: string;
+    installLabel: string;
+    installRequirements: string;
+    installGuide: string;
+    copyCommand: string;
+    copiedCommand: string;
     steps: Array<{ title: string; body: string }>;
     bots: RosterBot[];
   };
@@ -334,9 +339,14 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     roster: {
       eyebrow: "First run",
       heading: "From installation to your first agent",
-      copy: "Engaz is in active development. Follow the self-hosting guide, create the owner account, and connect a model before starting a conversation.",
+      copy: "Engaz is in active development. Install locally, create the owner account, then connect a model before starting a conversation.",
+      installLabel: "Image installer · Active development",
+      installRequirements: "Requires Docker Engine 26+, Compose, curl, and OpenSSL. Check the guide for your computer and storage choice.",
+      installGuide: "Installation guide",
+      copyCommand: "Copy command",
+      copiedCommand: "Copied",
       steps: [
-        { title: "Install Engaz", body: "Follow the self-hosting guide for your computer and storage." },
+        { title: "Install Engaz", body: "Run the command above and choose where to keep your data." },
         { title: "Create the owner account", body: "The first registered account owns the installation." },
         { title: "Connect a model", body: "Choose a compatible model and create your first agent." },
       ],
@@ -478,9 +488,14 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     roster: {
       eyebrow: "Erster Start",
       heading: "Von der Installation zum ersten Agenten",
-      copy: "Engaz befindet sich in aktiver Entwicklung. Folge der Self-Hosting-Anleitung, erstelle das Eigentümerkonto und verbinde ein Modell, bevor du ein Gespräch beginnst.",
+      copy: "Engaz befindet sich in aktiver Entwicklung. Installiere es lokal, erstelle das Eigentümerkonto und verbinde ein Modell, bevor du ein Gespräch beginnst.",
+      installLabel: "Image-Installer · In aktiver Entwicklung",
+      installRequirements: "Benötigt Docker Engine 26+, Compose, curl und OpenSSL. Prüfe die Anleitung für deinen Computer und Speicherort.",
+      installGuide: "Installationsanleitung",
+      copyCommand: "Befehl kopieren",
+      copiedCommand: "Kopiert",
       steps: [
-        { title: "Engaz installieren", body: "Folge der Self-Hosting-Anleitung für deinen Computer und Speicherort." },
+        { title: "Engaz installieren", body: "Führe den Befehl oben aus und wähle einen Speicherort für deine Daten." },
         { title: "Eigentümerkonto erstellen", body: "Das zuerst registrierte Konto besitzt die Installation." },
         { title: "Modell verbinden", body: "Wähle ein kompatibles Modell und erstelle deinen ersten Agenten." },
       ],
@@ -622,9 +637,14 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     roster: {
       eyebrow: "첫 실행",
       heading: "설치부터 첫 에이전트까지",
-      copy: "Engaz는 현재 활발히 개발 중입니다. 셀프 호스팅 안내서를 따라 설치하고 소유자 계정을 만든 뒤 모델을 연결해 대화를 시작하세요.",
+      copy: "Engaz는 현재 활발히 개발 중입니다. 로컬에 설치하고 소유자 계정을 만든 뒤 모델을 연결해 대화를 시작하세요.",
+      installLabel: "이미지 설치 도구 · 개발 중",
+      installRequirements: "Docker Engine 26+, Compose, curl, OpenSSL이 필요합니다. 컴퓨터와 저장 위치에 맞는 설치 안내서를 확인하세요.",
+      installGuide: "설치 안내서",
+      copyCommand: "명령어 복사",
+      copiedCommand: "복사됨",
       steps: [
-        { title: "Engaz 설치", body: "컴퓨터와 데이터 저장 위치에 맞는 셀프 호스팅 안내서를 따르세요." },
+        { title: "Engaz 설치", body: "위 명령어를 실행하고 데이터 저장 위치를 선택하세요." },
         { title: "소유자 계정 만들기", body: "처음 등록한 계정이 설치 환경의 소유자가 됩니다." },
         { title: "모델 연결", body: "호환 모델을 선택하고 첫 에이전트를 만드세요." },
       ],
@@ -766,9 +786,14 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     roster: {
       eyebrow: "初次使用",
       heading: "从安装到第一个智能体",
-      copy: "Engaz 仍在积极开发中。按照自托管指南安装，创建所有者账号，再连接模型并开始对话。",
+      copy: "Engaz 仍在积极开发中。先在本地安装，创建所有者账号，再连接模型并开始对话。",
+      installLabel: "镜像安装程序 · 持续开发中",
+      installRequirements: "需要 Docker Engine 26+、Compose、curl 和 OpenSSL。请查看适用于你的电脑和存储位置的安装指南。",
+      installGuide: "安装指南",
+      copyCommand: "复制命令",
+      copiedCommand: "已复制",
       steps: [
-        { title: "安装 Engaz", body: "按照适用于你的电脑和存储位置的自托管指南操作。" },
+        { title: "安装 Engaz", body: "运行上方命令，并选择数据存储位置。" },
         { title: "创建所有者账号", body: "第一个注册的账号将成为该安装环境的所有者。" },
         { title: "连接模型", body: "选择兼容模型，并创建你的第一个智能体。" },
       ],

@@ -14,6 +14,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import "../styles/marketing.css";
 import { DOCS_URL, GITHUB_URL, SITE_NAME, SITE_URL } from "../site";
 
+type Props = { heroStudy?: boolean };
+
+const heroStudy = Astro.props.heroStudy ?? false;
 const locale: Locale = isLocale(Astro.currentLocale)
   ? Astro.currentLocale
   : DEFAULT_LOCALE;
@@ -53,15 +56,16 @@ const structuredData = {
 ---
 
 <BaseLayout
-  title={copy.title}
+  title={heroStudy ? "Engaz hero study" : copy.title}
   description={copy.description}
-  {structuredData}
+  structuredData={heroStudy ? undefined : structuredData}
   locale={locale}
   skipLabel={copy.skipToContent}
-  homeAlternates
+  homeAlternates={!heroStudy}
+  noindex={heroStudy}
   ogImageAlt={copy.ogImageAlt}
 >
-  <div class="workbench">
+  <div class:list={["workbench", heroStudy && "workbench--hero-study"]}>
     <div class="workbench__opening">
       <div class="container">
         <Header locale={locale} copy={copy.nav} homeHref={homeHref} />
@@ -89,9 +93,9 @@ const structuredData = {
             </div>
             <div class="workbench-hero__mark" aria-hidden="true">
               <div class="workbench-hero__portrait">
-                <img src="/brand/engaz-matte-hero-white.webp" width="1440" height="960" alt="" fetchpriority="high" />
-                <img class="workbench-hero__blink-half" src="/brand/engaz-matte-hero-half.webp" width="1440" height="960" alt="" />
-                <img class="workbench-hero__blink-closed" src="/brand/engaz-matte-hero-closed.webp" width="1440" height="960" alt="" />
+                <img src={heroStudy ? "/brand/engaz-directional-open.webp" : "/brand/engaz-matte-hero-white.webp"} width="1440" height="960" alt="" fetchpriority="high" />
+                <img class="workbench-hero__blink-half" src={heroStudy ? "/brand/engaz-directional-half.webp" : "/brand/engaz-matte-hero-half.webp"} width="1440" height="960" alt="" />
+                <img class="workbench-hero__blink-closed" src={heroStudy ? "/brand/engaz-directional-closed.webp" : "/brand/engaz-matte-hero-closed.webp"} width="1440" height="960" alt="" />
               </div>
             </div>
           </div>

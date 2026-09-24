@@ -19,6 +19,7 @@ export default defineConfig({
   integrations: [
     react(),
     sitemap({
+      filter: (page) => !page.endsWith("/hero-test/"),
       i18n: {
         defaultLocale: "en",
         locales: {

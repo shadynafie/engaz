@@ -20,6 +20,7 @@ type Props = {
   locale?: Locale;
   skipLabel?: string;
   homeAlternates?: boolean;
+  noindex?: boolean;
   ogImageAlt?: string;
 };
 
@@ -29,6 +30,7 @@ const {
   structuredData,
   skipLabel = "Skip to content",
   homeAlternates = false,
+  noindex = false,
   ogImageAlt = "Engaz. AI teammates you actually own. Your keys, your model, your machine.",
 } = Astro.props;
 
@@ -55,7 +57,7 @@ const homeUrls = Object.fromEntries(
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow, max-image-preview:large"} />
     <meta name="theme-color" content={lightTokens.background} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />

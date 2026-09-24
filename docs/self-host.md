@@ -118,6 +118,43 @@ the local Docker computer. For in-stack Caddy plus remote E2B computers, use the
 [production Compose](#public-single-vm-deployment) path and `infra/compose/Caddyfile.prod`
 instead of this host proxy.
 
+### Reach Engaz away from home (Cloudflare Tunnel)
+
+A [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+gives a home computer or NAS an HTTPS address without opening router ports. Cloudflare holds the
+certificate; Engaz keeps listening only on `127.0.0.1:7791`.
+
+1. Open Engaz locally and create your account first. The first account becomes the owner; after
+   that, new accounts need an invitation link from **Settings → People**.
+2. In the Cloudflare dashboard, create a tunnel and add a public hostname (for example
+   `engaz.example.com`) whose service is `http://127.0.0.1:7791`.
+3. Run `cloudflared` on the same machine as Engaz. As a container, it needs the host network so
+   `127.0.0.1` is the host:
+
+   ```bash
+   docker run -d --name cloudflared --restart unless-stopped --network host \
+     cloudflare/cloudflared:latest tunnel --no-autoupdate run --token <your-tunnel-token>
+   ```
+
+4. In the Engaz folder's `.env`, set the address everywhere Engaz needs it, then run the install
+   command again. It keeps `.env` and restarts Engaz with the new settings.
+
+   ```env
+   BETTER_AUTH_URL=https://engaz.example.com
+   WEB_ORIGIN=https://engaz.example.com
+   API_URL=https://engaz.example.com
+   ENGAZ_HOST=engaz.example.com
+   ```
+
+From then on, use the HTTPS address, including at home: sign-in cookies are HTTPS-only, and the
+old `http://127.0.0.1:7791` address no longer accepts sign-in. To go back to local-only use, set
+the four values back to `http://127.0.0.1:7791` and `localhost`.
+
+The desktop app connects with **Change Engaz Server…** (Cmd/Ctrl+Shift+K), and the mobile app with
+**Use a custom server** on the sign-in screen. Both check the address before saving it and refuse
+plain HTTP outside your own network. The desktop app returns to server selection when a saved
+server stops answering.
+
 ### Restricted networks / mirror downloads
 
 If the installer, Compose downloads, or image pulls are blocked, use the

@@ -20,17 +20,14 @@ type Props = {
 const locale = Astro.props.locale ?? DEFAULT_LOCALE;
 const copy = Astro.props.copy ?? getHomeCopy(locale).nav;
 const homeHref = Astro.props.homeHref ?? localeHomePath(locale);
-const setupLabel = getHomeCopy(locale).hero.getStarted;
+const setupLabel = getHomeCopy(locale).roster.installGuide;
 
 const NAV_LINKS = [
-  { href: localeHashPath(locale, "team"), label: copy.bots },
   { href: localeHashPath(locale, "product"), label: copy.product },
-  { href: localeHashPath(locale, "why-engaz"), label: copy.openSource },
-  { href: localeHashPath(locale, "how-it-works"), label: copy.selfHost },
-  { href: DOCS_URL, label: copy.docs, external: true },
+  { href: localeHashPath(locale, "team"), label: copy.bots },
+  { href: localeHashPath(locale, "selfhost"), label: copy.selfHost },
 ];
 
-const externalAttrs = { target: "_blank", rel: "noreferrer" };
 ---
 
 <header class="site-header">
@@ -39,7 +36,7 @@ const externalAttrs = { target: "_blank", rel: "noreferrer" };
     <nav class="site-nav" aria-label={copy.primary}>
       {
         NAV_LINKS.map((link) => (
-          <a href={link.href} {...(link.external ? externalAttrs : {})}>
+          <a href={link.href}>
             {link.label}
           </a>
         ))
@@ -48,7 +45,7 @@ const externalAttrs = { target: "_blank", rel: "noreferrer" };
   </div>
   <div class="site-header__right">
     <div class="site-header__cta">
-      <Button href={localeHashPath(locale, "how-it-works")} size="sm">{setupLabel}</Button>
+      <Button href={DOCS_URL} size="sm" external>{setupLabel}</Button>
     </div>
     <details class="site-menu" data-site-menu>
       <summary class="site-menu__toggle" aria-label={copy.menu}>
@@ -62,11 +59,12 @@ const externalAttrs = { target: "_blank", rel: "noreferrer" };
       <nav class="site-menu__panel" aria-label={copy.primary}>
         {
           NAV_LINKS.map((link) => (
-            <a href={link.href} {...(link.external ? externalAttrs : {})}>
+            <a href={link.href}>
               {link.label}
             </a>
           ))
         }
+        <a href={DOCS_URL} target="_blank" rel="noreferrer">{copy.docs}</a>
       </nav>
     </details>
   </div>

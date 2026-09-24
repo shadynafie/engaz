@@ -3278,7 +3278,7 @@ export function createRouter(deps: RouterDeps) {
                   userId: context.actor.userId,
                   enabled: true,
                 },
-                select: { id: true },
+                select: { id: true, tools: true },
               }),
             ]);
             if (!bot || !server) throw new IsolationError();
@@ -3289,8 +3289,7 @@ export function createRouter(deps: RouterDeps) {
                 userId: context.actor.userId,
                 botId: bot.id,
                 serverId: server.id,
-                allowAllTools: true,
-                allowedTools: [],
+                ...initialToolAccess(server.tools),
               },
               update: {},
             });
@@ -5253,6 +5252,23 @@ function signupInviteDto(row: {
     usedAt: row.usedAt?.toISOString() ?? null,
     usedByEmail: row.usedByEmail,
   };
+}
+
+/**
+ * A new assignment grants the tools the server offers now, so tools it adds later do not
+ * reach the agent unasked. Until the server has been reached once there is no list to
+ * pin, so the agent gets whatever it offers.
+ */
+export function initialToolAccess(tools: unknown): {
+  allowAllTools: boolean;
+  allowedTools: string[];
+} {
+  const known = Array.isArray(tools)
+    ? tools.filter((name): name is string => typeof name === "string")
+    : [];
+  return known.length > 0
+    ? { allowAllTools: false, allowedTools: known }
+    : { allowAllTools: true, allowedTools: [] };
 }
 
 async function deploymentDto(prisma: PrismaClient, sandboxProvider: string) {

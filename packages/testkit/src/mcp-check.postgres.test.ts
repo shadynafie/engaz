@@ -78,6 +78,22 @@ describe.skipIf(!databaseAvailable)("MCP server connection check", () => {
       expect(added.check).toMatchObject({ status: "working", tools: ["search", "fetch"] });
       expect(added.check.checkedAt).toEqual(expect.any(String));
 
+      // Giving an agent the server grants the tools it offers now, not whatever it adds later.
+      const bot = await rpc<{ id: string }>(handles.app, cookie, "bots/create", {
+        name: "Researcher",
+        title: "Researcher",
+        description: "uses the fixture",
+        instructions: "",
+        notifyOnFinish: true,
+      });
+      const assignment = await rpc<{ allowAllTools: boolean; allowedTools: string[] }>(
+        handles.app,
+        cookie,
+        "mcp/assignments/approve",
+        { botId: bot.id, serverId: added.id },
+      );
+      expect(assignment).toMatchObject({ allowAllTools: false, allowedTools: ["search", "fetch"] });
+
       // Plain HTTP is for the owner's own network; on the internet it would expose the token.
       const plainInternet = await create(handles.app, cookie, "http://203.0.113.10/mcp");
       expect(plainInternet.status).toBe(400);

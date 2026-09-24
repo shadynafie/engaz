@@ -70,10 +70,10 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
       })
       .catch(() => undefined)
       .finally(() => clearTimeout(timer));
+    // Let the request finish and ignore it: sign-up navigates away as soon as it succeeds,
+    // and an aborted request would read as a failure.
     return () => {
       active = false;
-      clearTimeout(timer);
-      controller.abort();
     };
   }, [mode]);
 

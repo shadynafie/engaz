@@ -429,6 +429,7 @@ export async function createApp(
     cloudAgent,
     verifyModel: (model, signal) => runtime.verifyModel(model, signal),
     checkMcpServer: (server, context) => mcp.check(server, context),
+    mcpEndpointNetwork: (endpoint) => mcp.endpointNetwork(endpoint),
     prisma,
     events,
     auth,
@@ -467,6 +468,7 @@ export async function createApp(
       updaterToken: env.updaterToken,
       imageTag: env.imageTag,
       integrationsCatalogUrl: env.integrationsCatalogUrl,
+      mcpStdioEnabled: env.mcpStdioEnabled,
     },
   });
   const rpc = new RPCHandler(router, {

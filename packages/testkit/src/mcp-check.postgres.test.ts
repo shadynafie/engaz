@@ -61,16 +61,13 @@ describe.skipIf(!databaseAvailable)("MCP server connection check", () => {
         encryptionKey: "mcp-check-fixture-encryption-key",
       });
       stop = handles.stop;
-      const signup = await handles.app.request("/api/auth/sign-up/email", {
-        method: "POST",
-        headers: { "content-type": "application/json", origin: fixtureOrigin },
-        body: JSON.stringify({
-          email: `mcp-check-${randomUUID()}@engaz.test`,
-          password: "password12",
-          name: "MCP check",
-        }),
+      const cookie = await signup(handles.app, "MCP check");
+      // Other suites share this database, so make this account the owner explicitly.
+      const me = await rpc<{ userId: string }>(handles.app, cookie, "me");
+      await handles.prisma.deploymentSettings.update({
+        where: { id: "default" },
+        data: { ownerUserId: me.userId },
       });
-      const cookie = sessionCookieHeader(signup);
 
       const added = await rpc<McpServer>(handles.app, cookie, "mcp/servers/create", {
         slug: "fixture",
@@ -81,18 +78,18 @@ describe.skipIf(!databaseAvailable)("MCP server connection check", () => {
       expect(added.check).toMatchObject({ status: "working", tools: ["search", "fetch"] });
       expect(added.check.checkedAt).toEqual(expect.any(String));
 
-      const unreachable = await handles.app.request("/rpc/mcp/servers/create", {
-        method: "POST",
-        headers: { "content-type": "application/json", cookie, origin: fixtureOrigin },
-        body: JSON.stringify({
-          json: {
-            slug: "nothing-here",
-            name: "Nothing here",
-            transport: "streamable_http",
-            endpoint: "http://localhost:9/mcp",
-          },
-        }),
-      });
+      // Plain HTTP is for the owner's own network; on the internet it would expose the token.
+      const plainInternet = await create(handles.app, cookie, "http://203.0.113.10/mcp");
+      expect(plainInternet.status).toBe(400);
+      expect(await plainInternet.text()).toContain("Servers on the internet need an https://");
+
+      // Other accounts cannot point Engaz at the owner's network.
+      const member = await signup(handles.app, "MCP member");
+      const memberLocal = await create(handles.app, member, mcp.url);
+      expect(memberLocal.status).toBe(403);
+      expect(await memberLocal.text()).toContain("Only the owner can add servers");
+
+      const unreachable = await create(handles.app, cookie, "http://localhost:9/mcp");
       expect(unreachable.status).toBe(400);
       const servers = await rpc<McpServer[]>(handles.app, cookie, "mcp/servers/list");
       expect(servers.map((server) => server.slug)).toEqual(["fixture"]);
@@ -113,6 +110,29 @@ describe.skipIf(!databaseAvailable)("MCP server connection check", () => {
     }
   }, 60_000);
 });
+
+async function signup(app: App, name: string): Promise<string> {
+  const response = await app.request("/api/auth/sign-up/email", {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: fixtureOrigin },
+    body: JSON.stringify({
+      email: `mcp-check-${randomUUID()}@engaz.test`,
+      password: "password12",
+      name,
+    }),
+  });
+  return sessionCookieHeader(response);
+}
+
+function create(app: App, cookie: string, endpoint: string): Promise<Response> {
+  return app.request("/rpc/mcp/servers/create", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie, origin: fixtureOrigin },
+    body: JSON.stringify({
+      json: { slug: "other", name: "Other", transport: "streamable_http", endpoint },
+    }),
+  });
+}
 
 async function rpc<T>(
   app: App,

@@ -36,8 +36,9 @@ function failureMessage(detail: string): string {
     return "This command isn't allowed. Add it to MCP_STDIO_ALLOWED_COMMANDS in .env.";
   }
   if (/private address/i.test(detail)) {
-    return "This address is on a private network, which Engaz doesn't allow for MCP servers yet.";
+    return "This address no longer points where it did when it was saved. Save the server again.";
   }
+  if (/must use HTTPS/i.test(detail)) return "Servers on the internet need an https:// address.";
   if (/\b401\b|unauthorized/i.test(detail)) return "The server rejected the access token.";
   if (/\b403\b|forbidden/i.test(detail)) return "The server refused access with these credentials.";
   if (UNREACHABLE.test(detail)) {

@@ -5,6 +5,7 @@ import {
   assertSafeRemoteUrl,
   createSafeLookup,
   createSafeRemoteFetch,
+  endpointNetwork,
   limitRemoteMcpPayload,
 } from "./remote-mcp.js";
 
@@ -356,6 +357,33 @@ describe("remote MCP URL policy", () => {
     } finally {
       await safeFetch.close();
     }
+  });
+});
+
+describe("MCP endpoint network", () => {
+  const resolvesTo =
+    (...addresses: string[]) =>
+    async () =>
+      addresses.map((address) => ({ address, family: address.includes(":") ? 6 : 4 }));
+
+  it.each([
+    ["https://mcp.example.test/mcp", resolvesTo("203.0.113.10"), "internet"],
+    ["https://box.tail1234.ts.net/mcp", resolvesTo("100.101.102.103"), "internet"],
+    ["http://10.20.30.40:8080/mcp", resolvesTo(), "local"],
+    ["http://[fd12::5]:8080/mcp", resolvesTo(), "local"],
+    ["http://localhost:8765/mcp", resolvesTo("203.0.113.10"), "local"],
+    ["http://nas.example.test:8080/mcp", resolvesTo("192.168.1.20"), "local"],
+  ] as const)("places %s on the %s", async (endpoint, resolve, expected) => {
+    await expect(endpointNetwork(endpoint, resolve)).resolves.toBe(expected);
+  });
+
+  it.each([
+    ["cloud metadata", "http://169.254.169.254/latest", resolvesTo()],
+    ["a metadata name", "http://metadata.example.test/", resolvesTo("169.254.169.254")],
+    ["a mix of both", "http://split.example.test/", resolvesTo("203.0.113.10", "10.0.0.5")],
+    ["nothing", "http://empty.example.test/", resolvesTo()],
+  ])("refuses an endpoint that resolves to %s", async (_label, endpoint, resolve) => {
+    await expect(endpointNetwork(endpoint, resolve)).rejects.toThrow("private address");
   });
 });
 

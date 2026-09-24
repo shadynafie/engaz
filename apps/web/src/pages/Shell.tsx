@@ -4123,7 +4123,12 @@ export function ShellPage() {
             }}
           />
         ) : null}
-        {mcpOpen ? <McpServersOverlay onClose={() => setMcpOpen(false)} /> : null}
+        {mcpOpen ? (
+          <McpServersOverlay
+            stdioEnabled={bootstrapMe?.mcpStdioEnabled === true}
+            onClose={() => setMcpOpen(false)}
+          />
+        ) : null}
         {messagingSettingsOpen ? (
           <MessagingSettingsOverlay onClose={() => setMessagingSettingsOpen(false)} />
         ) : null}

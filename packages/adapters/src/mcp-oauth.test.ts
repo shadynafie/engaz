@@ -226,6 +226,7 @@ describe("MCP OAuth", () => {
           findFirst: vi.fn().mockResolvedValue({
             id: "server-1",
             endpoint: `${mcpOrigin}/mcp`,
+            localNetwork: mcpOrigin.startsWith("http:"),
             secretId: null,
           }),
           update: vi.fn().mockResolvedValue({}),
@@ -718,7 +719,12 @@ describe("MCP setup with an existing access token", () => {
       });
       const prisma = {
         mcpServer: {
-          findFirst: vi.fn(async () => ({ id: "server", endpoint, secretId: "secret" })),
+          findFirst: vi.fn(async () => ({
+            id: "server",
+            endpoint,
+            localNetwork: endpoint.startsWith("http:"),
+            secretId: "secret",
+          })),
         },
         secret: { findFirst: vi.fn(async () => ({ id: "secret", ciphertext: "encrypted" })) },
         mcpOAuthSession: oauthSessionStore(),

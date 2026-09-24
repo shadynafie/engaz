@@ -1,7 +1,6 @@
 import {
   DEFAULT_MODEL_CONTEXT_WINDOW,
   DEFAULT_MODEL_MAX_TOKENS,
-  type IntegrationSetupState,
   MAX_MODEL_CONTEXT_WINDOW,
   MAX_MODEL_MAX_TOKENS,
   OPENAI_COMPATIBLE_PROVIDER_ID,
@@ -26,7 +25,6 @@ import {
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { IntegrationSetup } from "../components/integrations/IntegrationSetup";
 import { ModelPicker } from "../components/ModelPicker";
 import type { ModelCatalogEntry } from "../lib/model-auth";
 import { rpc } from "../lib/rpc";
@@ -94,18 +92,12 @@ function providerLabel(entry: ModelCatalogEntry): string {
   return entry.provider === "openai-codex" ? "ChatGPT" : (entry.providerName ?? entry.provider);
 }
 
-function nextStepAfterModel(needsIntegrationSetup: boolean): "integrations" | "bot" {
-  return needsIntegrationSetup ? "integrations" : "bot";
-}
-
 export function OnboardingPage() {
   const { t } = useLingui();
   const navigate = useNavigate();
   const fieldId = useId();
-  const [step, setStep] = useState<"loading" | "model" | "integrations" | "bot">("loading");
-  const [integrationSetup, setIntegrationSetup] = useState<IntegrationSetupState | null>(null);
-  const needsIntegrationSetup = integrationSetup?.needsSetup ?? false;
-  const [integrationServers, setIntegrationServers] = useState<string[]>([]);
+  // Integrations wait until the owner has talked to their first agent.
+  const [step, setStep] = useState<"loading" | "model" | "bot">("loading");
   const [catalog, setCatalog] = useState<ModelCatalogEntry[]>([]);
   const [provider, setProvider] = useState("openrouter");
   const [modelId, setModelId] = useState("");
@@ -138,18 +130,13 @@ export function OnboardingPage() {
     onClearError: () => setError(null),
     onError: setError,
     onFinished: () => {
-      setStep(nextStepAfterModel(needsIntegrationSetup));
+      setStep("bot");
     },
   });
 
   useEffect(() => {
-    void Promise.all([
-      rpc.me(),
-      rpc.models.list().catch(() => []),
-      rpc.integrationSetup.get().catch(() => null),
-    ])
-      .then(([me, models, integrations]) => {
-        setIntegrationSetup(integrations);
+    void Promise.all([rpc.me(), rpc.models.list().catch(() => [])])
+      .then(([me, models]) => {
         setCatalog(models);
         const preferred =
           models.find(
@@ -161,7 +148,7 @@ export function OnboardingPage() {
           setProvider(preferred.provider);
           setModelId(preferred.provider === OPENAI_COMPATIBLE_PROVIDER_ID ? "" : preferred.id);
         }
-        setStep(me.needsModel ? "model" : integrations?.needsSetup ? "integrations" : "bot");
+        setStep(me.needsModel ? "model" : "bot");
       })
       .catch(() => setStep("bot"));
     return () => {
@@ -328,7 +315,7 @@ export function OnboardingPage() {
           label: selected?.providerName ?? provider,
         });
       }
-      setStep(nextStepAfterModel(needsIntegrationSetup));
+      setStep("bot");
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not save model`);
     } finally {
@@ -351,9 +338,6 @@ export function OnboardingPage() {
     setError(null);
     try {
       const bot = await ensureFirstBot();
-      for (const serverId of integrationServers) {
-        await rpc.mcp.assignments.approve({ botId: bot.id, serverId });
-      }
       // Onboarding continues conversationally in the thread: greeting first,
       // then the focus choice (immediate for the first bot).
       const started = await rpc.onboarding
@@ -676,16 +660,6 @@ export function OnboardingPage() {
               </Button>
             </div>
           </form>
-        ) : null}
-        {step === "integrations" ? (
-          <IntegrationSetup
-            serverSetup
-            initialState={integrationSetup}
-            onDone={() => setStep("bot")}
-            onServerConnected={(id) =>
-              setIntegrationServers((current) => [...new Set([...current, id])])
-            }
-          />
         ) : null}
         {step === "bot" ? (
           <div>

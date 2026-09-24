@@ -46,6 +46,7 @@ export type HomeCopy = {
     eyebrow: string;
     heading: string;
     copy: string;
+    imageAlt: string;
     example: string;
   };
   roster: {
@@ -300,8 +301,8 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       badge: "Open source",
       pill: "Self-hosted",
       heading: "AI teammates. Real progress.",
-      lead: "Run an AI team in a workspace you control. Create agents for different jobs, connect a model, and choose which plugins each agent can use.",
-      getStarted: "Set up Engaz",
+      lead: "Give an agent a task, follow its work in one place, and step in when it needs you—on an installation you control.",
+      getStarted: "See the workspace",
       viewOnGithub: "View on GitHub",
       setupWithAgent: "Set up with your agent",
       copiedForAgent: "Copied for your agent",
@@ -327,15 +328,16 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     selfHost: {
       eyebrow: "The product",
       heading: "See the work. Keep control.",
-      copy: "Create agents for different jobs. Choose your models and each agent's plugin access. Follow their conversations and handoffs in one workspace.",
-      example: "Illustrative agents · Define your own",
+      copy: "Files, conversation, and handoffs stay together. When work needs a sign-in, you take the computer and protected input stays off the thread. Choose each agent's model and plugin access.",
+      imageAlt: "Engaz workspace showing Chief attaching a launch plan file, then asking the owner to take over a sign-in.",
+      example: "Actual interface · Isolated scripted test run",
     },
     roster: {
       eyebrow: "First run",
       heading: "Your team starts on your machine.",
       installLabel: "Install Engaz",
       installInstruction: "Run this in a terminal on the computer that will host Engaz.",
-      installRequirements: "Requires Docker Engine 26+, Compose, curl, and OpenSSL. The installer asks where to keep your data.",
+      installRequirements: "Requires Docker Engine 26+, Compose, curl, and OpenSSL. Choose durable storage before starting.",
       status: "Active development",
       installGuide: "Installation guide",
       copyCommand: "Copy command",
@@ -350,7 +352,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     openSource: {
       eyebrow: "Why Engaz",
       heading: "Your installation. Your choices.",
-      copy: "Engaz is open source and runs on hardware you control. Models and connected services may receive task content when you choose to use them.",
+      copy: "Run Engaz on your own hardware. Its source is Apache-2.0 licensed. Models and connected services may receive task content when you use them.",
       selfHostTitle: "Self-host",
       selfHostMeta: "In active development",
       selfHostItems: [
@@ -440,8 +442,8 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       badge: "Open Source",
       pill: "Self-hosted",
       heading: "KI-Teamkollegen. Echter Fortschritt.",
-      lead: "Betreibe ein KI-Team in einem Arbeitsbereich unter deiner Kontrolle. Erstelle Agenten für verschiedene Aufgaben, verbinde ein Modell und bestimme, welche Plugins jeder Agent nutzen kann.",
-      getStarted: "Engaz einrichten",
+      lead: "Gib einem Agenten eine Aufgabe, verfolge seine Arbeit an einem Ort und greife bei Bedarf ein – auf einer Installation unter deiner Kontrolle.",
+      getStarted: "Arbeitsbereich ansehen",
       viewOnGithub: "Auf GitHub ansehen",
       setupWithAgent: "Mit deinem Agenten einrichten",
       copiedForAgent: "Für deinen Agenten kopiert",
@@ -467,15 +469,16 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     selfHost: {
       eyebrow: "Das Produkt",
       heading: "Sieh die Arbeit. Behalte die Kontrolle.",
-      copy: "Erstelle Agenten für verschiedene Aufgaben. Wähle deine Modelle und den Plugin-Zugriff jedes Agenten. Verfolge Gespräche und Übergaben an einem Ort.",
-      example: "Beispielagenten · Stelle dein eigenes Team zusammen",
+      copy: "Dateien, Gespräche und Übergaben bleiben zusammen. Wenn eine Anmeldung nötig ist, übernimmst du den Computer; geschützte Eingaben bleiben außerhalb des Chats. Modell und Plugin-Zugriff bestimmst du pro Agent.",
+      imageAlt: "Engaz-Arbeitsbereich: Chief hängt einen Startplan an und bittet den Besitzer, eine Anmeldung zu übernehmen.",
+      example: "Echte Oberfläche · Isolierter Test mit Skript",
     },
     roster: {
       eyebrow: "Erster Start",
       heading: "Dein Team startet auf deinem Rechner.",
       installLabel: "Engaz installieren",
       installInstruction: "Führe diesen Befehl im Terminal des Computers aus, auf dem Engaz laufen soll.",
-      installRequirements: "Benötigt Docker Engine 26+, Compose, curl und OpenSSL. Der Installer fragt, wo deine Daten gespeichert werden sollen.",
+      installRequirements: "Benötigt Docker Engine 26+, Compose, curl und OpenSSL. Wähle vor dem Start einen dauerhaften Speicherort.",
       status: "In aktiver Entwicklung",
       installGuide: "Installationsanleitung",
       copyCommand: "Befehl kopieren",
@@ -490,7 +493,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     openSource: {
       eyebrow: "Warum Engaz",
       heading: "Deine Installation. Deine Entscheidungen.",
-      copy: "Engaz ist quelloffen und läuft auf Hardware unter deiner Kontrolle. Modelle und verbundene Dienste können Aufgabeninhalte erhalten, wenn du sie nutzt.",
+      copy: "Betreibe Engaz auf eigener Hardware. Der Quellcode steht unter Apache-2.0. Modelle und verbundene Dienste können bei Nutzung Aufgabeninhalte erhalten.",
       selfHostTitle: "Self-host",
       selfHostMeta: "In aktiver Entwicklung",
       selfHostItems: [
@@ -580,8 +583,8 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       badge: "오픈소스",
       pill: "셀프 호스트",
       heading: "AI 팀원. 실제 진전.",
-      lead: "직접 관리하는 워크스페이스에서 AI 팀을 운영하세요. 업무별 에이전트를 만들고 모델을 연결한 뒤 각 에이전트가 사용할 플러그인을 선택하세요.",
-      getStarted: "Engaz 설정하기",
+      lead: "에이전트에게 일을 맡기고 한곳에서 진행 상황을 확인하세요. 도움이 필요할 때 직접 개입할 수 있으며, 설치 환경은 직접 관리합니다.",
+      getStarted: "워크스페이스 보기",
       viewOnGithub: "GitHub에서 보기",
       setupWithAgent: "에이전트로 설정하기",
       copiedForAgent: "에이전트용으로 복사됨",
@@ -607,15 +610,16 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     selfHost: {
       eyebrow: "제품",
       heading: "작업은 한눈에. 제어는 내 손에.",
-      copy: "업무에 맞는 에이전트를 만드세요. 모델을 선택하고 각 에이전트의 플러그인 접근을 관리하세요. 대화와 인계는 한 워크스페이스에서 확인할 수 있습니다.",
-      example: "예시 에이전트 · 나만의 팀 구성",
+      copy: "파일, 대화, 인계가 한곳에 모입니다. 로그인이 필요하면 직접 컴퓨터를 넘겨받으며, 보호된 입력은 대화에 남지 않습니다. 에이전트마다 모델과 플러그인 접근을 정하세요.",
+      imageAlt: "Chief가 출시 계획 파일을 첨부하고 소유자에게 로그인 인계를 요청하는 Engaz 워크스페이스.",
+      example: "실제 화면 · 분리된 스크립트 테스트",
     },
     roster: {
       eyebrow: "첫 실행",
       heading: "내 컴퓨터에서 팀을 시작하세요.",
       installLabel: "Engaz 설치",
       installInstruction: "Engaz를 실행할 컴퓨터의 터미널에서 이 명령어를 실행하세요.",
-      installRequirements: "Docker Engine 26+, Compose, curl, OpenSSL이 필요합니다. 설치 중 데이터 저장 위치를 선택합니다.",
+      installRequirements: "Docker Engine 26+, Compose, curl, OpenSSL이 필요합니다. 시작하기 전에 영구 저장 위치를 선택하세요.",
       status: "개발 진행 중",
       installGuide: "설치 안내서",
       copyCommand: "명령어 복사",
@@ -630,7 +634,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     openSource: {
       eyebrow: "Engaz를 선택하는 이유",
       heading: "직접 운영하고 직접 선택하세요.",
-      copy: "Engaz는 오픈소스이며 직접 관리하는 하드웨어에서 실행됩니다. 선택한 모델과 연결 서비스는 작업에 필요한 내용을 받을 수 있습니다.",
+      copy: "Engaz를 직접 관리하는 하드웨어에서 실행하세요. 소스는 Apache-2.0 라이선스입니다. 이용하는 모델과 연결 서비스에는 작업 내용이 전달될 수 있습니다.",
       selfHostTitle: "셀프 호스트",
       selfHostMeta: "개발 진행 중",
       selfHostItems: [
@@ -720,8 +724,8 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       badge: "开源",
       pill: "自托管",
       heading: "AI 队友。切实推进工作。",
-      lead: "在你掌控的工作空间里组建 AI 团队。为不同工作创建智能体，连接模型，并选择每个智能体可使用的插件。",
-      getStarted: "设置 Engaz",
+      lead: "给智能体一项任务，在同一个地方跟进工作；需要你时及时介入，并始终掌控自己的安装环境。",
+      getStarted: "查看工作空间",
       viewOnGithub: "在 GitHub 上查看",
       setupWithAgent: "用你的智能体安装",
       copiedForAgent: "已为你的智能体复制",
@@ -747,15 +751,16 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     selfHost: {
       eyebrow: "产品",
       heading: "看清进展，掌握控制权。",
-      copy: "为不同工作创建智能体。选择模型并控制每位智能体的插件访问。在同一个工作空间查看对话与交接。",
-      example: "示意智能体 · 自由组建你的团队",
+      copy: "文件、对话和交接都留在一起。需要登录时，由你接管电脑；受保护的输入不会进入对话。每位智能体的模型和插件权限由你决定。",
+      imageAlt: "Engaz 工作空间：Chief 附加发布计划文件，然后请所有者接管登录。",
+      example: "真实界面 · 隔离的脚本测试",
     },
     roster: {
       eyebrow: "初次使用",
       heading: "在自己的电脑上组建团队。",
       installLabel: "安装 Engaz",
       installInstruction: "在将要运行 Engaz 的电脑终端中执行此命令。",
-      installRequirements: "需要 Docker Engine 26+、Compose、curl 和 OpenSSL。安装程序会询问数据的存储位置。",
+      installRequirements: "需要 Docker Engine 26+、Compose、curl 和 OpenSSL。启动前请选择持久存储位置。",
       status: "持续开发中",
       installGuide: "安装指南",
       copyCommand: "复制命令",
@@ -770,7 +775,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     openSource: {
       eyebrow: "为什么选择 Engaz",
       heading: "你的安装环境，由你选择。",
-      copy: "Engaz 开源，运行在你掌控的硬件上。使用模型或已连接服务时，任务内容可能会发送给相应的提供方。",
+      copy: "在自己的硬件上运行 Engaz。源代码采用 Apache-2.0 许可证。使用模型或已连接服务时，任务内容可能会发送给相应提供方。",
       selfHostTitle: "自托管",
       selfHostMeta: "持续开发中",
       selfHostItems: [

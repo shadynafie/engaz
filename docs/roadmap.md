@@ -20,6 +20,7 @@ The existing orchestration, apps, and provider architecture are the foundation. 
 | Plugins | Integrations, MCP, API-based adapters, and agent toggles exist. | Connection tests, clear health, narrow per-agent tool access, and a safe local MCP route need work. Current MCP assignment can grant all tools. |
 | Skills | Shared skill catalog and bot-scoped taught skills exist; agent instructions can be edited under Advanced. | Their relationship and per-agent assignment are unclear to users. |
 | UI | A shared monochrome token system and reusable web components exist. | Settings and integrations are separated, and key agent controls are hard to find. |
+| Public website | The homepage has a four-part product story, an actual UI capture from an isolated scripted run, and desktop/mobile, translated, and reduced-motion browser checks. | Verify the Cloudflare Pages deployment after merge; the capture does not prove autonomous work or a fresh public installation. |
 | Quality | Main CI, including Web E2E, passed on 2026-09-23 ([run](https://github.com/shadynafie/engaz/actions/runs/35888758429)); the nightly run no longer fails on missing report storage. | Keep it green. |
 
 This baseline describes source and checks, not the safety of an existing installation. The current NAS trial is live data and is read-only for this roadmap. New work uses the repository and isolated test installations.

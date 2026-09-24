@@ -20,9 +20,6 @@ const locale: Locale = isLocale(Astro.currentLocale)
 const copy = getHomeCopy(locale);
 const homeHref = localeHomePath(locale);
 const pageUrl = new URL(homeHref, SITE_URL).toString();
-const installCommand = "curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash";
-const installDocsUrl = `${DOCS_URL}#published-images-no-checkout`;
-const agentPortraits = ["team-chief.webp", "team-designer.webp", "team-engineer.webp", "team-accountant.webp"];
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -83,7 +80,7 @@ const structuredData = {
               <h1>{copy.hero.heading}</h1>
               <p>{copy.hero.lead}</p>
               <div class="workbench-actions">
-                <Button href="#how-it-works">{copy.hero.getStarted}</Button>
+                <Button href="#product">{copy.hero.getStarted}</Button>
                 <a class="workbench-text-link" href={GITHUB_URL} target="_blank" rel="noreferrer">
                   {copy.hero.viewOnGithub}<span aria-hidden="true">↗</span>
                 </a>
@@ -105,16 +102,32 @@ const structuredData = {
         </div>
       </section>
 
+      <section id="product" class="workbench-product">
+        <div class="container">
+          <div class="workbench-section-head" data-reveal>
+            <p class="workbench-eyebrow">02 / {copy.selfHost.eyebrow}</p>
+            <h2>{copy.selfHost.heading}</h2>
+            <p>{copy.selfHost.copy}</p>
+          </div>
+          <figure class="workbench-product__proof" data-reveal>
+            <div class="workbench-product__screen">
+              <img src="/product-workspace.png" width="1360" height="780" alt={copy.selfHost.imageAlt} loading="lazy" />
+            </div>
+            <figcaption>{copy.selfHost.example}</figcaption>
+          </figure>
+        </div>
+      </section>
+
       <section id="team" class="workbench-team" data-team-scroll>
         <div class="container">
           <div class="workbench-team__intro" data-reveal>
-            <p class="workbench-eyebrow">02 / {copy.team.eyebrow}</p>
+            <p class="workbench-eyebrow">03 / {copy.team.eyebrow}</p>
             <h2><span>{copy.team.headingLine1}</span><span>{copy.team.headingLine2}</span></h2>
             <p>{copy.team.copy}</p>
           </div>
         </div>
         <div class="workbench-team__journey" data-team-journey>
-          <div class="workbench-team__stage" data-team-stage aria-hidden="true">
+          <div class="workbench-team__stage" data-team-stage>
             <div class="workbench-team__panel workbench-team__panel--solo">
               <img src="/brand/engaz-solo-lonely-scene.webp" width="1774" height="887" alt="" loading="lazy" />
               <p class="workbench-team__scene-label"><span>{copy.team.soloLabel}</span>{copy.team.soloCaption}</p>
@@ -130,63 +143,12 @@ const structuredData = {
         </div>
       </section>
 
-      <section id="product" class="workbench-product">
-        <div class="container">
-          <div class="workbench-section-head" data-reveal>
-            <p class="workbench-eyebrow">03 / {copy.selfHost.eyebrow}</p>
-            <h2>{copy.selfHost.heading}</h2>
-            <p>{copy.selfHost.copy}</p>
-          </div>
-
-          <div class="workbench-product__cast">
-            {copy.team.roles.map((role, index) => (
-              <article class="workbench-product__agent" data-reveal>
-                <div class="workbench-product__portrait">
-                  <img src={`/brand/${agentPortraits[index]}`} width="800" height="800" alt="" loading="lazy" />
-                </div>
-                <div class="workbench-product__identity">
-                  <span class="workbench-product__number">0{index + 1} / 04</span>
-                  <h3>{role.title}</h3>
-                  <p>{role.focus}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-          <p class="workbench-product__note" data-reveal>{copy.selfHost.example}</p>
-        </div>
-      </section>
-
-      <section id="how-it-works" class="workbench-setup">
+      <section id="selfhost" class="workbench-setup">
         <div class="container">
           <div class="workbench-setup__intro" data-reveal>
-            <p class="workbench-eyebrow">04 / {copy.roster.eyebrow}</p>
-            <h2>{copy.roster.heading}</h2>
-          </div>
-          <div class="workbench-install" data-reveal>
-            <div class="workbench-install__portrait" aria-hidden="true">
-              <img src="/brand/engaz-directional-open.webp" width="1440" height="960" alt="" loading="lazy" />
-              <img class="workbench-install__blink-half" src="/brand/engaz-directional-half.webp" width="1440" height="960" alt="" loading="lazy" />
-              <img class="workbench-install__blink-closed" src="/brand/engaz-directional-closed.webp" width="1440" height="960" alt="" loading="lazy" />
-            </div>
-            <div class="workbench-install__meta">
-              <span>{copy.roster.installLabel}</span>
-              <a href={installDocsUrl} target="_blank" rel="noreferrer">{copy.roster.installGuide} ↗</a>
-            </div>
-            <p class="workbench-install__instruction">{copy.roster.installInstruction}</p>
-            <div class="workbench-install__line">
-              <code data-install-command tabindex="0">{installCommand}</code>
-              <button
-                type="button"
-                data-copy-install
-                data-copy-label={copy.roster.copyCommand}
-                data-copied-label={copy.roster.copiedCommand}
-                data-copy-failed={copy.hero.copyFailed}
-              ><span data-copy-status aria-live="polite">{copy.roster.copyCommand}</span></button>
-            </div>
-          </div>
-          <div class="workbench-setup__fineprint">
-            <p>{copy.roster.installRequirements}</p>
-            <span>{copy.roster.status}</span>
+            <p class="workbench-eyebrow">04 / {copy.nav.selfHost}</p>
+            <h2>{copy.openSource.heading}</h2>
+            <p>{copy.openSource.copy}</p>
           </div>
           <ol class="workbench-setup__steps">
             {copy.roster.steps.map((step, index) => (
@@ -197,36 +159,13 @@ const structuredData = {
               </li>
             ))}
           </ol>
-        </div>
-      </section>
-
-      <section id="why-engaz" class="workbench-ownership">
-        <div class="container">
-          <p class="workbench-eyebrow" data-reveal>05 / {copy.openSource.eyebrow}</p>
-          <div class="workbench-ownership__grid">
-            <h2 data-reveal>{copy.openSource.heading}</h2>
-            <div data-reveal>
-              <p>{copy.openSource.copy}</p>
-              <ul>
-                {copy.openSource.selfHostItems.map((item) => <li>{item}</li>)}
-              </ul>
+          <div class="workbench-setup__finish" data-reveal>
+            <div>
+              <p>{copy.roster.installRequirements}</p>
+              <span>{copy.roster.status}</span>
             </div>
+            <Button href={DOCS_URL} external>{copy.roster.installGuide}</Button>
           </div>
-        </div>
-      </section>
-
-      <section id="selfhost" class="workbench-final">
-        <div class="container workbench-final__inner">
-          <p class="workbench-eyebrow" data-reveal>06 / ENGAZ</p>
-          <h2 data-reveal>{copy.cta.heading}</h2>
-          <p data-reveal>{copy.cta.copy}</p>
-          <div class="workbench-actions" data-reveal>
-            <Button href={DOCS_URL} external>{copy.cta.getStarted}</Button>
-            <a class="workbench-text-link" href={GITHUB_URL} target="_blank" rel="noreferrer">
-              {copy.cta.viewOnGithub}<span aria-hidden="true">↗</span>
-            </a>
-          </div>
-          <img class="workbench-final__mark" src="/brand/engaz-icon-dark.webp" width="1080" height="1080" alt="" aria-hidden="true" loading="lazy" />
         </div>
       </section>
     </main>
@@ -247,29 +186,12 @@ const structuredData = {
 <script>
   const root = document.querySelector(".workbench");
   if (root) {
-    const copyButton = root.querySelector<HTMLButtonElement>("[data-copy-install]");
-    const command = root.querySelector<HTMLElement>("[data-install-command]")?.textContent?.trim();
-    const copyStatus = copyButton?.querySelector<HTMLElement>("[data-copy-status]");
-    let copyReset = 0;
-    copyButton?.addEventListener("click", async () => {
-      if (!command || !copyStatus) return;
-      clearTimeout(copyReset);
-      try {
-        await navigator.clipboard.writeText(command);
-        copyStatus.textContent = copyButton.dataset.copiedLabel ?? "";
-      } catch {
-        copyStatus.textContent = copyButton.dataset.copyFailed ?? "";
-      }
-      copyReset = window.setTimeout(() => {
-        copyStatus.textContent = copyButton.dataset.copyLabel ?? "";
-      }, 2200);
-    });
     const motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const team = root.querySelector<HTMLElement>("[data-team-scroll]");
     const journey = team?.querySelector<HTMLElement>("[data-team-journey]");
     const teamStage = team?.querySelector<HTMLElement>("[data-team-stage]");
     if (motion && team && journey && teamStage) {
-      team.classList.add("is-scroll-linked");
+      const wideScreen = window.matchMedia("(min-width: 721px)");
       let frame = 0;
       const updateTeam = () => {
         const stickyTop = Number.parseFloat(getComputedStyle(teamStage).top) || 0;
@@ -279,11 +201,17 @@ const structuredData = {
         frame = 0;
       };
       const queueTeamUpdate = () => {
+        if (!wideScreen.matches) return;
         if (!frame) frame = requestAnimationFrame(updateTeam);
+      };
+      const syncTeamMotion = () => {
+        team.classList.toggle("is-scroll-linked", wideScreen.matches);
+        if (wideScreen.matches) queueTeamUpdate();
       };
       window.addEventListener("scroll", queueTeamUpdate, { passive: true });
       window.addEventListener("resize", queueTeamUpdate);
-      queueTeamUpdate();
+      wideScreen.addEventListener("change", syncTeamMotion);
+      syncTeamMotion();
     }
     if (motion && "IntersectionObserver" in window) {
       root.classList.add("workbench--motion");

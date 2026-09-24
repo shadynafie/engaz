@@ -81,6 +81,7 @@ services:
       SANDBOX_SUPERVISOR_URL: http://supervisor:7091
       SANDBOX_SUPERVISOR_TOKEN: topology-only-supervisor-token-at-least-32-characters
       SIGNUPS_ENABLED: "true"
+      SIGNUPS_INVITE_ONLY: "false"
       WAKEUP_DRIVER: graphile
       SANDBOX_PROVIDER: docker
       CLOUD_AGENT_PROVIDER: ${CLOUD_AGENT_PROVIDER:-none}

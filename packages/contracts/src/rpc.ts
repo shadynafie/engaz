@@ -56,6 +56,7 @@ import {
   ServerUpdateRequestSchema,
   ServerUpdateRunSchema,
   ServerUpdateStatusSchema,
+  SignupInviteSchema,
   SkillPlaybookSchema,
   SpaceMemoryConfigSchema,
   SpaceNavigationSchema,
@@ -181,6 +182,12 @@ export const appContract = {
         }),
       )
       .output(DeploymentSettingsSchema),
+  },
+  /** Owner-only sign-up links for new accounts once the owner exists. */
+  invites: {
+    list: oc.output(z.array(SignupInviteSchema)),
+    create: oc.output(z.object({ invite: SignupInviteSchema, url: z.string().url() })),
+    revoke: oc.input(z.object({ id: Id })).output(z.object({ ok: z.literal(true) })),
   },
   /**
    * Deployment-owner product updates. When the Compose updater sidecar is reachable, these proxy

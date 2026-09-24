@@ -84,7 +84,7 @@ import {
   touchRunningComputer,
   verifyMcpInstall,
 } from "@engaz/adapters";
-import type { Auth } from "@engaz/auth";
+import { type Auth, hashSignupInviteToken } from "@engaz/auth";
 import type { Actor, ComputerStatus, McpServer, Me, SpaceNavigation } from "@engaz/contracts";
 import {
   appContract,
@@ -831,6 +831,37 @@ export function createRouter(deps: RouterDeps) {
           },
         });
         return deploymentDto(deps.prisma, deps.env.sandboxProvider);
+      }),
+    },
+    invites: {
+      list: authed.invites.list.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        const rows = await deps.prisma.signupInvite.findMany({
+          // Used links stay listed so the owner sees who joined; expired unused ones go.
+          where: { OR: [{ usedAt: { not: null } }, { expiresAt: { gt: new Date() } }] },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        });
+        return rows.map(signupInviteDto);
+      }),
+      create: authed.invites.create.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        const token = randomBytes(32).toString("base64url");
+        const row = await deps.prisma.signupInvite.create({
+          data: {
+            tokenHash: hashSignupInviteToken(token),
+            createdByUserId: context.actor.userId,
+            expiresAt: new Date(Date.now() + SIGNUP_INVITE_TTL_MS),
+          },
+        });
+        const url = new URL("/sign-up", deps.env.webOrigin);
+        url.searchParams.set("invite", token);
+        return { invite: signupInviteDto(row), url: url.href };
+      }),
+      revoke: authed.invites.revoke.handler(async ({ context, input }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        await deps.prisma.signupInvite.deleteMany({ where: { id: input.id, usedAt: null } });
+        return { ok: true as const };
       }),
     },
     updater: {
@@ -5203,6 +5234,25 @@ async function computerScreenContext(
   });
   if (!lease || lease.expiresAt.getTime() <= Date.now()) return context;
   return { ...context, screenLeaseId: screenLeaseIdForRun(lease, lease.runId) };
+}
+
+/** How long an invitation link can be used. */
+const SIGNUP_INVITE_TTL_MS = 7 * 24 * 60 * 60_000;
+
+function signupInviteDto(row: {
+  id: string;
+  createdAt: Date;
+  expiresAt: Date;
+  usedAt: Date | null;
+  usedByEmail: string | null;
+}) {
+  return {
+    id: row.id,
+    createdAt: row.createdAt.toISOString(),
+    expiresAt: row.expiresAt.toISOString(),
+    usedAt: row.usedAt?.toISOString() ?? null,
+    usedByEmail: row.usedByEmail,
+  };
 }
 
 async function deploymentDto(prisma: PrismaClient, sandboxProvider: string) {

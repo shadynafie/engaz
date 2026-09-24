@@ -1,7 +1,17 @@
 import type { AvatarStyle, SpaceMemoryConfig } from "@engaz/contracts";
 import { Button, Dialog, DialogClose, DialogContent, DialogTitle } from "@engaz/ui-web";
 import { useLingui } from "@lingui/react/macro";
-import { Brain, CloudDownload, Cpu, Gauge, Monitor, Settings, Volume2, XIcon } from "lucide-react";
+import {
+  Brain,
+  CloudDownload,
+  Cpu,
+  Gauge,
+  Monitor,
+  Settings,
+  Users,
+  Volume2,
+  XIcon,
+} from "lucide-react";
 import { type ComponentType, useEffect, useRef, useState } from "react";
 import { computersAreUnavailable } from "../components/ComputersUnavailableHint";
 import {
@@ -10,6 +20,7 @@ import {
   UpdatesSettingsPanel,
   UsageSettingsPanel,
 } from "./AccountSettingsOverlay";
+import { InvitesSettingsPanel } from "./InvitesSettingsPanel";
 import { MemorySettingsOverlay } from "./MemorySettingsOverlay";
 import { ModelSettingsOverlay } from "./ModelSettingsOverlay";
 import { VoiceSettingsOverlay } from "./VoiceSettingsOverlay";
@@ -21,6 +32,7 @@ export type SettingsSection =
   | "voice"
   | "usage"
   | "computer"
+  | "people"
   | "updates";
 
 type NavItem = {
@@ -86,6 +98,7 @@ export function SettingsOverlay({
     { id: "voice", label: t`Voice`, icon: Volume2 },
     { id: "usage", label: t`Usage`, icon: Gauge },
     ...(showComputer ? [{ id: "computer" as const, label: t`Computer`, icon: Monitor }] : []),
+    ...(isDeploymentOwner ? [{ id: "people" as const, label: t`People`, icon: Users }] : []),
     { id: "updates", label: t`Updates`, icon: CloudDownload },
   ];
 
@@ -211,6 +224,7 @@ export function SettingsOverlay({
                 <UsageSettingsPanel usage={usage} panelRef={usageRef} />
               ) : null}
               {section === "computer" && showComputer ? <ComputerSettingsPanel /> : null}
+              {section === "people" && isDeploymentOwner ? <InvitesSettingsPanel /> : null}
               {section === "updates" ? (
                 <UpdatesSettingsPanel isDeploymentOwner={isDeploymentOwner} />
               ) : null}

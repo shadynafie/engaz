@@ -35,6 +35,7 @@ model User {
   accounts                    Account[]
   members                     Member[]
   invitations                 Invitation[]
+  signupInvites               SignupInvite[]
   modelCredentials            UserModelCredential[]
   voiceCredentials            UserVoiceCredential[]
   secrets                     Secret[]
@@ -249,12 +250,30 @@ model Invitation {
   @@map("invitation")
 }
 
+/// A one-person sign-up link the owner shares. Only the token's hash is stored.
+model SignupInvite {
+  id              String    @id @default(cuid())
+  tokenHash       String    @unique
+  createdByUserId String
+  createdBy       User      @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  expiresAt       DateTime
+  /// Set when someone signs up with the link; the email it was used for.
+  usedAt          DateTime?
+  usedByEmail     String?
+  createdAt       DateTime  @default(now())
+
+  @@index([usedByEmail])
+  @@map("signup_invites")
+}
+
 model DeploymentSettings {
   id                              String   @id @default("default")
   ownerUserId                     String?
   signupsEnabled                  Boolean  @default(true)
   signupAllowlist                 String   @default("")
   signupPolicyInitialized         Boolean  @default(false)
+  /// After the owner exists, new accounts need an invitation link from the owner.
+  signupsInviteOnly               Boolean  @default(true)
   defaultModelProvider            String?
   defaultModelId                  String?
   deploymentModelCredentialCipher String?

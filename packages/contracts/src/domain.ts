@@ -1083,6 +1083,16 @@ export const VoiceStatusSchema = z.object({
 });
 export type VoiceStatus = z.infer<typeof VoiceStatusSchema>;
 
+/** A one-person sign-up link. Its token is shown only once, when it is created. */
+export const SignupInviteSchema = z.object({
+  id: Id,
+  createdAt: z.string(),
+  expiresAt: z.string(),
+  usedAt: z.string().nullable(),
+  usedByEmail: z.string().nullable(),
+});
+export type SignupInvite = z.infer<typeof SignupInviteSchema>;
+
 export const DeploymentSettingsSchema = z.object({
   ownerUserId: Id.nullable(),
   signupsEnabled: z.boolean(),

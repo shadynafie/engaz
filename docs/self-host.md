@@ -181,9 +181,14 @@ API_URL=https://app.example.com
 
 ### Public signup policy
 
-Cookies and CORS follow those origins. `SIGNUPS_ENABLED` / `SIGNUP_ALLOWLIST` seed the signup
-policy when the API starts for the first time. They are not reapplied on restart, so configure them
-before that first start.
+The first account to register becomes the owner. After that, new accounts need an invitation
+link: the owner creates one in **Settings → People**. Each link works for one person and expires
+after 7 days. Set `SIGNUPS_INVITE_ONLY=false` to let anyone who can reach the sign-up page
+register instead.
+
+Cookies and CORS follow those origins. `SIGNUPS_ENABLED`, `SIGNUP_ALLOWLIST`, and
+`SIGNUPS_INVITE_ONLY` seed the signup policy when the API starts for the first time. They are not
+reapplied on restart, so configure them before that first start.
 
 With a nonempty signup allowlist, users—including existing accounts—must verify their email to sign
 in. Configure SMTP below before enabling an allowlist or upgrading an allowlisted deployment.

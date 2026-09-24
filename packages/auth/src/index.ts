@@ -1,5 +1,12 @@
+import { createHash } from "node:crypto";
 import type { TransactionalEmail, TransactionalEmailProvider } from "@engaz/adapter-kit";
-import { emailAllowed, isMessagingEmail, parseAllowlist, signupPolicyFromEnv } from "@engaz/core";
+import {
+  emailAllowed,
+  isMessagingEmail,
+  parseAllowlist,
+  SIGNUP_INVITE_HEADER,
+  signupPolicyFromEnv,
+} from "@engaz/core";
 import { bootstrapUserSpace, type PrismaClient } from "@engaz/db";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
@@ -12,27 +19,81 @@ export interface AuthEnv {
   webOrigin: string;
   signupsEnabled: string | undefined;
   signupAllowlist: string | undefined;
+  signupsInviteOnly?: string | undefined;
   extraOrigins?: string[];
   email?: TransactionalEmailProvider;
   onEmailError?: (error: unknown) => void;
   beforeDeleteUser?: (userId: string) => Promise<void>;
 }
 
+export type SignupPolicy = {
+  enabled: boolean;
+  allowlist: string[];
+  /** The owner exists and new accounts need an invitation link. */
+  invitationRequired: boolean;
+};
+
 export async function resolveSignupPolicy(
   prisma: Pick<PrismaClient, "deploymentSettings">,
-  env: Pick<AuthEnv, "signupsEnabled" | "signupAllowlist">,
-): Promise<{ enabled: boolean; allowlist: string[] }> {
+  env: Pick<AuthEnv, "signupsEnabled" | "signupAllowlist" | "signupsInviteOnly">,
+): Promise<SignupPolicy> {
   const settings = await prisma.deploymentSettings.findUnique({
     where: { id: "default" },
-    select: { signupsEnabled: true, signupAllowlist: true, signupPolicyInitialized: true },
+    select: {
+      ownerUserId: true,
+      signupsEnabled: true,
+      signupAllowlist: true,
+      signupsInviteOnly: true,
+      signupPolicyInitialized: true,
+    },
   });
+  // Until the owner exists, the first registration is the owner claim.
+  const ownerExists = Boolean(settings?.ownerUserId);
   if (settings?.signupPolicyInitialized) {
     return {
       enabled: settings.signupsEnabled,
       allowlist: parseAllowlist(settings.signupAllowlist),
+      invitationRequired: ownerExists && settings.signupsInviteOnly !== false,
     };
   }
-  return signupPolicyFromEnv(env);
+  const policy = signupPolicyFromEnv(env);
+  return {
+    enabled: policy.enabled,
+    allowlist: policy.allowlist,
+    invitationRequired: ownerExists && policy.inviteOnly,
+  };
+}
+
+/** Invitation tokens are stored only as this hash. */
+export function hashSignupInviteToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+function normalizedEmail(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Binds an invitation to the email signing up with it. The same email may retry with
+ * the same link (a failed attempt must not burn it); nobody else can use it afterwards.
+ */
+async function claimSignupInvite(
+  prisma: PrismaClient,
+  token: string | null | undefined,
+  email: string,
+): Promise<boolean> {
+  if (!token || !email) return false;
+  const claimed = await prisma.signupInvite.updateMany({
+    where: {
+      tokenHash: hashSignupInviteToken(token),
+      expiresAt: { gt: new Date() },
+      OR: [{ usedAt: null }, { usedByEmail: email }],
+    },
+    data: { usedAt: new Date(), usedByEmail: email },
+  });
+  return claimed.count === 1;
 }
 
 export function createAuth(prisma: PrismaClient, env: AuthEnv) {
@@ -136,6 +197,18 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
           if (policy.allowlist.length > 0 && !env.email) {
             throw new APIError("BAD_REQUEST", { message: "Registration requires email delivery" });
           }
+          if (
+            policy.invitationRequired &&
+            !(await claimSignupInvite(
+              prisma,
+              ctx.headers?.get(SIGNUP_INVITE_HEADER),
+              normalizedEmail(ctx.body?.email),
+            ))
+          ) {
+            throw new APIError("FORBIDDEN", {
+              message: "You need a valid invitation link from the owner to sign up.",
+            });
+          }
         }
         // Return a request-local override; mutating the shared auth options
         // would leak a concurrent request's policy into another signup.
@@ -185,6 +258,17 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
             const membership = await prisma.spaceMember.findFirst({ where: { userId: user.id } });
             if (!membership) {
               if (!policy.enabled || !emailAllowed(user.email, policy.allowlist)) {
+                throw new APIError("FORBIDDEN", { message: "Registration is closed" });
+              }
+              // The invitation was bound to this email at sign-up (possibly before
+              // email verification, so the link is not needed again here).
+              if (
+                policy.invitationRequired &&
+                !(await prisma.signupInvite.findFirst({
+                  where: { usedByEmail: normalizedEmail(user.email) },
+                  select: { id: true },
+                }))
+              ) {
                 throw new APIError("FORBIDDEN", { message: "Registration is closed" });
               }
               await bootstrapUserSpace(prisma, user, env);

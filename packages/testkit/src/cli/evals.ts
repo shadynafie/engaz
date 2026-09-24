@@ -109,6 +109,8 @@ async function main() {
       BETTER_AUTH_URL: "http://127.0.0.1:7791",
       WEB_ORIGIN: "http://127.0.0.1:7791",
       SIGNUPS_ENABLED: "true",
+      // Test accounts sign up freely; invitations are covered by their own suite.
+      SIGNUPS_INVITE_ONLY: "false",
       SIGNUP_ALLOWLIST: "",
       SANDBOX_PROVIDER: "fake",
       AGENT_RUNTIME: "pi",

@@ -61,7 +61,7 @@ import {
   SpaceMemoryProviderResolver,
   toTeamChatInbound,
 } from "@engaz/adapters";
-import { blockedAuthPaths, createAuth } from "@engaz/auth";
+import { blockedAuthPaths, createAuth, resolveSignupPolicy } from "@engaz/auth";
 import { signupPolicyFromEnv } from "@engaz/core";
 import type { Pool, PrismaClient } from "@engaz/db";
 import {
@@ -178,6 +178,7 @@ export async function createApp(
       id: "default",
       signupsEnabled: environmentSignupPolicy.enabled,
       signupAllowlist: environmentSignupPolicy.allowlist.join(","),
+      signupsInviteOnly: environmentSignupPolicy.inviteOnly,
       signupPolicyInitialized: true,
     },
     update: {},
@@ -313,6 +314,7 @@ export async function createApp(
     webOrigin: env.webOrigin,
     signupsEnabled: env.signupsEnabled,
     signupAllowlist: env.signupAllowlist,
+    signupsInviteOnly: env.signupsInviteOnly,
     email,
     onEmailError: (error) => getLogger().error("transactional email delivery failed", error),
     extraOrigins: [
@@ -486,10 +488,11 @@ export async function createApp(
       credentials: true,
     }),
   );
-  app.get("/api/auth/capabilities", (c) =>
+  app.get("/api/auth/capabilities", async (c) =>
     c.json({
       passwordReset: Boolean(email),
       resetUrl: email ? new URL("/reset-password", env.webOrigin).href : null,
+      invitationRequired: (await resolveSignupPolicy(prisma, env)).invitationRequired,
     }),
   );
   if (localEmailEmulator && env.nodeEnv === "development") {

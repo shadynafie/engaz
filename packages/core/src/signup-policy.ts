@@ -36,9 +36,15 @@ export function signupsOpen(enabled: string | undefined): boolean {
 export function signupPolicyFromEnv(input: {
   signupsEnabled: string | undefined;
   signupAllowlist: string | undefined;
-}): { enabled: boolean; allowlist: string[] } {
+  signupsInviteOnly?: string | undefined;
+}): { enabled: boolean; allowlist: string[]; inviteOnly: boolean } {
   return {
     enabled: signupsOpen(input.signupsEnabled),
     allowlist: parseAllowlist(input.signupAllowlist),
+    // Invitation-only unless explicitly turned off; it applies once an owner exists.
+    inviteOnly: signupsOpen(input.signupsInviteOnly),
   };
 }
+
+/** The request header that carries an invitation link's token to sign-up. */
+export const SIGNUP_INVITE_HEADER = "x-engaz-invite";

@@ -20,9 +20,9 @@ const locale: Locale = isLocale(Astro.currentLocale)
 const copy = getHomeCopy(locale);
 const homeHref = localeHomePath(locale);
 const pageUrl = new URL(homeHref, SITE_URL).toString();
-const teamImages = ["chief", "designer", "engineer", "accountant"];
 const installCommand = "curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash";
 const installDocsUrl = `${DOCS_URL}#published-images-no-checkout`;
+const agentPortraits = ["team-chief.webp", "team-designer.webp", "team-engineer.webp", "team-accountant.webp"];
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -105,31 +105,28 @@ const structuredData = {
         </div>
       </section>
 
-      <section id="team" class="workbench-team">
+      <section id="team" class="workbench-team" data-team-scroll>
         <div class="container">
           <div class="workbench-team__intro" data-reveal>
             <p class="workbench-eyebrow">02 / {copy.team.eyebrow}</p>
-            <h2>{copy.team.heading}</h2>
+            <h2><span>{copy.team.headingLine1}</span><span>{copy.team.headingLine2}</span></h2>
             <p>{copy.team.copy}</p>
           </div>
-          <div class="workbench-team__stage" data-reveal>
-            <span class="workbench-team__signal" aria-hidden="true"></span>
-            <ol class="workbench-team__roster" tabindex="0" aria-label={copy.team.example}>
-              {copy.team.roles.map((role, index) => (
-                <li>
-                  <div class="workbench-team__portrait">
-                    <img src={`/brand/team-${teamImages[index]}.webp`} width="800" height="800" alt="" loading="lazy" />
-                  </div>
-                  <div class="workbench-team__label">
-                    <span>0{index + 1}</span>
-                    <h3>{role.title}</h3>
-                    <p>{role.task}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+        </div>
+        <div class="workbench-team__journey" data-team-journey>
+          <div class="workbench-team__stage" data-team-stage aria-hidden="true">
+            <div class="workbench-team__panel workbench-team__panel--solo">
+              <img src="/brand/engaz-solo-lonely-scene.webp" width="1774" height="887" alt="" loading="lazy" />
+              <p class="workbench-team__scene-label"><span>{copy.team.soloLabel}</span>{copy.team.soloCaption}</p>
+            </div>
+            <div class="workbench-team__panel workbench-team__panel--group">
+              <img src="/brand/engaz-group-scene.webp" width="1448" height="1086" alt="" loading="lazy" />
+              <p class="workbench-team__scene-label"><span>{copy.team.groupLabel}</span>{copy.team.groupCaption}</p>
+            </div>
           </div>
-          <p class="workbench-team__note">{copy.team.example}</p>
+        </div>
+        <div class="container workbench-team__footer">
+          <span>{copy.team.example}</span>
         </div>
       </section>
 
@@ -141,36 +138,21 @@ const structuredData = {
             <p>{copy.selfHost.copy}</p>
           </div>
 
-          <div class="workbench-product__story">
-            <figure class="workbench-product__visual" data-reveal>
-              <div class="workbench-product__frame">
-                <div class="workbench-product__frame-top" aria-hidden="true">
-                  <span>ENGAZ / {copy.selfHost.eyebrow}</span>
-                  <span>01—03</span>
+          <div class="workbench-product__cast">
+            {copy.team.roles.map((role, index) => (
+              <article class="workbench-product__agent" data-reveal>
+                <div class="workbench-product__portrait">
+                  <img src={`/brand/${agentPortraits[index]}`} width="800" height="800" alt="" loading="lazy" />
                 </div>
-                <div class="workbench-product__viewport">
-                  <img
-                    src="/product-workspace.png"
-                    width="2880"
-                    height="1800"
-                    alt={copy.selfHost.screenshotAlt}
-                    loading="lazy"
-                  />
+                <div class="workbench-product__identity">
+                  <span class="workbench-product__number">0{index + 1} / 04</span>
+                  <h3>{role.title}</h3>
+                  <p>{role.focus}</p>
                 </div>
-              </div>
-              <figcaption>{copy.selfHost.screenshotCaption}</figcaption>
-            </figure>
-
-            <div class="workbench-product__chapters">
-              {copy.selfHost.features.map((feature, index) => (
-                <article class="workbench-product__chapter" data-chapter data-reveal>
-                  <span class="workbench-product__number">0{index + 1} / 03</span>
-                  <h3>{feature.title}</h3>
-                  <p>{feature.body}</p>
-                </article>
-              ))}
-            </div>
+              </article>
+            ))}
           </div>
+          <p class="workbench-product__note" data-reveal>{copy.selfHost.example}</p>
         </div>
       </section>
 
@@ -179,13 +161,18 @@ const structuredData = {
           <div class="workbench-setup__intro" data-reveal>
             <p class="workbench-eyebrow">04 / {copy.roster.eyebrow}</p>
             <h2>{copy.roster.heading}</h2>
-            <p>{copy.roster.copy}</p>
           </div>
           <div class="workbench-install" data-reveal>
+            <div class="workbench-install__portrait" aria-hidden="true">
+              <img src="/brand/engaz-directional-open.webp" width="1440" height="960" alt="" loading="lazy" />
+              <img class="workbench-install__blink-half" src="/brand/engaz-directional-half.webp" width="1440" height="960" alt="" loading="lazy" />
+              <img class="workbench-install__blink-closed" src="/brand/engaz-directional-closed.webp" width="1440" height="960" alt="" loading="lazy" />
+            </div>
             <div class="workbench-install__meta">
               <span>{copy.roster.installLabel}</span>
               <a href={installDocsUrl} target="_blank" rel="noreferrer">{copy.roster.installGuide} ↗</a>
             </div>
+            <p class="workbench-install__instruction">{copy.roster.installInstruction}</p>
             <div class="workbench-install__line">
               <code data-install-command tabindex="0">{installCommand}</code>
               <button
@@ -196,17 +183,17 @@ const structuredData = {
                 data-copy-failed={copy.hero.copyFailed}
               ><span data-copy-status aria-live="polite">{copy.roster.copyCommand}</span></button>
             </div>
+          </div>
+          <div class="workbench-setup__fineprint">
             <p>{copy.roster.installRequirements}</p>
+            <span>{copy.roster.status}</span>
           </div>
           <ol class="workbench-setup__steps">
             {copy.roster.steps.map((step, index) => (
               <li data-reveal>
                 <span class="workbench-setup__number">0{index + 1}</span>
-                <div>
-                  <h3>{step.title}</h3>
-                  <p>{step.body}</p>
-                </div>
-                <span class="workbench-setup__arrow" aria-hidden="true">↗</span>
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
               </li>
             ))}
           </ol>
@@ -278,6 +265,26 @@ const structuredData = {
       }, 2200);
     });
     const motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const team = root.querySelector<HTMLElement>("[data-team-scroll]");
+    const journey = team?.querySelector<HTMLElement>("[data-team-journey]");
+    const teamStage = team?.querySelector<HTMLElement>("[data-team-stage]");
+    if (motion && team && journey && teamStage) {
+      team.classList.add("is-scroll-linked");
+      let frame = 0;
+      const updateTeam = () => {
+        const stickyTop = Number.parseFloat(getComputedStyle(teamStage).top) || 0;
+        const travel = Math.max(1, journey.offsetHeight - teamStage.offsetHeight);
+        const progress = Math.min(1, Math.max(0, (stickyTop - journey.getBoundingClientRect().top) / travel));
+        teamStage.style.setProperty("--team-clip", `${(1 - progress) * 103 - 3}%`);
+        frame = 0;
+      };
+      const queueTeamUpdate = () => {
+        if (!frame) frame = requestAnimationFrame(updateTeam);
+      };
+      window.addEventListener("scroll", queueTeamUpdate, { passive: true });
+      window.addEventListener("resize", queueTeamUpdate);
+      queueTeamUpdate();
+    }
     if (motion && "IntersectionObserver" in window) {
       root.classList.add("workbench--motion");
       const reveals = root.querySelectorAll<HTMLElement>("[data-reveal]");
@@ -289,15 +296,6 @@ const structuredData = {
         }
       }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
       reveals.forEach((element) => observer.observe(element));
-
-      const chapters = root.querySelectorAll<HTMLElement>("[data-chapter]");
-      const chapterObserver = new IntersectionObserver((entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          chapters.forEach((chapter) => chapter.classList.toggle("is-current", chapter === entry.target));
-        }
-      }, { rootMargin: "-38% 0px -38% 0px" });
-      chapters.forEach((chapter) => chapterObserver.observe(chapter));
 
       if (window.matchMedia("(pointer: fine)").matches) {
         const stage = root.querySelector<HTMLElement>("[data-pointer-stage]");

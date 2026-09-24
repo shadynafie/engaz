@@ -32,25 +32,29 @@ export type HomeCopy = {
   };
   team: {
     eyebrow: string;
-    heading: string;
+    headingLine1: string;
+    headingLine2: string;
     copy: string;
+    soloLabel: string;
+    groupLabel: string;
+    soloCaption: string;
+    groupCaption: string;
     example: string;
-    roles: Array<{ title: string; task: string }>;
+    roles: Array<{ title: string; focus: string }>;
   };
   selfHost: {
     eyebrow: string;
     heading: string;
     copy: string;
-    screenshotAlt: string;
-    screenshotCaption: string;
-    features: Array<{ title: string; body: string }>;
+    example: string;
   };
   roster: {
     eyebrow: string;
     heading: string;
-    copy: string;
     installLabel: string;
+    installInstruction: string;
     installRequirements: string;
+    status: string;
     installGuide: string;
     copyCommand: string;
     copiedCommand: string;
@@ -305,50 +309,41 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     team: {
       eyebrow: "The team",
-      heading: "One brief. Many minds.",
-      copy: "Give each agent a job and the right tools. Keep their work together in one workspace.",
-      example: "Illustrative roles · Build your own team",
+      headingLine1: "One teammate.",
+      headingLine2: "Or a whole team.",
+      copy: "Work with one agent directly. Bring several into a group conversation when the work calls for more.",
+      soloLabel: "Solo",
+      groupLabel: "Group",
+      soloCaption: "One conversation. One agent's own context.",
+      groupCaption: "One shared thread. Distinct agents working together.",
+      example: "Illustrative scene · Build your own team",
       roles: [
-        { title: "Chief", task: "Shape the plan" },
-        { title: "Designer", task: "Make it feel right" },
-        { title: "Engineer", task: "Build the thing" },
-        { title: "Accountant", task: "Watch the numbers" },
+        { title: "Chief", focus: "Turn a brief into a plan." },
+        { title: "Designer", focus: "Shape the experience." },
+        { title: "Engineer", focus: "Build and test." },
+        { title: "Accountant", focus: "Check the numbers." },
       ],
     },
     selfHost: {
       eyebrow: "The product",
-      heading: "A workspace for your AI team",
-      copy: "Give each agent a role, choose a compatible model, and control access to connected tools.",
-      screenshotAlt: "Engaz workspace showing a conversation with an AI agent",
-      screenshotCaption: "Engaz web workspace · Isolated test example",
-      features: [
-        {
-          title: "Distinct roles",
-          body: "Create agents for different jobs and keep their conversations together in one workspace.",
-        },
-        {
-          title: "Compatible models",
-          body: "Connect a supported hosted or local model through your own connection settings.",
-        },
-        {
-          title: "Plugin access",
-          body: "Connect supported services and choose which agents can use each connection.",
-        },
-      ],
+      heading: "See the work. Keep control.",
+      copy: "Create agents for different jobs. Choose your models and each agent's plugin access. Follow their conversations and handoffs in one workspace.",
+      example: "Illustrative agents · Define your own",
     },
     roster: {
       eyebrow: "First run",
-      heading: "From installation to your first agent",
-      copy: "Engaz is in active development. Install locally, create the owner account, then connect a model before starting a conversation.",
-      installLabel: "Image installer · Active development",
-      installRequirements: "Requires Docker Engine 26+, Compose, curl, and OpenSSL. Check the guide for your computer and storage choice.",
+      heading: "Your team starts on your machine.",
+      installLabel: "Install Engaz",
+      installInstruction: "Run this in a terminal on the computer that will host Engaz.",
+      installRequirements: "Requires Docker Engine 26+, Compose, curl, and OpenSSL. The installer asks where to keep your data.",
+      status: "Active development",
       installGuide: "Installation guide",
       copyCommand: "Copy command",
       copiedCommand: "Copied",
       steps: [
-        { title: "Install Engaz", body: "Run the command above and choose where to keep your data." },
-        { title: "Create the owner account", body: "The first registered account owns the installation." },
-        { title: "Connect a model", body: "Choose a compatible model and create your first agent." },
+        { title: "Install", body: "Choose where your data lives." },
+        { title: "Create the owner", body: "The first account owns this installation." },
+        { title: "Meet your first agent", body: "Connect a model, then create an agent." },
       ],
       bots: EN_ROSTER,
     },
@@ -454,50 +449,41 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     team: {
       eyebrow: "Das Team",
-      heading: "Ein Auftrag. Viele Köpfe.",
-      copy: "Gib jedem Agenten eine Aufgabe und passende Tools. Behalte ihre Arbeit in einem Arbeitsbereich im Blick.",
-      example: "Beispielrollen · Stelle dein eigenes Team zusammen",
+      headingLine1: "Ein Teammitglied.",
+      headingLine2: "Oder ein ganzes Team.",
+      copy: "Arbeite direkt mit einem Agenten. Wenn eine Aufgabe mehr braucht, hol weitere in ein Gruppengespräch.",
+      soloLabel: "Solo",
+      groupLabel: "Gruppe",
+      soloCaption: "Ein Gespräch. Der eigene Kontext eines Agenten.",
+      groupCaption: "Ein gemeinsamer Chat. Unterschiedliche Agenten arbeiten zusammen.",
+      example: "Illustrative Szene · Stelle dein eigenes Team zusammen",
       roles: [
-        { title: "Koordination", task: "Den Plan gestalten" },
-        { title: "Design", task: "Das Erlebnis formen" },
-        { title: "Entwicklung", task: "Die Lösung bauen" },
-        { title: "Finanzen", task: "Die Zahlen prüfen" },
+        { title: "Koordination", focus: "Aus einer Aufgabe wird ein Plan." },
+        { title: "Design", focus: "Gestaltet das Erlebnis." },
+        { title: "Entwicklung", focus: "Setzt um und testet." },
+        { title: "Finanzen", focus: "Prüft die Zahlen." },
       ],
     },
     selfHost: {
       eyebrow: "Das Produkt",
-      heading: "Ein Arbeitsbereich für dein KI-Team",
-      copy: "Gib jedem Agenten eine Rolle, wähle ein kompatibles Modell und kontrolliere den Zugriff auf verbundene Tools.",
-      screenshotAlt: "Engaz-Arbeitsbereich mit einem Gespräch mit einem KI-Agenten",
-      screenshotCaption: "Engaz-Webarbeitsbereich · Isoliertes Testbeispiel",
-      features: [
-        {
-          title: "Klare Rollen",
-          body: "Erstelle Agenten für verschiedene Aufgaben und halte ihre Gespräche in einem Arbeitsbereich zusammen.",
-        },
-        {
-          title: "Kompatible Modelle",
-          body: "Verbinde ein unterstütztes gehostetes oder lokales Modell über deine eigenen Verbindungseinstellungen.",
-        },
-        {
-          title: "Plugin-Zugriff",
-          body: "Verbinde unterstützte Dienste und wähle, welche Agenten jede Verbindung nutzen dürfen.",
-        },
-      ],
+      heading: "Sieh die Arbeit. Behalte die Kontrolle.",
+      copy: "Erstelle Agenten für verschiedene Aufgaben. Wähle deine Modelle und den Plugin-Zugriff jedes Agenten. Verfolge Gespräche und Übergaben an einem Ort.",
+      example: "Beispielagenten · Stelle dein eigenes Team zusammen",
     },
     roster: {
       eyebrow: "Erster Start",
-      heading: "Von der Installation zum ersten Agenten",
-      copy: "Engaz befindet sich in aktiver Entwicklung. Installiere es lokal, erstelle das Eigentümerkonto und verbinde ein Modell, bevor du ein Gespräch beginnst.",
-      installLabel: "Image-Installer · In aktiver Entwicklung",
-      installRequirements: "Benötigt Docker Engine 26+, Compose, curl und OpenSSL. Prüfe die Anleitung für deinen Computer und Speicherort.",
+      heading: "Dein Team startet auf deinem Rechner.",
+      installLabel: "Engaz installieren",
+      installInstruction: "Führe diesen Befehl im Terminal des Computers aus, auf dem Engaz laufen soll.",
+      installRequirements: "Benötigt Docker Engine 26+, Compose, curl und OpenSSL. Der Installer fragt, wo deine Daten gespeichert werden sollen.",
+      status: "In aktiver Entwicklung",
       installGuide: "Installationsanleitung",
       copyCommand: "Befehl kopieren",
       copiedCommand: "Kopiert",
       steps: [
-        { title: "Engaz installieren", body: "Führe den Befehl oben aus und wähle einen Speicherort für deine Daten." },
-        { title: "Eigentümerkonto erstellen", body: "Das zuerst registrierte Konto besitzt die Installation." },
-        { title: "Modell verbinden", body: "Wähle ein kompatibles Modell und erstelle deinen ersten Agenten." },
+        { title: "Installieren", body: "Wähle einen Speicherort für deine Daten." },
+        { title: "Konto erstellen", body: "Das erste Konto besitzt diese Installation." },
+        { title: "Ersten Agenten starten", body: "Verbinde ein Modell und erstelle einen Agenten." },
       ],
       bots: DE_ROSTER,
     },
@@ -603,50 +589,41 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     team: {
       eyebrow: "팀",
-      heading: "하나의 목표. 다양한 시선.",
-      copy: "각 에이전트에게 역할과 알맞은 도구를 주세요. 하나의 워크스페이스에서 작업을 확인하세요.",
-      example: "예시 역할 · 나만의 팀 구성",
+      headingLine1: "팀원 한 명.",
+      headingLine2: "또는 팀 전체.",
+      copy: "에이전트 한 명과 직접 대화하세요. 더 많은 도움이 필요하면 여러 에이전트를 그룹 대화로 모으세요.",
+      soloLabel: "단독",
+      groupLabel: "그룹",
+      soloCaption: "하나의 대화. 에이전트만의 맥락.",
+      groupCaption: "하나의 공유 대화. 서로 다른 에이전트가 함께 일합니다.",
+      example: "예시 장면 · 나만의 팀 구성",
       roles: [
-        { title: "총괄", task: "계획 세우기" },
-        { title: "디자이너", task: "경험 다듬기" },
-        { title: "엔지니어", task: "제품 만들기" },
-        { title: "회계 담당", task: "숫자 살피기" },
+        { title: "총괄", focus: "요청을 계획으로 정리합니다." },
+        { title: "디자이너", focus: "경험을 설계합니다." },
+        { title: "엔지니어", focus: "만들고 검증합니다." },
+        { title: "회계 담당", focus: "숫자를 확인합니다." },
       ],
     },
     selfHost: {
       eyebrow: "제품",
-      heading: "AI 팀을 위한 하나의 워크스페이스",
-      copy: "에이전트마다 역할을 정하고 호환 모델을 선택하며 연결된 도구에 대한 접근을 관리하세요.",
-      screenshotAlt: "AI 에이전트와의 대화가 보이는 Engaz 워크스페이스",
-      screenshotCaption: "Engaz 웹 워크스페이스 · 격리된 테스트 예시",
-      features: [
-        {
-          title: "분명한 역할",
-          body: "서로 다른 업무를 맡을 에이전트를 만들고 대화를 한 워크스페이스에서 관리하세요.",
-        },
-        {
-          title: "호환 모델",
-          body: "직접 설정한 연결을 통해 지원되는 호스팅 또는 로컬 모델을 사용하세요.",
-        },
-        {
-          title: "플러그인 접근",
-          body: "지원되는 서비스를 연결하고 어떤 에이전트가 각 연결을 사용할지 선택하세요.",
-        },
-      ],
+      heading: "작업은 한눈에. 제어는 내 손에.",
+      copy: "업무에 맞는 에이전트를 만드세요. 모델을 선택하고 각 에이전트의 플러그인 접근을 관리하세요. 대화와 인계는 한 워크스페이스에서 확인할 수 있습니다.",
+      example: "예시 에이전트 · 나만의 팀 구성",
     },
     roster: {
       eyebrow: "첫 실행",
-      heading: "설치부터 첫 에이전트까지",
-      copy: "Engaz는 현재 활발히 개발 중입니다. 로컬에 설치하고 소유자 계정을 만든 뒤 모델을 연결해 대화를 시작하세요.",
-      installLabel: "이미지 설치 도구 · 개발 중",
-      installRequirements: "Docker Engine 26+, Compose, curl, OpenSSL이 필요합니다. 컴퓨터와 저장 위치에 맞는 설치 안내서를 확인하세요.",
+      heading: "내 컴퓨터에서 팀을 시작하세요.",
+      installLabel: "Engaz 설치",
+      installInstruction: "Engaz를 실행할 컴퓨터의 터미널에서 이 명령어를 실행하세요.",
+      installRequirements: "Docker Engine 26+, Compose, curl, OpenSSL이 필요합니다. 설치 중 데이터 저장 위치를 선택합니다.",
+      status: "개발 진행 중",
       installGuide: "설치 안내서",
       copyCommand: "명령어 복사",
       copiedCommand: "복사됨",
       steps: [
-        { title: "Engaz 설치", body: "위 명령어를 실행하고 데이터 저장 위치를 선택하세요." },
-        { title: "소유자 계정 만들기", body: "처음 등록한 계정이 설치 환경의 소유자가 됩니다." },
-        { title: "모델 연결", body: "호환 모델을 선택하고 첫 에이전트를 만드세요." },
+        { title: "설치", body: "데이터 저장 위치를 선택하세요." },
+        { title: "소유자 만들기", body: "첫 번째 계정이 이 설치의 소유자가 됩니다." },
+        { title: "첫 에이전트 만나기", body: "모델을 연결하고 에이전트를 만드세요." },
       ],
       bots: KO_ROSTER,
     },
@@ -752,50 +729,41 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     team: {
       eyebrow: "团队",
-      heading: "一个目标，多种专长。",
-      copy: "为每个智能体分配工作和合适的工具，在同一个工作空间查看他们的进展。",
-      example: "示例角色 · 组建自己的团队",
+      headingLine1: "一位队友。",
+      headingLine2: "或整个团队。",
+      copy: "先与一位智能体直接对话。任务需要更多力量时，就让多位智能体加入群组对话。",
+      soloLabel: "单独",
+      groupLabel: "群组",
+      soloCaption: "一段对话。一位智能体自己的上下文。",
+      groupCaption: "一个共享对话。不同智能体协同工作。",
+      example: "示意场景 · 组建自己的团队",
       roles: [
-        { title: "负责人", task: "制定计划" },
-        { title: "设计师", task: "打磨体验" },
-        { title: "工程师", task: "构建产品" },
-        { title: "会计", task: "核对数字" },
+        { title: "负责人", focus: "把需求理成计划。" },
+        { title: "设计师", focus: "塑造使用体验。" },
+        { title: "工程师", focus: "构建并验证。" },
+        { title: "会计", focus: "核对数字。" },
       ],
     },
     selfHost: {
       eyebrow: "产品",
-      heading: "一个工作空间，管理你的 AI 团队",
-      copy: "为每个智能体分配角色，选择兼容模型，并管理它们对已连接工具的访问。",
-      screenshotAlt: "Engaz 工作空间，显示与 AI 智能体的对话",
-      screenshotCaption: "Engaz 网页工作空间 · 隔离测试示例",
-      features: [
-        {
-          title: "明确分工",
-          body: "为不同工作创建智能体，在同一个工作空间管理它们的对话。",
-        },
-        {
-          title: "兼容模型",
-          body: "通过你自己的连接设置使用受支持的托管或本地模型。",
-        },
-        {
-          title: "插件访问",
-          body: "连接受支持的服务，并选择哪些智能体可以使用每个连接。",
-        },
-      ],
+      heading: "看清进展，掌握控制权。",
+      copy: "为不同工作创建智能体。选择模型并控制每位智能体的插件访问。在同一个工作空间查看对话与交接。",
+      example: "示意智能体 · 自由组建你的团队",
     },
     roster: {
       eyebrow: "初次使用",
-      heading: "从安装到第一个智能体",
-      copy: "Engaz 仍在积极开发中。先在本地安装，创建所有者账号，再连接模型并开始对话。",
-      installLabel: "镜像安装程序 · 持续开发中",
-      installRequirements: "需要 Docker Engine 26+、Compose、curl 和 OpenSSL。请查看适用于你的电脑和存储位置的安装指南。",
+      heading: "在自己的电脑上组建团队。",
+      installLabel: "安装 Engaz",
+      installInstruction: "在将要运行 Engaz 的电脑终端中执行此命令。",
+      installRequirements: "需要 Docker Engine 26+、Compose、curl 和 OpenSSL。安装程序会询问数据的存储位置。",
+      status: "持续开发中",
       installGuide: "安装指南",
       copyCommand: "复制命令",
       copiedCommand: "已复制",
       steps: [
-        { title: "安装 Engaz", body: "运行上方命令，并选择数据存储位置。" },
-        { title: "创建所有者账号", body: "第一个注册的账号将成为该安装环境的所有者。" },
-        { title: "连接模型", body: "选择兼容模型，并创建你的第一个智能体。" },
+        { title: "安装", body: "选择数据的存储位置。" },
+        { title: "创建所有者", body: "第一个账号拥有此安装环境。" },
+        { title: "认识首个智能体", body: "连接模型，然后创建智能体。" },
       ],
       bots: ZH_ROSTER,
     },

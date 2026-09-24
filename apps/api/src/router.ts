@@ -58,6 +58,7 @@ import {
   listScratchpadItems,
   McpOAuthBroker,
   mapScratchpadItem,
+  mcpCheckFailure,
   modelCredentialDto,
   modelForConnectionCheck,
   pickReusableConnection,
@@ -441,6 +442,8 @@ export interface RouterDeps {
   verifyModel: AgentRuntime["verifyModel"];
   /** Connects to an MCP server, lists its tools, and records the result on the row. */
   checkMcpServer: McpConnector["check"];
+  /** Whether an MCP endpoint is on the internet or on the owner's own network. */
+  mcpEndpointNetwork: McpConnector["endpointNetwork"];
   prisma: PrismaClient;
   events: ThreadEvents;
   auth: Auth;
@@ -476,6 +479,7 @@ export interface RouterDeps {
     updaterToken?: string;
     imageTag?: string;
     integrationsCatalogUrl?: string;
+    mcpStdioEnabled?: boolean;
   };
 }
 
@@ -518,6 +522,39 @@ export function createRouter(deps: RouterDeps) {
           ]
         : []),
     ]);
+  }
+
+  /**
+   * Where an endpoint is decides how Engaz may reach it. Servers on the internet need
+   * HTTPS. Servers on the owner's machine or network may use HTTP, and only the owner
+   * can add them, because the owner is the one who decides what Engaz may reach there.
+   */
+  async function mcpEndpointIsLocal(endpoint: string | null, actor: Actor): Promise<boolean> {
+    if (!endpoint) return false;
+    let network: Awaited<ReturnType<RouterDeps["mcpEndpointNetwork"]>>;
+    try {
+      network = await deps.mcpEndpointNetwork(endpoint);
+    } catch (error) {
+      throw new ORPCError("BAD_REQUEST", {
+        message: /private address/i.test(String(error))
+          ? "Engaz can't connect to this address."
+          : (mcpCheckFailure(error).message ?? "Couldn't reach the server."),
+      });
+    }
+    if (network === "internet") {
+      if (new URL(endpoint).protocol !== "https:") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Servers on the internet need an https:// address.",
+        });
+      }
+      return false;
+    }
+    if (!actor.isDeploymentOwner) {
+      throw new ORPCError("FORBIDDEN", {
+        message: "Only the owner can add servers on the local network.",
+      });
+    }
+    return true;
   }
 
   /** Checks the server as saved and returns it with the fresh status. */
@@ -2950,6 +2987,10 @@ export function createRouter(deps: RouterDeps) {
           );
         }),
         create: authed.mcp.servers.create.handler(async ({ context, input }) => {
+          const localNetwork = await mcpEndpointIsLocal(
+            "endpoint" in input ? input.endpoint : null,
+            context.actor,
+          );
           const secretPayload = buildMcpCredentialBlob(input);
           const stored = secretPayload
             ? await deps.secrets.put(
@@ -2978,6 +3019,7 @@ export function createRouter(deps: RouterDeps) {
                 description: input.description,
                 transport: input.transport,
                 endpoint: "endpoint" in input ? input.endpoint : null,
+                localNetwork,
                 command: "command" in input ? input.command : null,
                 args: ("args" in input ? input.args : []) as Prisma.InputJsonValue,
                 env: ("env" in input
@@ -3002,6 +3044,18 @@ export function createRouter(deps: RouterDeps) {
           return checked;
         }),
         update: authed.mcp.servers.update.handler(async ({ context, input }) => {
+          const current = await deps.prisma.mcpServer.findFirst({
+            where: { id: input.id, spaceId: context.actor.spaceId, userId: context.actor.userId },
+            select: { endpoint: true },
+          });
+          if (!current) throw new IsolationError();
+          const endpoint =
+            "config" in input
+              ? "endpoint" in input.config
+                ? input.config.endpoint
+                : null
+              : current.endpoint;
+          const localNetwork = await mcpEndpointIsLocal(endpoint, context.actor);
           const row = await deps.prisma.$transaction(async (tx) => {
             // Share the OAuth broker's per-server lock so a stale authorization
             // snapshot cannot overwrite a simultaneous credential edit.
@@ -3052,6 +3106,10 @@ export function createRouter(deps: RouterDeps) {
               throw new ORPCError("BAD_REQUEST", { message: "A remote MCP server is required" });
             }
             const nextEndpoint = "endpoint" in config ? config.endpoint : null;
+            // The network was decided for this endpoint; a concurrent edit changed it.
+            if (nextEndpoint !== endpoint) {
+              throw new ORPCError("CONFLICT", { message: "This server changed. Try again." });
+            }
             const update = buildMcpUpdateMaterial(existingMaterial, config, {
               clearOAuth: existing.endpoint !== nextEndpoint,
             });
@@ -3082,6 +3140,7 @@ export function createRouter(deps: RouterDeps) {
                 description: config.description,
                 transport: config.transport,
                 endpoint: nextEndpoint,
+                localNetwork,
                 command: "command" in config ? config.command : null,
                 args: ("args" in config ? config.args : []) as Prisma.InputJsonValue,
                 env: ("env" in config
@@ -4964,6 +5023,7 @@ async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
       setup.credential?.defaultModel ?? setup.settings?.defaultModelId ?? deps.env.defaultModel,
     computerHost: computerHostFor(setup.settings?.computerHost, deps.env.sandboxProvider),
     canChooseHostComputer: actor.isDeploymentOwner && deps.env.sandboxProvider === "docker",
+    mcpStdioEnabled: deps.env.mcpStdioEnabled === true,
     sandboxProvider: deps.env.sandboxProvider,
     avatarStyle: user.avatarStyle === "organic" ? "organic" : "robot",
   };

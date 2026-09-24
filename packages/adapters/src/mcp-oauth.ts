@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { isLocalMcpHost } from "@engaz/contracts";
 import type { PrismaClient } from "@engaz/db";
 import type {
   OAuthClientProvider,
@@ -315,6 +314,7 @@ type Pending = {
   spaceId: string;
   userId: string;
   endpoint: string;
+  localNetwork: boolean;
   provider: StoredMcpOAuthProvider;
   createdAt: number;
   expiry?: ReturnType<typeof setTimeout>;
@@ -328,11 +328,11 @@ const MAX_PENDING_SESSIONS = 100;
  * layered on top for providers like Brex. */
 function oauthFetch(
   endpoint: string,
+  localNetwork: boolean,
   network: RemoteTransportDependencies,
   material: OAuthMaterial = {},
 ): { fetch: typeof fetch; close: () => Promise<void>; headers: Record<string, string> } {
   const url = new URL(endpoint);
-  const localHttp = url.protocol === "http:" && isLocalMcpHost(url.hostname);
   const headers = {
     ...material.headers,
     ...(material.secret
@@ -343,12 +343,7 @@ function oauthFetch(
         }
       : {}),
   };
-  const safeFetch = secureFetch(
-    url,
-    { allowHttpLocalhost: localHttp, allowLocalHttpCredentials: localHttp },
-    { headers },
-    network,
-  );
+  const safeFetch = secureFetch(url, { localNetwork }, { headers }, network);
   return {
     headers,
     fetch: withEndpointOriginFallback(url.origin, safeFetch),
@@ -442,7 +437,12 @@ export class McpOAuthBroker {
     // cancelled popup), the server keeps its valid connection. The SDK itself
     // invalidates dead tokens when a refresh is rejected with invalid_grant.
     const endpoint = new URL(server.endpoint);
-    const networkFetch = oauthFetch(server.endpoint, this.network, loaded.material);
+    const networkFetch = oauthFetch(
+      server.endpoint,
+      server.localNetwork,
+      this.network,
+      loaded.material,
+    );
     const transport = new StreamableHTTPClientTransport(endpoint, {
       requestInit: { headers: networkFetch.headers },
       authProvider: provider,
@@ -499,6 +499,7 @@ export class McpOAuthBroker {
       spaceId: input.spaceId,
       userId: input.userId,
       endpoint: server.endpoint,
+      localNetwork: server.localNetwork,
       provider,
       createdAt: Date.now(),
       expiry,
@@ -554,6 +555,7 @@ export class McpOAuthBroker {
         spaceId: input.spaceId,
         userId: input.userId,
         endpoint: session.endpoint,
+        localNetwork: server.localNetwork,
         provider: this.createProvider(server, context, loaded, {
           redirectUri: session.redirectUri,
           state: session.id,
@@ -575,7 +577,7 @@ export class McpOAuthBroker {
     });
     if (consumed.count !== 1) throw new Error("MCP OAuth session is invalid or expired");
     const endpoint = new URL(pending.endpoint);
-    const networkFetch = oauthFetch(pending.endpoint, this.network);
+    const networkFetch = oauthFetch(pending.endpoint, pending.localNetwork, this.network);
     const transport = new StreamableHTTPClientTransport(endpoint, {
       authProvider: pending.provider,
       fetch: networkFetch.fetch,

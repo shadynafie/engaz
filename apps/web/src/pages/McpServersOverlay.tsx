@@ -61,7 +61,14 @@ function McpServerStatus({ server }: { server: McpServer }) {
   );
 }
 
-export function McpServersOverlay({ onClose }: { onClose: () => void }) {
+export function McpServersOverlay({
+  stdioEnabled,
+  onClose,
+}: {
+  /** Local commands run inside the Engaz server, so they appear only when the owner enabled them. */
+  stdioEnabled: boolean;
+  onClose: () => void;
+}) {
   const { t } = useLingui();
   const [servers, setServers] = useState<McpServer[]>([]);
   const [bots, setBots] = useState<Bot[]>([]);
@@ -340,7 +347,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
                   <TabsList className="w-full">
                     <TabsTrigger value="streamable_http">HTTP</TabsTrigger>
                     <TabsTrigger value="sse">SSE</TabsTrigger>
-                    <TabsTrigger value="stdio">STDIO</TabsTrigger>
+                    {stdioEnabled ? <TabsTrigger value="stdio">STDIO</TabsTrigger> : null}
                   </TabsList>
                 </Tabs>
                 {transport === "stdio" ? (

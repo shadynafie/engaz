@@ -36,6 +36,9 @@ describe("MCP transport seam", () => {
     expect(validateUrl("http://127.0.0.1:1234/mcp", { allowHttpLocalhost: true }).hostname).toBe(
       "127.0.0.1",
     );
+    expect(validateUrl("http://10.0.0.5:8080/mcp", { localNetwork: true }).hostname).toBe(
+      "10.0.0.5",
+    );
   });
 
   it("gates stdio by exact command allowlist", async () => {
@@ -139,7 +142,7 @@ describe("MCP transport seam", () => {
     const fetchImpl = vi.fn();
     const safeFetch = secureFetch(
       new URL(resource),
-      { allowHttpLocalhost: true, allowLocalHttpCredentials: true },
+      { localNetwork: true },
       {},
       { ...TEST_NETWORK, fetch: fetchImpl },
     );
@@ -156,15 +159,15 @@ describe("MCP transport seam", () => {
     }
   });
 
-  it.each(["localhost", "127.0.0.1", "[::1]"])(
-    "allows explicitly configured HTTP %s discovery and token traffic on the same origin",
+  it.each(["localhost", "127.0.0.1", "[::1]", "192.168.1.20", "10.0.0.5"])(
+    "allows HTTP %s discovery and token traffic on a local-network server's own origin",
     async (host) => {
       const origin = `http://${host}:8123`;
       const fetchImpl = vi.fn(async () => Response.json({ ok: true }));
       const resolveHostname = vi.fn();
       const safeFetch = secureFetch(
         new URL(`${origin}/mcp`),
-        { allowHttpLocalhost: true },
+        { localNetwork: true },
         {},
         { fetch: fetchImpl, resolveHostname },
       );
@@ -189,7 +192,7 @@ describe("MCP transport seam", () => {
       const fetchImpl = vi.fn();
       const safeFetch = secureFetch(
         new URL("http://localhost:8123/mcp"),
-        { allowHttpLocalhost: true },
+        { localNetwork: true },
         {},
         {
           fetch: fetchImpl,
@@ -436,7 +439,7 @@ describe("MCP transport seam", () => {
           url: `http://127.0.0.1:${port}/mcp`,
           authProvider: provider,
           fallbackToSse: false,
-          urlPolicy: { allowHttpLocalhost: true },
+          urlPolicy: { localNetwork: true },
         }),
       ).rejects.toThrow("Reconnect this server");
     } finally {
@@ -485,16 +488,17 @@ describe("MCP transport seam", () => {
     await expect(direct.json()).resolves.toEqual({ authorization: "Bearer secret" });
   });
 
-  it("strips configured credentials from localhost HTTP requests", async () => {
+  it("sends configured credentials to a local-network server", async () => {
     let seen: Record<string, string> = {};
     const safeFetch = secureFetch(
-      new URL("http://localhost:8123/mcp"),
-      { allowHttpLocalhost: true },
+      new URL("http://nas.example.test:8123/mcp"),
+      { localNetwork: true },
       {
         allowedHeaders: ["authorization", "x-api-key"],
         headers: { Authorization: "Bearer stored", "X-Api-Key": "stored-key" },
       },
       {
+        resolveHostname: async () => [{ address: "192.168.1.20", family: 4 }],
         fetch: vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
           const request = input instanceof Request ? input : new Request(input, init);
           seen = Object.fromEntries(request.headers.entries());
@@ -502,20 +506,39 @@ describe("MCP transport seam", () => {
         }),
       },
     );
+    try {
+      await safeFetch("http://nas.example.test:8123/mcp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      expect(seen.authorization).toBe("Bearer stored");
+      expect(seen["x-api-key"]).toBe("stored-key");
+    } finally {
+      await safeFetch.close();
+    }
+  });
 
-    await safeFetch("http://localhost:8123/mcp", {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer sdk",
-        "X-Api-Key": "sdk-key",
-        "Content-Type": "application/json",
-      },
-      body: "{}",
-    });
-
-    expect(seen.authorization).toBeUndefined();
-    expect(seen["x-api-key"]).toBeUndefined();
-    expect(seen["content-type"]).toBe("application/json");
+  it.each([
+    ["the internet", "203.0.113.10"],
+    ["cloud metadata", "169.254.169.254"],
+    ["link-local", "169.254.10.1"],
+  ])("refuses a local-network server whose name now resolves to %s", async (_label, address) => {
+    const fetchImpl = vi.fn();
+    const safeFetch = secureFetch(
+      new URL("http://nas.example.test:8123/mcp"),
+      { localNetwork: true },
+      { headers: { Authorization: "Bearer stored" } },
+      { fetch: fetchImpl, resolveHostname: async () => [{ address, family: 4 }] },
+    );
+    try {
+      await expect(
+        safeFetch("http://nas.example.test:8123/mcp", { method: "POST", body: "{}" }),
+      ).rejects.toThrow("private address");
+      expect(fetchImpl).not.toHaveBeenCalled();
+    } finally {
+      await safeFetch.close();
+    }
   });
 
   it("keeps configured credentials for HTTPS requests", async () => {

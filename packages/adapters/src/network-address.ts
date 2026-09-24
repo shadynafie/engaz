@@ -198,6 +198,29 @@ export function isTailscaleAddress(address: string): boolean {
   return ipv6 !== undefined && ipv6 >> 80n === TAILSCALE_ULA_PREFIX;
 }
 
+/** An address on the owner's own machine or network: loopback, RFC1918, the
+ * CGNAT range Tailscale uses, or IPv6 unique-local. Link-local, cloud metadata,
+ * multicast, and reserved ranges are not a place anyone runs a server. */
+export function isLocalNetworkAddress(address: string): boolean {
+  if (isCloudMetadataAddress(address) || isLinkLocalAddress(address)) return false;
+  const value = address.toLowerCase().replace(/^\[|\]$/g, "");
+  const mapped = value.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1];
+  const ipv4 = mapped ?? (isIP(value) === 4 ? value : undefined);
+  if (ipv4) {
+    const [a, b] = ipv4.split(".").map(Number);
+    return (
+      a === 10 ||
+      a === 127 ||
+      (a === 172 && b != null && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 100 && b != null && b >= 64 && b <= 127)
+    );
+  }
+  const ipv6 = parseIpv6(value);
+  if (ipv6 === undefined) return false;
+  return ipv6 === 1n || ((ipv6 >> 120n) & 0xfen) === 0xfcn;
+}
+
 export function isLinkLocalAddress(address: string): boolean {
   const value = address.toLowerCase().replace(/^\[|\]$/g, "");
   const mapped = value.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1];

@@ -16,7 +16,7 @@
 - When adding an external host data-directory option, use an absolute path, check ownership and free space, and test Docker's bot-home mounts as well as Postgres and appdata persistence. Provide a backup and an actual restore check. Do not silently migrate existing named volumes or regenerate encryption keys; a Compose project-name change creates different volumes.
 - The first registered account becomes deployment owner by design. Create the owner before exposing a new installation publicly, and make later signup/invitation policy explicit. Public access needs HTTPS and matching auth/web/API origins. Keep Postgres, the sandbox supervisor, and the Docker socket off public ports; Docker socket access is host-level authority.
 - Treat an existing user installation as live data. Inspect it read-only unless the user explicitly authorizes a specific change. Development, tests, migrations, and deployment work belong in the repository or isolated test installations. A rebrand commit alone does not migrate an existing installation.
-- The remote MCP client currently rejects ordinary private-network URLs as an SSRF boundary. Do not promise that a local NAS HTTP endpoint works through the public-URL connector; design any local-plugin route with a narrow trust boundary and tests.
+- MCP servers on the owner's machine or network are an owner-only trust path: the API records `localNetwork` when the owner saves one, and only that server's origin may reach local addresses (pinned per connection, no redirects, never link-local or metadata). Every other account, agent-added server, and connector keeps the public-only SSRF boundary. Do not widen it elsewhere without the same owner gate and tests.
 
 ## Parallel work
 

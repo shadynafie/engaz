@@ -340,7 +340,7 @@ describe("contracts", () => {
     ).toBe(false);
   });
 
-  it("allows localhost HTTP MCP endpoints and rejects other non-HTTPS URLs before storage", () => {
+  it("accepts HTTP(S) MCP endpoints and leaves the network decision to the API", () => {
     const base = {
       slug: "demo",
       name: "Demo",
@@ -358,8 +358,12 @@ describe("contracts", () => {
       McpServerConfigInput.safeParse({ ...base, endpoint: "http://localhost:8123/api/mcp#" })
         .success,
     ).toBe(false);
+    // Allowed here; the API refuses plain HTTP unless the host is on the owner's network.
     expect(
-      McpServerConfigInput.safeParse({ ...base, endpoint: "http://example.test/mcp" }).success,
+      McpServerConfigInput.safeParse({ ...base, endpoint: "http://10.0.0.5:8080/mcp" }).success,
+    ).toBe(true);
+    expect(
+      McpServerConfigInput.safeParse({ ...base, endpoint: "ftp://example.test/mcp" }).success,
     ).toBe(false);
     expect(
       McpServerConfigInput.safeParse({ ...base, endpoint: "https://mcp.example.test/mcp" }).success,

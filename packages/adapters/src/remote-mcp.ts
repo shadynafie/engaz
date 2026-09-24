@@ -9,6 +9,7 @@ import { combineSignals } from "./connector-safety.js";
 import {
   createAddressCheckedLookup,
   isCloudMetadataAddress,
+  isLocalNetworkAddress,
   isPrivateAddress,
   isTailscaleAddress,
   type ResolvedAddress,
@@ -163,14 +164,43 @@ export function createSafeRemoteFetch(
   baseFetch?: typeof globalThis.fetch,
   resolve: ResolveHostname = resolveHostname,
 ): SafeRemoteFetch {
-  const dispatcher = new Agent({ connect: { lookup: createSafeLookup(resolve) } });
+  return createPinnedFetch(
+    (value) => inspectSafeRemoteUrl(value, resolve),
+    createSafeLookup(resolve),
+    baseFetch,
+  );
+}
+
+/** For a server the owner saved as being on their own network: HTTP is allowed,
+ * and every connection is pinned to local addresses, so a later DNS answer
+ * cannot turn it into a request to the internet or to cloud metadata. */
+export function createLocalNetworkFetch(
+  baseFetch?: typeof globalThis.fetch,
+  resolve: ResolveHostname = resolveHostname,
+): SafeRemoteFetch {
+  return createPinnedFetch(
+    (value) => inspectLocalNetworkUrl(value, resolve),
+    createAddressCheckedLookup(
+      (hostname) => resolveEndpointHost(hostname, resolve),
+      assertLocalNetworkAddresses,
+    ),
+    baseFetch,
+  );
+}
+
+function createPinnedFetch(
+  inspect: (value: string) => Promise<{ url: URL; addresses: ResolvedAddress[] }>,
+  lookup: LookupFunction,
+  baseFetch?: typeof globalThis.fetch,
+): SafeRemoteFetch {
+  const dispatcher = new Agent({ connect: { lookup } });
   const usePackageFetch =
     baseFetch == null || baseFetch === nodeFetch || baseFetch === packageFetch;
   const safeFetch = async (input: string | URL | Request, init?: RequestInit) => {
     if (typeof input !== "string" && !(input instanceof URL)) {
       throw new Error("Connector fetch requires a URL, not a Request");
     }
-    const { url, addresses } = await inspectSafeRemoteUrl(String(input), resolve);
+    const { url, addresses } = await inspect(String(input));
     let response: Response;
     try {
       const requestInit = { ...init, redirect: "manual" as const };
@@ -196,6 +226,71 @@ export function createSafeRemoteFetch(
   const result = safeFetch as SafeRemoteFetch;
   result.close = () => dispatcher.close();
   return result;
+}
+
+export type EndpointNetwork = "internet" | "local";
+
+/** Where an endpoint's host is right now: on the internet, or on the owner's own
+ * machine or network. Anything else (cloud metadata, link-local, a mix) is refused. */
+export async function endpointNetwork(
+  endpoint: string,
+  resolve: ResolveHostname = resolveHostname,
+): Promise<EndpointNetwork> {
+  const hostname = new URL(endpoint).hostname.replace(/^\[|\]$/g, "");
+  const addresses = await resolveEndpointHost(hostname, resolve);
+  if (!isPrivateHostname(hostname)) {
+    try {
+      assertPublicAddresses(addresses, hostname);
+      return "internet";
+    } catch {
+      /* Not public; it may still be local. */
+    }
+  }
+  assertLocalNetworkAddresses(addresses);
+  return "local";
+}
+
+/** IP literals need no lookup, and `localhost` is loopback by definition (RFC 6761). */
+async function resolveEndpointHost(
+  hostname: string,
+  resolve: ResolveHostname,
+): Promise<ResolvedAddress[]> {
+  const normalized = hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.$/, "");
+  const family = isIP(normalized);
+  if (family !== 0) return [{ address: normalized, family }];
+  if (normalized === "localhost" || normalized.endsWith(".localhost")) {
+    return [{ address: "127.0.0.1", family: 4 }];
+  }
+  return resolve(normalized);
+}
+
+async function inspectLocalNetworkUrl(
+  value: string,
+  resolve: ResolveHostname,
+): Promise<{ url: URL; addresses: ResolvedAddress[] }> {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Connector URL is invalid");
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error("Connector URL must use HTTP or HTTPS");
+  }
+  if (url.username || url.password) throw new Error("Connector URL must not contain credentials");
+  if (url.hash) throw new Error("Connector URL must not contain a fragment");
+  const addresses = await resolveEndpointHost(url.hostname, resolve);
+  assertLocalNetworkAddresses(addresses);
+  return { url, addresses };
+}
+
+function assertLocalNetworkAddresses(addresses: ResolvedAddress[]): void {
+  if (addresses.length === 0 || !addresses.every((entry) => isLocalNetworkAddress(entry.address))) {
+    throw new Error("Connector URL resolves to a private address");
+  }
 }
 
 const MAX_CAUSE_DEPTH = 5;

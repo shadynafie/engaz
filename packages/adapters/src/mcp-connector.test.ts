@@ -224,7 +224,12 @@ describe("MCP connector session cache", () => {
   it("redacts credentials of a connect that failed before the session was cached", async () => {
     const localAssignment = {
       ...ASSIGNMENT,
-      server: { ...SERVER, endpoint: "http://localhost:8123/api/mcp", secretId: "secret-1" },
+      server: {
+        ...SERVER,
+        endpoint: "http://localhost:8123/api/mcp",
+        localNetwork: true,
+        secretId: "secret-1",
+      },
     };
     // The connect itself fails, so the session never reaches the cache. The upstream
     // body quotes back the header it was sent, the way a strict server rejects one.
@@ -266,7 +271,12 @@ describe("MCP connector session cache", () => {
   it("redacts the same failed connect for every concurrent waiter", async () => {
     const localAssignment = {
       ...ASSIGNMENT,
-      server: { ...SERVER, endpoint: "http://localhost:8123/api/mcp", secretId: "secret-1" },
+      server: {
+        ...SERVER,
+        endpoint: "http://localhost:8123/api/mcp",
+        localNetwork: true,
+        secretId: "secret-1",
+      },
     };
     vi.stubGlobal(
       "fetch",
@@ -676,7 +686,7 @@ describe("MCP connector session cache", () => {
     const state = { failNext: false, initializations: 0 };
     const localAssignment = {
       ...ASSIGNMENT,
-      server: { ...SERVER, endpoint: "http://localhost:8123/api/mcp" },
+      server: { ...SERVER, endpoint: "http://localhost:8123/api/mcp", localNetwork: true },
     };
     vi.stubGlobal("fetch", mcpFetch(state, "http://localhost:8123/api/mcp"));
     const prisma = {
@@ -699,7 +709,12 @@ describe("MCP connector session cache", () => {
     const state = { failNext: false, initializations: 0, headers: [] as Record<string, string>[] };
     const localAssignment = {
       ...ASSIGNMENT,
-      server: { ...SERVER, endpoint: "http://localhost:8123/api/mcp", secretId: "secret-1" },
+      server: {
+        ...SERVER,
+        endpoint: "http://localhost:8123/api/mcp",
+        localNetwork: true,
+        secretId: "secret-1",
+      },
     };
     vi.stubGlobal("fetch", mcpFetch(state, "http://localhost:8123/api/mcp"));
     const prisma = {

@@ -11,6 +11,7 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { CallToolResult, ListToolsResult } from "@modelcontextprotocol/sdk/types.js";
 import { combineSignals } from "./connector-safety.js";
 import {
+  createLocalNetworkFetch,
   createSafeRemoteFetch,
   type RemoteTransportDependencies,
   type SafeRemoteFetch,
@@ -21,10 +22,11 @@ export type McpRemoteTransport = "streamable-http" | "sse";
 export interface McpUrlPolicy {
   /** Maximum URL length accepted before any network request. */
   maxUrlLength?: number;
-  /** Permit plain HTTP only on the configured loopback resource's exact origin. */
+  /** Permit plain HTTP to localhost (a browser-opened authorization URL). */
   allowHttpLocalhost?: boolean;
-  /** Permit configured credentials on an explicitly local HTTP endpoint. */
-  allowLocalHttpCredentials?: boolean;
+  /** The owner saved this server as being on their own network: HTTP is allowed and
+   * requests to its exact origin dial only local addresses. */
+  localNetwork?: boolean;
   /** Hosts allowed after redirects (redirects are rejected by default). */
   allowedHosts?: readonly string[];
 }
@@ -79,12 +81,11 @@ function validateUrl(raw: string | URL, policy: McpUrlPolicy = {}): URL {
   if (url.toString().length > max) throw new Error(`MCP URL exceeds ${max} characters`);
   if (url.username || url.password || url.hash)
     throw new Error("MCP URL must not contain credentials or a fragment");
-  const local = isLocalMcpHost(url.hostname);
-  if (
-    url.protocol !== "https:" &&
-    !(url.protocol === "http:" && policy.allowHttpLocalhost === true && local)
-  ) {
-    throw new Error("MCP remote URL must use HTTPS (HTTP is allowed only for localhost)");
+  const httpAllowed =
+    policy.localNetwork === true ||
+    (policy.allowHttpLocalhost === true && isLocalMcpHost(url.hostname));
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && httpAllowed)) {
+    throw new Error("MCP servers on the internet must use HTTPS");
   }
   if (policy.allowedHosts && !policy.allowedHosts.includes(url.hostname)) {
     throw new Error(`MCP host is not in the allowlist: ${url.hostname}`);
@@ -98,12 +99,7 @@ export function secureFetch(
   headerPolicy: McpHeaderPolicy = {},
   network: RemoteTransportDependencies = {},
 ): SafeRemoteFetch {
-  const localOrigin =
-    urlPolicy.allowHttpLocalhost === true &&
-    resourceUrl.protocol === "http:" &&
-    isLocalMcpHost(resourceUrl.hostname)
-      ? resourceUrl.origin
-      : undefined;
+  const localOrigin = urlPolicy.localNetwork === true ? resourceUrl.origin : undefined;
   const allowed = new Set(
     [
       ...DEFAULT_HEADERS,
@@ -118,21 +114,19 @@ export function secureFetch(
     configured.map(([name, value]) => [name.toLowerCase(), value] as const),
   );
   const configuredCredentialValues = new Set(configuredValues.values());
-  const configuredNames = new Set(configuredValues.keys());
-  const localCredentialHeaders = new Set([
-    ...configuredNames,
-    "authorization",
-    "cookie",
-    "proxy-authorization",
-  ]);
   const safeRemoteFetch = createSafeRemoteFetch(network.fetch, network.resolveHostname);
+  const localFetch = localOrigin
+    ? createLocalNetworkFetch(network.fetch ?? globalThis.fetch, network.resolveHostname)
+    : undefined;
   const request = async (input: Request | URL | string, init?: RequestInit): Promise<Response> => {
     const source = new Request(input, init);
-    // OAuth challenges and rediscovery can supply new URLs. Only the explicitly
-    // configured local resource origin (including port) may bypass remote policy.
+    // OAuth challenges and rediscovery can supply new URLs. Only the configured
+    // local resource origin (including port) may reach the local network.
+    const local = new URL(source.url).origin === localOrigin;
     const url = validateUrl(source.url, {
       ...urlPolicy,
-      allowHttpLocalhost: new URL(source.url).origin === localOrigin,
+      allowHttpLocalhost: false,
+      localNetwork: local,
     });
     const headers = new Headers();
     for (const [name, value] of source.headers) {
@@ -143,13 +137,7 @@ export function secureFetch(
       if (url.origin !== resourceUrl.origin && configuredCredentialValues.has(value)) continue;
       headers.set(name, value);
     }
-    const localHttp = url.protocol === "http:" && isLocalMcpHost(url.hostname);
-    if (localHttp && urlPolicy.allowLocalHttpCredentials !== true) {
-      for (const name of [...headers.keys()]) {
-        if (localCredentialHeaders.has(name.toLowerCase())) headers.delete(name);
-      }
-    }
-    if (!localHttp && url.origin === resourceUrl.origin) {
+    if (url.origin === resourceUrl.origin) {
       for (const [name, value] of configured) headers.set(name, value);
     }
     // Buffer the body: a re-wrapped Request body is a stream without a replayable
@@ -164,16 +152,19 @@ export function secureFetch(
       redirect: "manual",
       signal: source.signal,
     } satisfies RequestInit;
-    const response = localHttp
-      ? await (network.fetch ?? globalThis.fetch)(url, requestInit)
-      : await safeRemoteFetch(url, requestInit);
+    const response =
+      local && localFetch
+        ? await localFetch(url, requestInit)
+        : await safeRemoteFetch(url, requestInit);
     if (response.status >= 300 && response.status < 400) {
       throw new Error("MCP redirects are not permitted; configure the final HTTPS URL explicitly");
     }
     return response;
   };
   const result = request as SafeRemoteFetch;
-  result.close = () => safeRemoteFetch.close();
+  result.close = async () => {
+    await Promise.all([safeRemoteFetch.close(), localFetch?.close()]);
+  };
   return result;
 }
 

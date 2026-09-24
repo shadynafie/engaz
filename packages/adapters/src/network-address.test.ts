@@ -3,11 +3,39 @@ import { describe, expect, it } from "vitest";
 import {
   isCloudMetadataAddress,
   isLinkLocalAddress,
+  isLocalNetworkAddress,
   isPrivateAddress,
   withPinnedDnsLookup,
 } from "./network-address.js";
 
 describe("network address classification", () => {
+  it.each([
+    "127.0.0.1",
+    "10.20.30.40",
+    "172.16.4.2",
+    "192.168.1.20",
+    "100.101.102.103",
+    "::1",
+    "fd12:3456::1",
+    "::ffff:192.168.1.20",
+  ])("treats %s as the owner's local network", (address) => {
+    expect(isLocalNetworkAddress(address)).toBe(true);
+  });
+
+  it.each([
+    "203.0.113.10",
+    "8.8.8.8",
+    "169.254.169.254",
+    "169.254.1.1",
+    "100.100.100.200",
+    "fe80::1",
+    "0.0.0.0",
+    "224.0.0.1",
+    "2001:db8::1",
+  ])("does not treat %s as the owner's local network", (address) => {
+    expect(isLocalNetworkAddress(address)).toBe(false);
+  });
+
   it.each([
     "169.254.1.1",
     "fe80::1",

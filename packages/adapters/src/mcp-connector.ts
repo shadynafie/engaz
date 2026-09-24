@@ -5,7 +5,6 @@ import type {
   ConnectorProvider,
   ConnectorTool,
 } from "@engaz/adapter-kit";
-import { isLocalMcpHost } from "@engaz/contracts";
 import type { McpServer, PrismaClient, ThreadEvents } from "@engaz/db";
 import { getLogger } from "@engaz/logging";
 import { catalogToolPrefix } from "./approval-effect.js";
@@ -24,7 +23,11 @@ import { MCP_CHECK_TIMEOUT_MS, type McpCheckResult, mcpCheckFailure } from "./mc
 import type { McpOAuthBroker, OAuthMaterial } from "./mcp-oauth.js";
 import { McpReauthorizationRequiredError, oauthMaterialSecrets } from "./mcp-oauth.js";
 import { McpSession } from "./mcp-transport.js";
-import type { RemoteTransportDependencies } from "./remote-mcp.js";
+import {
+  type EndpointNetwork,
+  endpointNetwork,
+  type RemoteTransportDependencies,
+} from "./remote-mcp.js";
 import type { EncryptedSecretStore } from "./secrets.js";
 
 type SessionEntry = { session: McpSession; revision: number; material: OAuthMaterial };
@@ -221,6 +224,11 @@ export class McpConnector implements ConnectorProvider {
       },
       secrets,
     );
+  }
+
+  /** Whether an endpoint is on the internet or on the owner's own network, right now. */
+  endpointNetwork(endpoint: string): Promise<EndpointNetwork> {
+    return endpointNetwork(endpoint, this.options.network?.resolveHostname);
   }
 
   /**
@@ -421,12 +429,9 @@ export class McpConnector implements ConnectorProvider {
         });
       } else {
         if (!server.endpoint) throw new Error("MCP endpoint is required");
-        const endpoint = new URL(server.endpoint);
-        const localHttp = endpoint.protocol === "http:" && isLocalMcpHost(endpoint.hostname);
-        const authProvider =
-          !localHttp && this.oauth
-            ? await this.oauth.providerFor(server, context, loaded)
-            : undefined;
+        const authProvider = this.oauth
+          ? await this.oauth.providerFor(server, context, loaded)
+          : undefined;
         const staticToken = material.secret
           ? material.secret.startsWith("Bearer ")
             ? material.secret
@@ -438,7 +443,7 @@ export class McpConnector implements ConnectorProvider {
         };
         await session.connectRemote({
           url: server.endpoint,
-          urlPolicy: { allowHttpLocalhost: localHttp, allowLocalHttpCredentials: localHttp },
+          urlPolicy: { localNetwork: server.localNetwork },
           transport: server.transport === "sse" ? "sse" : "streamable-http",
           allowLegacySse: server.transport === "sse",
           headerPolicy: { headers },

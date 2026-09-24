@@ -39,6 +39,8 @@ export function parseMcpServerToolArgs(
   if (transport !== "stdio") {
     endpoint = typeof args.endpoint === "string" ? args.endpoint.trim() : "";
     if (!McpRemoteEndpointSchema.safeParse(endpoint).success) return undefined;
+    // Agents add servers on the internet only; the owner adds local-network ones.
+    if (!endpoint.startsWith("https://")) return undefined;
   }
 
   const command =

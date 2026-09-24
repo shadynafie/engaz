@@ -1060,6 +1060,8 @@ model McpServer {
   description   String            @default("")
   transport     String
   endpoint      String?
+  /// The owner saved this endpoint as being on their own machine or network.
+  localNetwork  Boolean           @default(false)
   command       String?
   args          Json              @default("[]")
   env           Json              @default("{}")

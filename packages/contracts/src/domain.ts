@@ -1207,6 +1207,8 @@ export const MeSchema = z.object({
   computerHost: z.enum(["docker", "this-mac"]).nullable(),
   canChooseHostComputer: z.boolean(),
   sandboxProvider: z.string(),
+  /** Whether MCP servers may run as local commands (stdio) on this installation. */
+  mcpStdioEnabled: z.boolean(),
   avatarStyle: AvatarStyleSchema,
 });
 export type Me = z.infer<typeof MeSchema>;

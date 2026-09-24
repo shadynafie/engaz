@@ -22,7 +22,7 @@ describe("mcpCheckFailure", () => {
       "This command isn't allowed. Add it to MCP_STDIO_ALLOWED_COMMANDS in .env.",
     );
     expect(message("Connector URL resolves to a private address")).toBe(
-      "This address is on a private network, which Engaz doesn't allow for MCP servers yet.",
+      "This address no longer points where it did when it was saved. Save the server again.",
     );
     expect(message("Streamable HTTP error: Error POSTing to endpoint (HTTP 401)")).toBe(
       "The server rejected the access token.",

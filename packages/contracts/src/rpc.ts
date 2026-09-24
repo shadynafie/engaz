@@ -560,6 +560,12 @@ export const appContract = {
       )
       .output(CapabilityInstallSchema),
     remove: oc.input(z.object({ id: Id })).output(z.object({ ok: z.literal(true) })),
+    /** Reaches the source now and records whether it works. */
+    check: oc.input(z.object({ id: Id })).output(CapabilityInstallSchema),
+    /** Which agents may use the source; null lets every agent use it. */
+    setAgents: oc
+      .input(z.object({ id: Id, agentIds: z.array(Id).max(500).nullable() }))
+      .output(CapabilityInstallSchema),
   },
   mcp: {
     servers: {

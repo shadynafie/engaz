@@ -607,6 +607,14 @@ export const CapabilityInstallSchema = z.object({
   digest: z.string().nullable(),
   secretConfigured: z.boolean(),
   config: z.record(z.string(), z.unknown()),
+  /** The last check or tool call that reached the source. */
+  check: z.object({
+    status: z.enum(["unchecked", "working", "failing"]),
+    message: z.string().nullable(),
+    checkedAt: z.string().nullable(),
+  }),
+  /** Agents that may use the source; null means every agent. */
+  agentIds: z.array(z.string()).nullable(),
   createdAt: z.string(),
 });
 export type CapabilityInstall = z.infer<typeof CapabilityInstallSchema>;

@@ -26,6 +26,7 @@ import { t } from "@lingui/core/macro";
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Check, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { PluginStatus } from "../components/PluginStatus";
 import { connectMcpOauth, MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
 import { rpc } from "../lib/rpc";
 
@@ -84,33 +85,13 @@ function McpToolAccess({
 /** Whether agents can use the server right now, from its last connection check. */
 function McpServerStatus({ server }: { server: McpServer }) {
   const { status, message, tools, checkedAt } = server.check;
-  const tone =
-    status === "working"
-      ? "bg-success"
-      : status === "failing"
-        ? "bg-destructive"
-        : status === "sign_in"
-          ? "bg-warning"
-          : "bg-muted-foreground/40";
   return (
-    <div
-      className="mt-2 text-xs"
-      title={checkedAt ? t`Checked ${new Date(checkedAt).toLocaleString()}` : undefined}
-    >
-      <p className="flex items-center gap-1.5 text-foreground">
-        <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${tone}`} />
-        {status === "working" ? (
-          <Plural value={tools.length} one="Working · # tool" other="Working · # tools" />
-        ) : status === "sign_in" ? (
-          <Trans>Sign in needed</Trans>
-        ) : status === "failing" ? (
-          <Trans>Needs attention</Trans>
-        ) : (
-          <Trans>Not checked yet</Trans>
-        )}
-      </p>
-      {status === "failing" && message ? <p className="mt-1 text-destructive">{message}</p> : null}
-    </div>
+    <PluginStatus
+      status={status}
+      message={message}
+      checkedAt={checkedAt}
+      working={<Plural value={tools.length} one="Working · # tool" other="Working · # tools" />}
+    />
   );
 }
 

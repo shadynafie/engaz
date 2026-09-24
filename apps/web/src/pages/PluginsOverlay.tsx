@@ -1,4 +1,5 @@
 import type {
+  Bot,
   CapabilityInstall,
   Connection,
   ConnectionCatalogItem,
@@ -29,9 +30,10 @@ import {
   NativeSelectOption,
 } from "@engaz/ui-web";
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
-import { ChevronDown, ChevronLeft, ChevronUp, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronUp, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IntegrationSetup } from "../components/integrations/IntegrationSetup";
+import { PluginStatus } from "../components/PluginStatus";
 import { optionalCatalogFeedProbe } from "../lib/optional-catalog-feed";
 import { rpc } from "../lib/rpc";
 
@@ -86,6 +88,7 @@ export function PluginsOverlay({
   const [connections, setConnections] = useState<Connection[]>([]);
   const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>({});
   const [sources, setSources] = useState<CapabilityInstall[]>([]);
+  const [bots, setBots] = useState<Bot[]>([]);
   const [sourceKind, setSourceKind] = useState<SourceKind | null>(null);
   const [sourceName, setSourceName] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -111,12 +114,14 @@ export function PluginsOverlay({
   const connectionAttempt = useRef<AbortController | null>(null);
 
   async function refresh() {
-    const [items, installs, rows, catalogFeed] = await Promise.all([
+    const [items, installs, rows, catalogFeed, botList] = await Promise.all([
       rpc.connections.catalog({}),
       rpc.capabilities.list(),
       rpc.connections.list(),
       optionalCatalogFeedProbe(rpc.capabilities.catalogSearch({ query: "" })),
+      rpc.bots.list(),
     ]);
+    setBots(botList.filter((bot) => !bot.archivedAt));
     setCatalog(items);
     setConnections(rows);
     setLabelDrafts((current) => {
@@ -415,6 +420,36 @@ export function PluginsOverlay({
       setSourceError(err instanceof Error ? err.message : t`Could not install connector`);
     } finally {
       setPending(null);
+    }
+  }
+
+  function replaceSource(updated: CapabilityInstall) {
+    setSources((current) => current.map((source) => (source.id === updated.id ? updated : source)));
+  }
+
+  async function checkSource(install: CapabilityInstall) {
+    setPending(`check:${install.id}`);
+    setSourceError(null);
+    try {
+      replaceSource(await rpc.capabilities.check({ id: install.id }));
+    } catch (err) {
+      setSourceError(err instanceof Error ? err.message : t`Could not check this source`);
+    } finally {
+      setPending(null);
+    }
+  }
+
+  /** Every agent until the owner narrows it; after that, exactly the agents chosen. */
+  async function toggleSourceAgent(install: CapabilityInstall, botId: string) {
+    const current = install.agentIds ?? bots.map((bot) => bot.id);
+    const agentIds = current.includes(botId)
+      ? current.filter((id) => id !== botId)
+      : [...current, botId];
+    setSourceError(null);
+    try {
+      replaceSource(await rpc.capabilities.setAgents({ id: install.id, agentIds }));
+    } catch (err) {
+      setSourceError(err instanceof Error ? err.message : t`Could not update agent access`);
     }
   }
 
@@ -1118,7 +1153,7 @@ export function PluginsOverlay({
                     {sources.map((source) => (
                       <div
                         key={source.id}
-                        className="flex items-center gap-4 rounded-xl px-3 py-2.5"
+                        className="flex items-start gap-4 rounded-xl px-3 py-2.5"
                       >
                         <div className="grid h-[42px] w-[42px] place-items-center rounded-xl bg-accent font-semibold uppercase text-foreground">
                           {source.kind === "mcp" ? "M" : source.kind === "graphql" ? "G" : "A"}
@@ -1135,7 +1170,51 @@ export function PluginsOverlay({
                               <Trans>no auth</Trans>
                             )}
                           </div>
+                          <PluginStatus
+                            status={source.check.status}
+                            message={source.check.message}
+                            checkedAt={source.check.checkedAt}
+                          />
+                          {bots.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                              <span className="text-[11px] text-muted-foreground">
+                                <Trans>Agents:</Trans>
+                              </span>
+                              {bots.map((bot) => {
+                                const allowed =
+                                  source.agentIds === null || source.agentIds.includes(bot.id);
+                                return (
+                                  <Button
+                                    key={bot.id}
+                                    type="button"
+                                    variant={allowed ? "default" : "outline"}
+                                    size="xs"
+                                    className="rounded-full"
+                                    aria-pressed={allowed}
+                                    onClick={() => void toggleSourceAgent(source, bot.id)}
+                                  >
+                                    {allowed ? <Check aria-hidden="true" /> : null}
+                                    {bot.name}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                          ) : null}
                         </div>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="rounded-full"
+                          size="sm"
+                          disabled={pending === `check:${source.id}`}
+                          onClick={() => void checkSource(source)}
+                        >
+                          {pending === `check:${source.id}` ? (
+                            <Trans>Checking…</Trans>
+                          ) : (
+                            <Trans>Check again</Trans>
+                          )}
+                        </Button>
                         <Button
                           type="button"
                           variant="secondary"

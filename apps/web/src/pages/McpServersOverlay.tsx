@@ -7,6 +7,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Checkbox,
   Dialog,
   DialogClose,
   DialogContent,
@@ -27,6 +28,58 @@ import { Check, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { connectMcpOauth, MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
 import { rpc } from "../lib/rpc";
+
+/** Which of the server's tools each assigned agent may use. */
+function McpToolAccess({
+  server,
+  bots,
+  botAssignments,
+  onToggle,
+}: {
+  server: McpServer;
+  bots: Bot[];
+  botAssignments: Record<string, BotMcpServer[]>;
+  onToggle: (botId: string, tool: string) => void;
+}) {
+  const tools = server.check.tools;
+  const assigned = bots.flatMap((bot) => {
+    const entry = (botAssignments[bot.id] ?? []).find((item) => item.serverId === server.id);
+    return entry ? [{ bot, entry }] : [];
+  });
+  if (tools.length === 0 || assigned.length === 0) return null;
+  return (
+    <details className="group mt-3 rounded-lg border border-border">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs text-foreground">
+        <Trans>Tools</Trans>
+        <span
+          aria-hidden="true"
+          className="text-muted-foreground transition-transform group-open:rotate-90"
+        >
+          ›
+        </span>
+      </summary>
+      <div className="space-y-3 border-t border-border px-3 py-3">
+        {assigned.map(({ bot, entry }) => (
+          <fieldset key={bot.id}>
+            <legend className="text-xs font-medium text-foreground">{bot.name}</legend>
+            <div className="mt-1.5 grid gap-1.5">
+              {tools.map((tool) => (
+                <div key={tool} className="flex items-center gap-2 text-xs text-foreground">
+                  <Checkbox
+                    aria-label={tool}
+                    checked={entry.allowAllTools || entry.allowedTools.includes(tool)}
+                    onCheckedChange={() => onToggle(bot.id, tool)}
+                  />
+                  <span className="font-mono">{tool}</span>
+                </div>
+              ))}
+            </div>
+          </fieldset>
+        ))}
+      </div>
+    </details>
+  );
+}
 
 /** Whether agents can use the server right now, from its last connection check. */
 function McpServerStatus({ server }: { server: McpServer }) {
@@ -178,20 +231,9 @@ export function McpServersOverlay({
               secret: secret || undefined,
               enabled: true,
             });
-      // replace() overwrites the bot's whole list, so merge with what it already has.
+      // The API grants the tools the server offers now; see Tools on the card.
       await Promise.all(
-        selectedBotIds.map((botId) => {
-          const existing = (botAssignments[botId] ?? []).filter(
-            (entry) => entry.serverId !== created.id,
-          );
-          return rpc.mcp.assignments.replace({
-            botId,
-            assignments: [
-              ...existing,
-              { serverId: created.id, allowAllTools: true, allowedTools: [] },
-            ],
-          });
-        }),
+        selectedBotIds.map((botId) => rpc.mcp.assignments.approve({ botId, serverId: created.id })),
       );
       await refresh();
       if (created.check.status === "sign_in") void connectOAuth(created);
@@ -252,15 +294,55 @@ export function McpServersOverlay({
     setError(null);
     const current = botAssignments[botId] ?? [];
     const assigned = current.some((entry) => entry.serverId === server.id);
-    const next = assigned
-      ? current.filter((entry) => entry.serverId !== server.id)
-      : [...current, { serverId: server.id, allowAllTools: true, allowedTools: [] }];
     try {
-      const updated = await rpc.mcp.assignments.replace({ botId, assignments: next });
-      setBotAssignments((map) => ({ ...map, [botId]: updated }));
+      if (assigned) {
+        await replaceAssignments(
+          botId,
+          current.filter((entry) => entry.serverId !== server.id),
+        );
+      } else {
+        const added = await rpc.mcp.assignments.approve({ botId, serverId: server.id });
+        setBotAssignments((map) => ({ ...map, [botId]: [...current, added] }));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not update agent access`);
     }
+  }
+
+  /** Lets one agent use, or stop using, one of the server's tools. */
+  async function toggleTool(server: McpServer, botId: string, tool: string) {
+    setError(null);
+    const current = botAssignments[botId] ?? [];
+    const entry = current.find((item) => item.serverId === server.id);
+    if (!entry) return;
+    const allowed = entry.allowAllTools ? server.check.tools : entry.allowedTools;
+    const nextTools = allowed.includes(tool)
+      ? allowed.filter((name) => name !== tool)
+      : [...allowed, tool];
+    try {
+      await replaceAssignments(
+        botId,
+        current.map((item) =>
+          item.serverId === server.id
+            ? { ...item, allowAllTools: false, allowedTools: nextTools }
+            : item,
+        ),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t`Could not update agent access`);
+    }
+  }
+
+  async function replaceAssignments(botId: string, next: BotMcpServer[]) {
+    const updated = await rpc.mcp.assignments.replace({
+      botId,
+      assignments: next.map(({ serverId, allowAllTools, allowedTools }) => ({
+        serverId,
+        allowAllTools,
+        allowedTools,
+      })),
+    });
+    setBotAssignments((map) => ({ ...map, [botId]: updated }));
   }
 
   async function deleteServer(server: McpServer) {
@@ -518,6 +600,12 @@ export function McpServersOverlay({
                             );
                           })}
                         </div>
+                        <McpToolAccess
+                          server={server}
+                          bots={bots}
+                          botAssignments={botAssignments}
+                          onToggle={(botId, tool) => void toggleTool(server, botId, tool)}
+                        />
                         <div className="mt-3 flex flex-wrap gap-2">
                           {needsSignIn ? (
                             <Button

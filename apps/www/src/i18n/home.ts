@@ -30,6 +30,13 @@ export type HomeCopy = {
     copiedForAgent: string;
     copyFailed: string;
   };
+  team: {
+    eyebrow: string;
+    heading: string;
+    copy: string;
+    example: string;
+    roles: Array<{ title: string; task: string }>;
+  };
   selfHost: {
     eyebrow: string;
     heading: string;
@@ -274,7 +281,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       primary: "Primary",
       menu: "Menu",
       product: "Product",
-      bots: "How it works",
+      bots: "The team",
       selfHost: "Self-host",
       openSource: "Why Engaz",
       docs: "Docs",
@@ -291,12 +298,24 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       copiedForAgent: "Copied for your agent",
       copyFailed: "Copy failed. Try again.",
     },
+    team: {
+      eyebrow: "The team",
+      heading: "One brief. Many minds.",
+      copy: "Give each agent a job and the right tools. Keep their work together in one workspace.",
+      example: "Illustrative roles · Build your own team",
+      roles: [
+        { title: "Chief", task: "Shape the plan" },
+        { title: "Designer", task: "Make it feel right" },
+        { title: "Engineer", task: "Build the thing" },
+        { title: "Accountant", task: "Watch the numbers" },
+      ],
+    },
     selfHost: {
       eyebrow: "The product",
       heading: "A workspace for your AI team",
       copy: "Give each agent a role, choose a compatible model, and control access to connected tools.",
       screenshotAlt: "Engaz workspace showing a conversation with an AI agent",
-      screenshotCaption: "Engaz web workspace · Product screenshot from the repository",
+      screenshotCaption: "Engaz web workspace · Isolated test example",
       features: [
         {
           title: "Distinct roles",
@@ -406,7 +425,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       primary: "Hauptnavigation",
       menu: "Menü",
       product: "Produkt",
-      bots: "So funktioniert es",
+      bots: "Das Team",
       selfHost: "Self-host",
       openSource: "Warum Engaz",
       docs: "Docs",
@@ -423,12 +442,24 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       copiedForAgent: "Für deinen Agenten kopiert",
       copyFailed: "Kopieren fehlgeschlagen. Erneut versuchen.",
     },
+    team: {
+      eyebrow: "Das Team",
+      heading: "Ein Auftrag. Viele Köpfe.",
+      copy: "Gib jedem Agenten eine Aufgabe und passende Tools. Behalte ihre Arbeit in einem Arbeitsbereich im Blick.",
+      example: "Beispielrollen · Stelle dein eigenes Team zusammen",
+      roles: [
+        { title: "Koordination", task: "Den Plan gestalten" },
+        { title: "Design", task: "Das Erlebnis formen" },
+        { title: "Entwicklung", task: "Die Lösung bauen" },
+        { title: "Finanzen", task: "Die Zahlen prüfen" },
+      ],
+    },
     selfHost: {
       eyebrow: "Das Produkt",
       heading: "Ein Arbeitsbereich für dein KI-Team",
       copy: "Gib jedem Agenten eine Rolle, wähle ein kompatibles Modell und kontrolliere den Zugriff auf verbundene Tools.",
       screenshotAlt: "Engaz-Arbeitsbereich mit einem Gespräch mit einem KI-Agenten",
-      screenshotCaption: "Engaz-Webarbeitsbereich · Produktscreenshot aus dem Repository",
+      screenshotCaption: "Engaz-Webarbeitsbereich · Isoliertes Testbeispiel",
       features: [
         {
           title: "Klare Rollen",
@@ -538,7 +569,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       primary: "주 메뉴",
       menu: "메뉴",
       product: "제품",
-      bots: "작동 방식",
+      bots: "팀",
       selfHost: "셀프 호스트",
       openSource: "Engaz를 선택하는 이유",
       docs: "Docs",
@@ -555,12 +586,24 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       copiedForAgent: "에이전트용으로 복사됨",
       copyFailed: "복사 실패. 다시 시도하세요.",
     },
+    team: {
+      eyebrow: "팀",
+      heading: "하나의 목표. 다양한 시선.",
+      copy: "각 에이전트에게 역할과 알맞은 도구를 주세요. 하나의 워크스페이스에서 작업을 확인하세요.",
+      example: "예시 역할 · 나만의 팀 구성",
+      roles: [
+        { title: "총괄", task: "계획 세우기" },
+        { title: "디자이너", task: "경험 다듬기" },
+        { title: "엔지니어", task: "제품 만들기" },
+        { title: "회계 담당", task: "숫자 살피기" },
+      ],
+    },
     selfHost: {
       eyebrow: "제품",
       heading: "AI 팀을 위한 하나의 워크스페이스",
       copy: "에이전트마다 역할을 정하고 호환 모델을 선택하며 연결된 도구에 대한 접근을 관리하세요.",
       screenshotAlt: "AI 에이전트와의 대화가 보이는 Engaz 워크스페이스",
-      screenshotCaption: "Engaz 웹 워크스페이스 · 저장소의 실제 제품 화면",
+      screenshotCaption: "Engaz 웹 워크스페이스 · 격리된 테스트 예시",
       features: [
         {
           title: "분명한 역할",
@@ -670,7 +713,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       primary: "主导航",
       menu: "菜单",
       product: "产品",
-      bots: "使用方式",
+      bots: "团队",
       selfHost: "自托管",
       openSource: "为什么选择 Engaz",
       docs: "文档",
@@ -687,12 +730,24 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       copiedForAgent: "已为你的智能体复制",
       copyFailed: "复制失败。请重试。",
     },
+    team: {
+      eyebrow: "团队",
+      heading: "一个目标，多种专长。",
+      copy: "为每个智能体分配工作和合适的工具，在同一个工作空间查看他们的进展。",
+      example: "示例角色 · 组建自己的团队",
+      roles: [
+        { title: "负责人", task: "制定计划" },
+        { title: "设计师", task: "打磨体验" },
+        { title: "工程师", task: "构建产品" },
+        { title: "会计", task: "核对数字" },
+      ],
+    },
     selfHost: {
       eyebrow: "产品",
       heading: "一个工作空间，管理你的 AI 团队",
       copy: "为每个智能体分配角色，选择兼容模型，并管理它们对已连接工具的访问。",
       screenshotAlt: "Engaz 工作空间，显示与 AI 智能体的对话",
-      screenshotCaption: "Engaz 网页工作空间 · 仓库中的实际产品截图",
+      screenshotCaption: "Engaz 网页工作空间 · 隔离测试示例",
       features: [
         {
           title: "明确分工",

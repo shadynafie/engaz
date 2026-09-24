@@ -23,10 +23,10 @@ const homeHref = Astro.props.homeHref ?? localeHomePath(locale);
 const setupLabel = getHomeCopy(locale).hero.getStarted;
 
 const NAV_LINKS = [
+  { href: localeHashPath(locale, "team"), label: copy.bots },
   { href: localeHashPath(locale, "product"), label: copy.product },
-  { href: localeHashPath(locale, "how-it-works"), label: copy.bots },
-  { href: localeHashPath(locale, "selfhost"), label: copy.selfHost },
   { href: localeHashPath(locale, "why-engaz"), label: copy.openSource },
+  { href: localeHashPath(locale, "selfhost"), label: copy.selfHost },
   { href: DOCS_URL, label: copy.docs, external: true },
 ];
 

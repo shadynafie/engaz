@@ -15,12 +15,13 @@ test("English homepage shows the current self-hosted product", async ({ page }, 
   await page.goto("/");
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("AI teammates. Real progress.");
+  await expect(page.locator("#team li")).toHaveCount(4);
   await expect(page.locator("#product img")).toBeVisible();
   await expect(page.locator("#how-it-works li")).toHaveCount(3);
   await expect(page.locator("#why-engaz")).toContainText("Apache-2.0");
   await expect(page.locator("main")).not.toContainText(/Grok Bot|Cloud waitlist|nothing phones home/i);
 
-  const setup = page.locator(".landing-hero").getByRole("link", { name: "Set up Engaz" });
+  const setup = page.locator(".workbench-hero").getByRole("link", { name: "Set up Engaz" });
   await expect(setup).toHaveAttribute("href", /docs\/self-host\.md$/);
   await captureScreenshot(page, testInfo, "marketing-homepage-desktop");
 });
@@ -29,8 +30,9 @@ test("Chinese homepage retains the same setup path", async ({ page }, testInfo) 
   await page.goto("/zh/");
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("AI 队友。切实推进工作。");
+  await expect(page.locator("#team li")).toHaveCount(4);
   await expect(page.locator("#how-it-works li")).toHaveCount(3);
-  await expect(page.locator(".landing-hero").getByRole("link", { name: "设置 Engaz" }))
+  await expect(page.locator(".workbench-hero").getByRole("link", { name: "设置 Engaz" }))
     .toHaveAttribute("href", /docs\/self-host\.md$/);
   await captureScreenshot(page, testInfo, "marketing-homepage-zh");
 });

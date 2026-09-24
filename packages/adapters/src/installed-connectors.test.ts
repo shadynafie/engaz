@@ -569,3 +569,96 @@ describe("OpenAPI connector import", () => {
     ).rejects.toThrow("Sensitive headers cannot be model-controlled");
   });
 });
+
+describe("tool source status and agent access", () => {
+  const apiInstall = {
+    id: "api-1",
+    kind: "api",
+    name: "Orders",
+    source: "https://93.184.216.34",
+    secretId: null,
+    createdAt: new Date(0),
+    checkStatus: "working",
+    checkedAt: new Date(),
+    config: {
+      auth: { type: "none" },
+      operations: [
+        { id: "list_orders", method: "GET", path: "/orders", inputSchema: { type: "object" } },
+      ],
+    },
+  };
+  const context = (botId?: string) =>
+    ({
+      spaceId: "space-1",
+      userId: "user-1",
+      botId,
+      signal: new AbortController().signal,
+    }) as never;
+
+  it("offers a restricted source only to the agents it names, on every call", async () => {
+    const install = { ...apiInstall, agentIds: ["bot-a"] };
+    const prisma = {
+      capabilityInstall: {
+        findMany: vi.fn().mockResolvedValue([install]),
+        findFirst: vi.fn().mockResolvedValue(install),
+        updateMany: vi.fn(),
+      },
+    };
+    const fetch = vi.fn().mockResolvedValue(Response.json({ ok: true }));
+    const provider = new InstalledConnectorProvider(prisma as never, {} as never, { fetch });
+
+    const [tool] = await provider.discoverTools(context("bot-a"));
+    expect(tool?.name).toBe("list_orders");
+    await expect(provider.discoverTools(context("bot-b"))).resolves.toEqual([]);
+
+    const call = { tool: tool!.name, args: {}, executionId: "call-1", route: tool!.route };
+    const events = [];
+    for await (const event of provider.execute(call, context("bot-b"))) events.push(event);
+    expect(events).toEqual([{ type: "error", message: "Installed connector is unavailable" }]);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("records a refused credential from a check and from a real call", async () => {
+    const install = { ...apiInstall, agentIds: null };
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = {
+      capabilityInstall: {
+        findMany: vi.fn().mockResolvedValue([install]),
+        findFirst: vi.fn().mockResolvedValue(install),
+        updateMany,
+      },
+    };
+    const fetch = vi.fn(async () => new Response("denied", { status: 401 }));
+    const provider = new InstalledConnectorProvider(prisma as never, {} as never, { fetch });
+
+    await expect(provider.check(install, context())).resolves.toMatchObject({
+      status: "failing",
+      message: "The server rejected the access token.",
+    });
+    expect(updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ checkStatus: "failing" }) }),
+    );
+
+    updateMany.mockClear();
+    const [tool] = await provider.discoverTools(context("bot-a"));
+    const call = { tool: tool!.name, args: {}, executionId: "call-2", route: tool!.route };
+    for await (const _event of provider.execute(call, context("bot-a"))) {
+      // Drain.
+    }
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ checkStatus: "failing" }) }),
+    );
+  });
+
+  it("reports a reachable API as working with its operations", async () => {
+    const install = { ...apiInstall, agentIds: null, checkStatus: "unchecked" };
+    const prisma = { capabilityInstall: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) } };
+    const fetch = vi.fn(async () => new Response("not here", { status: 404 }));
+    const provider = new InstalledConnectorProvider(prisma as never, {} as never, { fetch });
+    await expect(provider.check(install, context())).resolves.toEqual({
+      status: "working",
+      message: null,
+      tools: ["list_orders"],
+    });
+  });
+});

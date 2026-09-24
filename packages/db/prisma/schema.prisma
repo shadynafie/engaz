@@ -838,6 +838,13 @@ model CapabilityInstall {
   digest    String?
   secretId  String?
   config    Json     @default("{}")
+  /// unchecked, working, or failing: the last check or tool call that reached the source.
+  checkStatus  String    @default("unchecked")
+  checkMessage String?
+  checkedAt    DateTime?
+  /// Agents that may use the source's tools; null means every agent (sources added before
+  /// per-agent access, or left open by the owner).
+  agentIds     Json?
   createdAt DateTime @default(now())
 
   @@index([spaceId, userId])

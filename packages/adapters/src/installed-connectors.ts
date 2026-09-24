@@ -24,7 +24,11 @@ import {
   redactConnectorPayload,
   sanitizeConnectorError,
 } from "./connector-safety.js";
-import { executeGraphqlOperation, GraphqlConfigSchema } from "./graphql-connectors.js";
+import {
+  executeGraphqlOperation,
+  GraphqlConfigSchema,
+  prepareGraphqlInstall,
+} from "./graphql-connectors.js";
 import {
   CATALOG_EXECUTE,
   catalogEntries,
@@ -36,6 +40,7 @@ import {
   lazyCatalogTools,
   resolveCatalogCall,
 } from "./lazy-tool-catalog.js";
+import { type McpCheckResult, mcpCheckFailure } from "./mcp-check.js";
 import {
   assertSafeRemoteUrl,
   callRemoteMcpTool,
@@ -44,6 +49,18 @@ import {
   type RemoteTransportDependencies,
 } from "./remote-mcp.js";
 import type { EncryptedSecretStore } from "./secrets.js";
+
+// A source that worked is re-recorded at most this often, so calls do not write every time.
+const WORKING_RECHECK_MS = 10 * 60_000;
+// Call failures that say the source itself is down or refusing, not that the arguments were wrong.
+const SOURCE_FAILURE =
+  /\b40[13]\b|unauthorized|forbidden|could not reach|fetch failed|timed? ?out/i;
+
+/** Whether an agent may use a source: null means every agent. */
+export function toolSourceAllowsAgent(agentIds: unknown, botId: string | undefined): boolean {
+  if (agentIds == null) return true;
+  return Boolean(botId) && Array.isArray(agentIds) && agentIds.includes(botId);
+}
 
 const ModelHeaderName = HeaderName.refine(
   (name) => !isSensitiveHeader(name),
@@ -91,6 +108,9 @@ type InstalledRow = {
   source: string;
   secretId: string | null;
   config: unknown;
+  agentIds?: unknown;
+  checkStatus?: string;
+  checkedAt?: Date | null;
 };
 
 export type RemoteConnectorDependencies = RemoteTransportDependencies;
@@ -135,10 +155,13 @@ export class InstalledConnectorProvider implements ConnectorProvider {
       },
       orderBy: { createdAt: "asc" },
     });
+    const allowed = installs.filter((install) =>
+      toolSourceAllowsAgent(install.agentIds, context.botId),
+    );
     const tools: ConnectorTool[] = [];
-    for (let offset = 0; offset < installs.length; offset += 4) {
+    for (let offset = 0; offset < allowed.length; offset += 4) {
       const groups = await Promise.all(
-        installs.slice(offset, offset + 4).map((install) => this.discoverInstall(install, context)),
+        allowed.slice(offset, offset + 4).map((install) => this.discoverInstall(install, context)),
       );
       tools.push(...groups.flat());
     }
@@ -233,7 +256,8 @@ export class InstalledConnectorProvider implements ConnectorProvider {
         kind: { in: ["mcp", "api", "graphql"] },
       },
     });
-    if (!install) {
+    // Rechecked on every call, so taking an agent off a source takes effect immediately.
+    if (!install || !toolSourceAllowsAgent(install.agentIds, context.botId)) {
       yield { type: "error", message: "Installed connector is unavailable" };
       return;
     }
@@ -253,6 +277,7 @@ export class InstalledConnectorProvider implements ConnectorProvider {
           call.route?.toolName ?? call.tool,
           call.args,
         );
+        await this.recordCallOutcome(install, result, credential);
         yield {
           type: "result",
           data: redactConnectorPayload(result, credential ? [credential] : []),
@@ -274,6 +299,7 @@ export class InstalledConnectorProvider implements ConnectorProvider {
           context.signal,
           this.remote,
         );
+        await this.recordCallOutcome(install, result, credential);
         yield {
           type: "result",
           data: redactConnectorPayload(result, credential ? [credential] : []),
@@ -294,15 +320,109 @@ export class InstalledConnectorProvider implements ConnectorProvider {
         context.signal,
         this.remote,
       );
+      await this.recordCallOutcome(install, result, credential);
       yield {
         type: "result",
         data: redactConnectorPayload(result, credential ? [credential] : []),
       };
     } catch (error) {
-      yield {
-        type: "error",
-        message: sanitizeConnectorError(error, credential ? [credential] : []),
-      };
+      const message = sanitizeConnectorError(error, credential ? [credential] : []);
+      if (SOURCE_FAILURE.test(message)) {
+        await this.recordCheck(install.id, mcpCheckFailure(error, credential ? [credential] : []));
+      }
+      yield { type: "error", message };
+    }
+  }
+
+  /**
+   * Connects to the source now and records whether it works: MCP lists its tools,
+   * GraphQL is introspected with the saved credential, and an API's base address is
+   * requested with it (a refused credential or no answer is what breaks every call).
+   */
+  async check(install: InstalledRow, context: AdapterContext): Promise<McpCheckResult> {
+    let credential: string | undefined;
+    let result: McpCheckResult;
+    try {
+      credential = await this.loadCredential(install, context);
+      result = { status: "working", message: null, tools: await this.probe(install, credential) };
+    } catch (error) {
+      result = mcpCheckFailure(error, credential ? [credential] : []);
+    }
+    await this.recordCheck(install.id, result);
+    return result;
+  }
+
+  private async probe(install: InstalledRow, credential: string | undefined): Promise<string[]> {
+    if (install.kind === "mcp") {
+      const config = McpConfigSchema.parse(install.config);
+      const tools = await listRemoteMcpTools({
+        endpoint: install.source,
+        headers: connectorHeaders(config, credential),
+        fetch: this.remote.fetch,
+        resolveHostname: this.remote.resolveHostname,
+      });
+      return tools.map((tool) => tool.name);
+    }
+    if (install.kind === "graphql") {
+      const config = GraphqlConfigSchema.parse(install.config);
+      await prepareGraphqlInstall({
+        source: install.source,
+        config: install.config as Record<string, unknown>,
+        credential,
+        remote: this.remote,
+      });
+      return config.operations.map((operation) => operation.name ?? operation.id);
+    }
+    const config = ApiConfigSchema.parse(install.config);
+    const url = new URL(install.source);
+    const headers: Record<string, string> = { accept: "application/json", ...config.headers };
+    applyCredential(url, headers, config.auth, credential);
+    const safeFetch = createSafeRemoteFetch(this.remote.fetch, this.remote.resolveHostname);
+    try {
+      const response = await safeFetch(url, {
+        headers,
+        signal: AbortSignal.timeout(15_000),
+      });
+      await response.body?.cancel().catch(() => undefined);
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } finally {
+      await safeFetch.close().catch(() => undefined);
+    }
+    return config.operations.map((operation) => operation.name ?? operation.id);
+  }
+
+  /** A call that got an answer means the source works; a refused credential means it does not. */
+  private async recordCallOutcome(
+    install: InstalledRow,
+    result: unknown,
+    credential: string | undefined,
+  ): Promise<void> {
+    const status =
+      result && typeof result === "object" && "status" in result ? Number(result.status) : 0;
+    if (status === 401 || status === 403) {
+      await this.recordCheck(
+        install.id,
+        mcpCheckFailure(new Error(`HTTP ${status}`), credential ? [credential] : []),
+      );
+      return;
+    }
+    const fresh =
+      install.checkStatus === "working" &&
+      install.checkedAt != null &&
+      Date.now() - install.checkedAt.getTime() < WORKING_RECHECK_MS;
+    if (!fresh) await this.recordCheck(install.id, { status: "working", message: null, tools: [] });
+  }
+
+  private async recordCheck(installId: string, result: McpCheckResult): Promise<void> {
+    try {
+      await this.prisma.capabilityInstall.updateMany({
+        where: { id: installId },
+        data: { checkStatus: result.status, checkMessage: result.message, checkedAt: new Date() },
+      });
+    } catch {
+      // Status is advisory; failing to record it must not fail the call that produced it.
     }
   }
 

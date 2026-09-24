@@ -23,6 +23,7 @@ import type {
   ComputerExecutionLease,
   ConnectorRegistry,
   EncryptedSecretStore,
+  InstalledConnectorProvider,
   IntegrationProviderSettings,
   McpConnector,
   MemoryProviderResolver,
@@ -442,6 +443,8 @@ export interface RouterDeps {
   verifyModel: AgentRuntime["verifyModel"];
   /** Connects to an MCP server, lists its tools, and records the result on the row. */
   checkMcpServer: McpConnector["check"];
+  /** Reaches an OpenAPI, GraphQL, or MCP tool source now and records whether it works. */
+  checkToolSource: InstalledConnectorProvider["check"];
   /** Whether an MCP endpoint is on the internet or on the owner's own network. */
   mcpEndpointNetwork: McpConnector["endpointNetwork"];
   prisma: PrismaClient;
@@ -2809,17 +2812,7 @@ export function createRouter(deps: RouterDeps) {
         const rows = await deps.prisma.capabilityInstall.findMany({
           where: { spaceId: context.actor.spaceId, userId: context.actor.userId },
         });
-        return rows.map((row) => ({
-          id: row.id,
-          kind: row.kind as "skill" | "plugin" | "mcp" | "api" | "connection",
-          name: row.name,
-          source: row.source,
-          version: row.version,
-          digest: row.digest,
-          secretConfigured: Boolean(row.secretId),
-          config: row.config as Record<string, unknown>,
-          createdAt: row.createdAt.toISOString(),
-        }));
+        return rows.map(capabilityInstallDto);
       }),
       catalogSearch: authed.capabilities.catalogSearch.handler(async ({ context, input }) => {
         const baseUrl =
@@ -2944,20 +2937,51 @@ export function createRouter(deps: RouterDeps) {
               config: config as Prisma.InputJsonValue,
               digest,
               version: "1.0.0",
+              // Adding a source verifies it, so it starts out working.
+              checkStatus:
+                input.kind === "mcp" || input.kind === "api" || input.kind === "graphql"
+                  ? "working"
+                  : "unchecked",
+              checkedAt: new Date(),
             },
           });
         });
-        return {
-          id: row.id,
-          kind: row.kind as "skill" | "plugin" | "mcp" | "api" | "connection",
-          name: row.name,
-          source: row.source,
-          version: row.version,
-          digest: row.digest,
-          secretConfigured: Boolean(row.secretId),
-          config: row.config as Record<string, unknown>,
-          createdAt: row.createdAt.toISOString(),
-        };
+        return capabilityInstallDto(row);
+      }),
+      check: authed.capabilities.check.handler(async ({ context, input }) => {
+        const row = await deps.prisma.capabilityInstall.findFirst({
+          where: { id: input.id, spaceId: context.actor.spaceId, userId: context.actor.userId },
+        });
+        if (!row) throw new IsolationError();
+        await deps.checkToolSource(row, connectionContext(context.actor, "capabilities.check"));
+        return capabilityInstallDto(
+          await deps.prisma.capabilityInstall.findUniqueOrThrow({ where: { id: row.id } }),
+        );
+      }),
+      setAgents: authed.capabilities.setAgents.handler(async ({ context, input }) => {
+        const row = await deps.prisma.capabilityInstall.findFirst({
+          where: { id: input.id, spaceId: context.actor.spaceId, userId: context.actor.userId },
+          select: { id: true },
+        });
+        if (!row) throw new IsolationError();
+        let agentIds: string[] | null = null;
+        if (input.agentIds) {
+          const bots = await deps.prisma.bot.findMany({
+            where: {
+              id: { in: input.agentIds },
+              spaceId: context.actor.spaceId,
+              userId: context.actor.userId,
+            },
+            select: { id: true },
+          });
+          if (bots.length !== new Set(input.agentIds).size) throw new IsolationError();
+          agentIds = bots.map((bot) => bot.id);
+        }
+        const updated = await deps.prisma.capabilityInstall.update({
+          where: { id: row.id },
+          data: { agentIds: agentIds ?? Prisma.DbNull },
+        });
+        return capabilityInstallDto(updated);
       }),
       remove: authed.capabilities.remove.handler(async ({ context, input }) => {
         await deps.prisma.$transaction(async (tx) => {
@@ -5269,6 +5293,44 @@ export function initialToolAccess(tools: unknown): {
   return known.length > 0
     ? { allowAllTools: false, allowedTools: known }
     : { allowAllTools: true, allowedTools: [] };
+}
+
+function capabilityInstallDto(row: {
+  id: string;
+  kind: string;
+  name: string;
+  source: string;
+  version: string | null;
+  digest: string | null;
+  secretId: string | null;
+  config: unknown;
+  checkStatus: string;
+  checkMessage: string | null;
+  checkedAt: Date | null;
+  agentIds: unknown;
+  createdAt: Date;
+}) {
+  return {
+    id: row.id,
+    kind: row.kind as "skill" | "plugin" | "mcp" | "api" | "graphql" | "connection",
+    name: row.name,
+    source: row.source,
+    version: row.version,
+    digest: row.digest,
+    secretConfigured: Boolean(row.secretId),
+    config: row.config as Record<string, unknown>,
+    check: {
+      status: (row.checkStatus === "working" || row.checkStatus === "failing"
+        ? row.checkStatus
+        : "unchecked") as "unchecked" | "working" | "failing",
+      message: row.checkMessage,
+      checkedAt: row.checkedAt?.toISOString() ?? null,
+    },
+    agentIds: Array.isArray(row.agentIds)
+      ? row.agentIds.filter((id): id is string => typeof id === "string")
+      : null,
+    createdAt: row.createdAt.toISOString(),
+  };
 }
 
 async function deploymentDto(prisma: PrismaClient, sandboxProvider: string) {

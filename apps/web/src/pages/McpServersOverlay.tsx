@@ -29,6 +29,7 @@ import { useEffect, useRef, useState } from "react";
 import { PluginStatus } from "../components/PluginStatus";
 import { connectMcpOauth, MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
 import { rpc } from "../lib/rpc";
+import type { McpServerDraft } from "./PluginsOverlay";
 
 /** Which of the server's tools each assigned agent may use. */
 function McpToolAccess({
@@ -97,10 +98,13 @@ function McpServerStatus({ server }: { server: McpServer }) {
 
 export function McpServersOverlay({
   stdioEnabled,
+  draft,
   onClose,
 }: {
   /** Local commands run inside the Engaz server, so they appear only when the owner enabled them. */
   stdioEnabled: boolean;
+  /** Pre-fills the add form, e.g. from a preset or a catalog result. */
+  draft?: McpServerDraft;
   onClose: () => void;
 }) {
   const { t } = useLingui();
@@ -110,8 +114,8 @@ export function McpServersOverlay({
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
   const [selectedBotIds, setSelectedBotIds] = useState<string[]>([]);
   const [transport, setTransport] = useState<McpTransport>("streamable_http");
-  const [name, setName] = useState("");
-  const [endpoint, setEndpoint] = useState("");
+  const [name, setName] = useState(draft?.name ?? "");
+  const [endpoint, setEndpoint] = useState(draft?.endpoint ?? "");
   const [secret, setSecret] = useState("");
   const [headerName, setHeaderName] = useState("Authorization");
   const [headerValue, setHeaderValue] = useState("");
@@ -451,7 +455,7 @@ export function McpServersOverlay({
                     />
                   </Field>
                 )}
-                <details className="group rounded-xl border border-border">
+                <details className="group rounded-xl border border-border" open={draft?.needsToken}>
                   <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-sm text-foreground">
                     <span>
                       <Trans>Advanced</Trans>

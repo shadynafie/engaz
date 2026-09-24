@@ -27,6 +27,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { X } from "lucide-react";
 import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { rpc } from "../../lib/rpc";
+import { AgentPlugins } from "./AgentPlugins";
 import { AvatarStudioPopover } from "./avatar-studio-popover";
 
 const ScratchpadSection = lazy(() =>
@@ -193,8 +194,11 @@ export function BotSettings({
   onSave,
   onExport,
   onClear,
+  onOpenPlugins,
 }: {
   bot: Bot;
+  /** Opens Integrations, where the owner changes which plugins this agent can use. */
+  onOpenPlugins?: () => void;
   onSkillsChange: (skills: AgentSkillCatalogEntry[]) => void;
   memoryProviderConfigured: boolean;
   onSave: (patch: {
@@ -468,6 +472,7 @@ export function BotSettings({
           }}
         />
       </div>
+      <AgentPlugins botId={bot.id} onManage={onOpenPlugins} />
       <details
         data-testid="bot-settings-advanced"
         className="group mt-5"

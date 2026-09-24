@@ -204,6 +204,7 @@ import { ActivityList } from "./ActivityList";
 import type { ContextMenuPosition } from "./BotContextMenu";
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
+import type { McpServerDraft } from "./PluginsOverlay";
 import {
   draftFromRoutine,
   emptyRoutineDraft,
@@ -437,6 +438,7 @@ export function ShellPage() {
   }
   const [pluginsOpen, setPluginsOpen] = useState(false);
   const [mcpOpen, setMcpOpen] = useState(false);
+  const [mcpDraft, setMcpDraft] = useState<McpServerDraft | undefined>();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("general");
   const [messagingSettingsOpen, setMessagingSettingsOpen] = useState(false);
@@ -3612,6 +3614,7 @@ export function ShellPage() {
                   URL.revokeObjectURL(url);
                 }}
                 onClear={() => setClearTarget({ kind: "bot", chat: active })}
+                onOpenPlugins={() => setPluginsOpen(true)}
               />
             ) : null}
             {panel === "routine" && active ? (
@@ -4117,8 +4120,9 @@ export function ShellPage() {
           <PluginsOverlay
             activeBotId={activeBotId.current}
             onClose={() => setPluginsOpen(false)}
-            onOpenMcp={() => {
+            onOpenMcp={(draft) => {
               setPluginsOpen(false);
+              setMcpDraft(draft);
               setMcpOpen(true);
             }}
           />
@@ -4126,7 +4130,11 @@ export function ShellPage() {
         {mcpOpen ? (
           <McpServersOverlay
             stdioEnabled={bootstrapMe?.mcpStdioEnabled === true}
-            onClose={() => setMcpOpen(false)}
+            draft={mcpDraft}
+            onClose={() => {
+              setMcpOpen(false);
+              setMcpDraft(undefined);
+            }}
           />
         ) : null}
         {messagingSettingsOpen ? (

@@ -70,10 +70,7 @@ test("the owner chooses which of a server's tools an agent may use", async ({ pa
   });
 
   await page.getByText("Integrations", { exact: true }).click();
-  await page.getByTestId("integrations-advanced").evaluate((element) => {
-    (element as HTMLDetailsElement).open = true;
-  });
-  await page.getByRole("button", { name: "Manage MCP servers", exact: true }).click();
+  await page.getByTestId("integrations-mcp").click();
   await expect(page.getByText("Crawler", { exact: true })).toBeVisible();
   await page.locator("summary", { hasText: "Tools" }).click();
   const screenshotTool = page.getByRole("checkbox", { name: "screenshot" });

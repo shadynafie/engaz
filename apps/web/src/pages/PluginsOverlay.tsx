@@ -5,6 +5,7 @@ import type {
   ConnectionCatalogItem,
   IntegrationCatalogResult,
   IntegrationCatalogSurface,
+  McpServer,
 } from "@engaz/contracts";
 import {
   abortableDelay,
@@ -37,7 +38,10 @@ import { PluginStatus } from "../components/PluginStatus";
 import { optionalCatalogFeedProbe } from "../lib/optional-catalog-feed";
 import { rpc } from "../lib/rpc";
 
-type SourceKind = "treg" | "executor" | "mcp" | "api" | "graphql";
+type SourceKind = "api" | "graphql";
+
+/** What the MCP servers screen opens with when a preset or catalog result starts it. */
+export type McpServerDraft = { name: string; endpoint: string; needsToken?: boolean };
 
 type ConnectionTool = { name: string; description: string };
 
@@ -77,7 +81,7 @@ export function PluginsOverlay({
   activeBotId,
 }: {
   onClose: () => void;
-  onOpenMcp?: () => void;
+  onOpenMcp?: (draft?: McpServerDraft) => void;
   activeBotId?: string;
 }) {
   const { t } = useLingui();
@@ -89,6 +93,7 @@ export function PluginsOverlay({
   const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>({});
   const [sources, setSources] = useState<CapabilityInstall[]>([]);
   const [bots, setBots] = useState<Bot[]>([]);
+  const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
   const [sourceKind, setSourceKind] = useState<SourceKind | null>(null);
   const [sourceName, setSourceName] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -114,14 +119,16 @@ export function PluginsOverlay({
   const connectionAttempt = useRef<AbortController | null>(null);
 
   async function refresh() {
-    const [items, installs, rows, catalogFeed, botList] = await Promise.all([
+    const [items, installs, rows, catalogFeed, botList, servers] = await Promise.all([
       rpc.connections.catalog({}),
       rpc.capabilities.list(),
       rpc.connections.list(),
       optionalCatalogFeedProbe(rpc.capabilities.catalogSearch({ query: "" })),
       rpc.bots.list(),
+      rpc.mcp.servers.list(),
     ]);
     setBots(botList.filter((bot) => !bot.archivedAt));
+    setMcpServers(servers);
     setCatalog(items);
     setConnections(rows);
     setLabelDrafts((current) => {
@@ -341,10 +348,10 @@ export function PluginsOverlay({
     setSourceKind(kind);
     setSourceError(null);
     setSourceHint(null);
-    setSourceName(kind === "treg" ? "Treg" : kind === "executor" ? "Executor" : "");
-    setSourceUrl(kind === "treg" ? "https://treg.to/mcp/" : "");
+    setSourceName("");
+    setSourceUrl("");
     setCredential("");
-    setAuthType(kind === "treg" || kind === "executor" ? "bearer" : "none");
+    setAuthType("none");
     setAuthName("x-api-key");
   }
 
@@ -369,7 +376,16 @@ export function PluginsOverlay({
     surface: IntegrationCatalogSurface,
   ) {
     if (!surface.source || (surface.kind !== "mcp" && surface.kind !== "openapi")) return;
-    setSourceKind(surface.kind === "mcp" ? "mcp" : "api");
+    // MCP servers all live on one screen, with their status and per-agent tools.
+    if (surface.kind === "mcp") {
+      onOpenMcp?.({
+        name: result.name,
+        endpoint: surface.source,
+        needsToken: (surface.auth?.type ?? "none") !== "none",
+      });
+      return;
+    }
+    setSourceKind("api");
     setSourceName(result.name);
     setSourceUrl(surface.source);
     setCredential("");
@@ -389,29 +405,11 @@ export function PluginsOverlay({
         ...(authType === "header" ? { name: authName.trim() } : {}),
       };
       await rpc.capabilities.install({
-        kind: sourceKind === "treg" || sourceKind === "executor" ? "mcp" : sourceKind,
-        name:
-          sourceName.trim() ||
-          (sourceKind === "treg"
-            ? "Treg"
-            : sourceKind === "executor"
-              ? "Executor"
-              : sourceKind === "graphql"
-                ? "GraphQL"
-                : "Custom connector"),
+        kind: sourceKind,
+        name: sourceName.trim() || (sourceKind === "graphql" ? "GraphQL" : "Custom connector"),
         source: sourceUrl.trim(),
         credential: credential.trim() || undefined,
-        config:
-          sourceKind === "treg"
-            ? { preset: "treg", auth: { type: "bearer" } }
-            : sourceKind === "api"
-              ? { openApi: true, auth }
-              : sourceKind === "graphql"
-                ? { auth }
-                : {
-                    preset: "custom",
-                    auth: sourceKind === "executor" ? { type: "bearer" } : auth,
-                  },
+        config: sourceKind === "api" ? { openApi: true, auth } : { auth },
       });
       setCredential("");
       setSourceKind(null);
@@ -850,6 +848,39 @@ export function PluginsOverlay({
                 </div>
               ) : null}
 
+              {onOpenMcp ? (
+                <button
+                  type="button"
+                  data-testid="integrations-mcp"
+                  onClick={() => onOpenMcp()}
+                  className="mt-8 flex w-full items-center justify-between gap-3 rounded-xl border border-border px-4 py-3 text-start hover:bg-accent"
+                >
+                  <span>
+                    <span className="block text-[15px] font-medium text-foreground">
+                      <Trans>MCP servers</Trans>
+                    </span>
+                    <span className="block text-[13px] text-muted-foreground">
+                      {mcpServers.length === 0 ? (
+                        <Trans>Connect tools from a server on the internet or your network</Trans>
+                      ) : mcpServers.some((server) => server.check.status !== "working") ? (
+                        <Plural
+                          value={
+                            mcpServers.filter((server) => server.check.status !== "working").length
+                          }
+                          one="# needs attention"
+                          other="# need attention"
+                        />
+                      ) : (
+                        <Plural value={mcpServers.length} one="# working" other="# working" />
+                      )}
+                    </span>
+                  </span>
+                  <span aria-hidden="true" className="text-muted-foreground">
+                    ›
+                  </span>
+                </button>
+              ) : null}
+
               <details
                 data-testid="integrations-advanced"
                 className="group mt-8"
@@ -981,7 +1012,7 @@ export function PluginsOverlay({
                       variant="secondary"
                       className="rounded-full"
                       size="sm"
-                      onClick={() => beginSource("mcp")}
+                      onClick={() => onOpenMcp?.()}
                     >
                       <Trans>Add MCP server</Trans>
                     </Button>
@@ -1008,7 +1039,9 @@ export function PluginsOverlay({
                       variant="secondary"
                       className="rounded-full"
                       size="sm"
-                      onClick={() => beginSource("executor")}
+                      onClick={() =>
+                        onOpenMcp?.({ name: "Executor", endpoint: "", needsToken: true })
+                      }
                     >
                       <Trans>Add Executor</Trans>
                     </Button>
@@ -1017,7 +1050,13 @@ export function PluginsOverlay({
                       variant="secondary"
                       className="rounded-full"
                       size="sm"
-                      onClick={() => beginSource("treg")}
+                      onClick={() =>
+                        onOpenMcp?.({
+                          name: "Treg",
+                          endpoint: "https://treg.to/mcp/",
+                          needsToken: true,
+                        })
+                      }
                     >
                       <Trans>Add Treg</Trans>
                     </Button>
@@ -1029,13 +1068,7 @@ export function PluginsOverlay({
                     <Card>
                       <CardHeader>
                         <CardTitle>
-                          {sourceKind === "treg" ? (
-                            <Trans>Connect Treg</Trans>
-                          ) : sourceKind === "executor" ? (
-                            <Trans>Connect Executor</Trans>
-                          ) : sourceKind === "mcp" ? (
-                            <Trans>Add remote MCP server</Trans>
-                          ) : sourceKind === "graphql" ? (
+                          {sourceKind === "graphql" ? (
                             <Trans>Add GraphQL endpoint</Trans>
                           ) : (
                             <Trans>Import OpenAPI JSON</Trans>
@@ -1048,62 +1081,44 @@ export function PluginsOverlay({
                           onChange={(event) => setSourceName(event.target.value)}
                           placeholder={t`Display name`}
                         />
-                        {sourceKind !== "treg" ? (
-                          <Input
-                            value={sourceUrl}
-                            onChange={(event) => setSourceUrl(event.target.value)}
-                            placeholder={
-                              sourceKind === "mcp"
-                                ? "https://example.com/mcp"
-                                : sourceKind === "executor"
-                                  ? "https://executor.example/mcp"
-                                  : sourceKind === "graphql"
-                                    ? "https://example.com/graphql"
-                                    : "https://example.com/openapi.json"
-                            }
-                          />
-                        ) : null}
-                        {sourceKind !== "treg" && sourceKind !== "executor" ? (
-                          <NativeSelect
-                            className="w-full"
-                            value={authType}
-                            onChange={(event) => setAuthType(event.target.value as typeof authType)}
-                          >
-                            <NativeSelectOption value="none">
-                              <Trans>No authentication</Trans>
-                            </NativeSelectOption>
-                            <NativeSelectOption value="bearer">
-                              <Trans>Bearer token</Trans>
-                            </NativeSelectOption>
-                            <NativeSelectOption value="header">
-                              <Trans>API key header</Trans>
-                            </NativeSelectOption>
-                          </NativeSelect>
-                        ) : null}
-                        {authType === "header" &&
-                        sourceKind !== "treg" &&
-                        sourceKind !== "executor" ? (
+                        <Input
+                          value={sourceUrl}
+                          onChange={(event) => setSourceUrl(event.target.value)}
+                          placeholder={
+                            sourceKind === "graphql"
+                              ? "https://example.com/graphql"
+                              : "https://example.com/openapi.json"
+                          }
+                        />
+                        <NativeSelect
+                          className="w-full"
+                          value={authType}
+                          onChange={(event) => setAuthType(event.target.value as typeof authType)}
+                        >
+                          <NativeSelectOption value="none">
+                            <Trans>No authentication</Trans>
+                          </NativeSelectOption>
+                          <NativeSelectOption value="bearer">
+                            <Trans>Bearer token</Trans>
+                          </NativeSelectOption>
+                          <NativeSelectOption value="header">
+                            <Trans>API key header</Trans>
+                          </NativeSelectOption>
+                        </NativeSelect>
+                        {authType === "header" ? (
                           <Input
                             value={authName}
                             onChange={(event) => setAuthName(event.target.value)}
                             placeholder={t`Header name`}
                           />
                         ) : null}
-                        {sourceKind === "treg" ||
-                        sourceKind === "executor" ||
-                        authType !== "none" ? (
+                        {authType !== "none" ? (
                           <Input
                             type="password"
                             autoComplete="new-password"
                             value={credential}
                             onChange={(event) => setCredential(event.target.value)}
-                            placeholder={
-                              sourceKind === "treg"
-                                ? t`Treg token`
-                                : sourceKind === "executor"
-                                  ? t`Executor token`
-                                  : t`Credential`
-                            }
+                            placeholder={t`Credential`}
                           />
                         ) : null}
                         <p className="text-xs leading-5 text-muted-foreground">
@@ -1227,17 +1242,6 @@ export function PluginsOverlay({
                         </Button>
                       </div>
                     ))}
-                    {onOpenMcp ? (
-                      <Button
-                        type="button"
-                        variant="link"
-                        size="xs"
-                        className="mt-2 px-0 text-muted-foreground"
-                        onClick={onOpenMcp}
-                      >
-                        <Trans>Manage MCP servers</Trans>
-                      </Button>
-                    ) : null}
                   </div>
                 </div>
               </details>

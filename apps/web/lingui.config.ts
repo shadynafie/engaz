@@ -1,4 +1,5 @@
 import { defineConfig } from "@lingui/conf";
+import { formatter } from "@lingui/format-po";
 
 export default defineConfig({
   sourceLocale: "en",
@@ -10,5 +11,8 @@ export default defineConfig({
       exclude: ["**/locales/**", "**/*.test.*"],
     },
   ],
+  // Without source locations the catalogs change only when a message does,
+  // so `intl:check` can require them to be current.
+  format: formatter({ origins: false }),
   compileNamespace: "es",
 });

@@ -17,6 +17,7 @@ It writes:
   chrome, dark icon in dark), dark `favicon.ico` and small PNGs, and square
   `apple-touch-icon.png`, `icon-192.png`, and `icon-512.png` for platforms that apply
   their own mask. The marketing header reuses `favicon.svg` as `brand/engaz-mark.svg`.
+  The marketing social preview uses the same face and light palette.
 - `apps/desktop/assets`: the rounded dark icon as `icon.png` and `icon.ico` for Linux and
   Windows, and `icon-macos.png`, Apple's 824-point tile with a shadow inside a 1024 canvas,
   for unpackaged Dock launches.

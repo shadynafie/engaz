@@ -14,7 +14,7 @@
   "dependencies": {
     "@astrojs/react": "6.0.5",
     "@astrojs/sitemap": "3.7.4",
-    "@engaz/core": "workspace:*",
+    "@engaz/ui-tokens": "workspace:*",
     "@engaz/ui-web": "workspace:*",
     "@vercel/functions": "3.9.7",
     "astro": "7.3.2",

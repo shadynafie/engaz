@@ -2,17 +2,13 @@
 import Button from "../components/Button.astro";
 import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
-import { fetchGithubStars, formatStarCount } from "../github";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { DOCS_URL } from "../site";
-
-const stars = await fetchGithubStars();
-const starsLabel = stars === null ? "Star" : formatStarCount(stars);
 ---
 
 <BaseLayout title="Page not found · Engaz" description="The requested Engaz page does not exist.">
   <div class="container">
-    <Header starsLabel={starsLabel} />
+    <Header />
     <main id="main" class="privacy-copy">
       <h1>Page not found</h1>
       <p>The page you requested does not exist. Return home or continue with the self-hosting guide.</p>

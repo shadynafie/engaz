@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { ENGAZ_FACE_PATH, ENGAZ_FACE_VIEWBOX, ENGAZ_ICON } from "./index.js";
+import { ENGAZ_FACE_PATH, ENGAZ_FACE_VIEWBOX, ENGAZ_ICON, lightTokens } from "./index.js";
 
 // Regenerates every exported icon from the face path in brand.ts. Run with
 // `pnpm --filter @engaz/ui-tokens generate:icons`, then review the images.
@@ -112,6 +112,19 @@ for (const site of ["apps/web/public", "apps/www/public"]) {
   await png(squareDark, 512, `${site}/icon-512.png`);
 }
 writeFileSync(repo("apps/www/public/brand/engaz-mark.svg"), adaptiveIconSvg);
+
+const socialPreview = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="${lightTokens.background}"/>
+  <g transform="translate(54 66) scale(0.46)">${icon("light", true)}</g>
+  <path d="M580 94v442" stroke="${lightTokens.border}"/>
+  <text x="640" y="254" fill="${lightTokens.foreground}" font-family="Arial, Helvetica, sans-serif" font-size="96" font-weight="700" letter-spacing="-5">Engaz</text>
+  <text x="645" y="326" fill="${lightTokens.mutedForeground}" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" letter-spacing="4">AI TEAMMATES.</text>
+  <text x="645" y="372" fill="${lightTokens.mutedForeground}" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" letter-spacing="4">REAL PROGRESS.</text>
+</svg>`;
+writeFileSync(
+  repo("apps/www/public/og-image.png"),
+  await sharp(Buffer.from(socialPreview)).png({ compressionLevel: 9 }).toBuffer(),
+);
 
 await png(roundedDark, 1024, "apps/desktop/assets/icon.png");
 await writeIco(roundedDark, [16, 24, 32, 48, 64, 128, 256], "apps/desktop/assets/icon.ico");

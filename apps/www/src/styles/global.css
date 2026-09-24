@@ -1,3 +1,4 @@
+@import "@engaz/ui-tokens/css";
 @import "tailwindcss";
 
 @source "../../../../packages/ui-web/src/button.tsx";
@@ -11,21 +12,21 @@
 }
 
 :root {
-  --page: #fdfdfd;
-  --surface: #ffffff;
-  --surface-soft: #f7f7f7;
-  --ink: #242424;
-  --body: #3d3d3d;
-  --muted: #848484;
-  --muted-2: #6d6e70;
-  --line: #efefef;
-  --line-2: #e6e6e6;
-  --blue: #2563eb;
-  --blue-top: #2965ec;
-  --blue-bottom: #5c89f8;
-  --blue-soft: #eff6ff;
-  --blue-soft-2: #d8e9ff;
-  --blue-line: #d6e8fc;
+  --page: var(--background);
+  --surface: var(--card);
+  --surface-soft: var(--muted);
+  --ink: var(--foreground);
+  --body: var(--foreground);
+  --copy-muted: var(--muted-foreground);
+  --muted-2: var(--muted-foreground);
+  --line: var(--border);
+  --line-2: var(--border);
+  --blue: var(--ring);
+  --blue-top: var(--primary);
+  --blue-bottom: var(--primary);
+  --blue-soft: var(--secondary);
+  --blue-soft-2: var(--secondary);
+  --blue-line: var(--border);
   --panel: #0b0b0c;
   --panel-2: #0f0f10;
   --panel-line: #1b1b1d;
@@ -366,7 +367,7 @@ button {
 .lead {
   max-width: 640px;
   margin: 22px auto 0;
-  color: var(--muted);
+  color: var(--copy-muted);
   font-size: 19px;
   line-height: 1.55;
   text-wrap: pretty;
@@ -400,7 +401,7 @@ button {
   border: 0;
   border-radius: 12px;
   background: transparent;
-  color: var(--muted);
+  color: var(--copy-muted);
   font: 500 14px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: -0.02em;
   cursor: pointer;
@@ -459,7 +460,7 @@ button {
 
 .section-copy {
   margin-top: 16px;
-  color: var(--muted);
+  color: var(--copy-muted);
   font-size: 18px;
   line-height: 1.55;
   text-wrap: pretty;
@@ -560,7 +561,7 @@ button {
 
 .comparison-meta {
   margin-top: 6px;
-  color: var(--muted);
+  color: var(--copy-muted);
   font-size: 14.5px;
 }
 
@@ -607,7 +608,7 @@ button {
 }
 
 .waitlist-form > input::placeholder {
-  color: var(--muted);
+  color: var(--copy-muted);
 }
 
 .waitlist-form > input:focus {
@@ -633,7 +634,7 @@ button {
   grid-column: 1 / -1;
   min-height: 18px;
   margin: 0;
-  color: var(--muted);
+  color: var(--copy-muted);
   font-size: 13px;
 }
 
@@ -762,7 +763,7 @@ button {
   margin: 0 0 16px;
   border: 0;
   background: transparent;
-  color: var(--muted);
+  color: var(--copy-muted);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
@@ -848,7 +849,7 @@ button {
 
 .stats-band p {
   margin: 14px 0 0;
-  color: var(--muted);
+  color: var(--copy-muted);
   font-size: 17px;
   line-height: 1.55;
 }
@@ -867,7 +868,7 @@ button {
 
 .stat-label {
   margin-top: 6px;
-  color: var(--muted);
+  color: var(--copy-muted);
   font-size: 13.5px;
 }
 
@@ -917,7 +918,7 @@ button {
 
 .site-footer__languages,
 .site-footer__links {
-  color: var(--muted);
+  color: var(--copy-muted);
   font-size: 14px;
 }
 
@@ -928,7 +929,7 @@ button {
 .site-footer__languages a + a::before {
   content: "·";
   margin: 0 10px;
-  color: var(--muted);
+  color: var(--copy-muted);
   pointer-events: none;
 }
 
@@ -2090,7 +2091,7 @@ button {
 .product-demo__caption {
   margin: 16px 0 0;
   text-align: center;
-  color: var(--muted);
+  color: var(--copy-muted);
   font-size: 13.5px;
 }
 
@@ -2122,7 +2123,7 @@ button {
 
 .privacy-copy a:hover,
 .privacy-copy a:focus-visible {
-  color: #1d4ed8;
+  color: var(--foreground);
 }
 
 @keyframes pulse {

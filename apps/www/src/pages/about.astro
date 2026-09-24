@@ -1,17 +1,13 @@
 ---
 import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
-import { fetchGithubStars, formatStarCount } from "../github";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { DOCS_URL, GITHUB_URL } from "../site";
-
-const stars = await fetchGithubStars();
-const starsLabel = stars === null ? "Star" : formatStarCount(stars);
 ---
 
 <BaseLayout title="About · Engaz" description="An open-source AI team workspace for small businesses.">
   <div class="container">
-    <Header starsLabel={starsLabel} />
+    <Header />
     <main id="main" class="privacy-copy">
       <h1>About Engaz</h1>
       <p>Engaz is an open-source workspace for running AI teammates. It is being developed for solo founders and small businesses that need clear roles, connected tools, visible work, and human approval.</p>

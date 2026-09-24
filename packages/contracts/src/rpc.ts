@@ -567,6 +567,8 @@ export const appContract = {
         )
         .output(McpServerSchema),
       remove: oc.input(z.object({ id: Id })).output(z.object({ ok: z.literal(true) })),
+      /** Connects now, lists the server's tools, and records the result. */
+      check: oc.input(z.object({ id: Id })).output(McpServerSchema),
     },
     assignments: {
       list: oc.input(botId).output(z.array(BotMcpServerSchema)),

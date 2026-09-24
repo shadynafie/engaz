@@ -80,7 +80,8 @@ test("direct MCP connects a catalog result without asking for a URL and assigns 
                 {
                   kind: "mcp",
                   slug: "notion",
-                  source: "https://mcp.notion.example.test/mcp",
+                  // The API checks the server on connect; the emulator answers here.
+                  source: "https://mcp.example.test/mcp",
                   auth: null,
                 },
               ],

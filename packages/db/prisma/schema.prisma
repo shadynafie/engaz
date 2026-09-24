@@ -1068,6 +1068,12 @@ model McpServer {
   secret        Secret?           @relation(fields: [secretId], references: [id], onDelete: SetNull)
   enabled       Boolean           @default(true)
   revision      Int               @default(1)
+  /// unchecked, working, sign_in, or failing: the last connection check.
+  checkStatus   String            @default("unchecked")
+  checkMessage  String?
+  checkedAt     DateTime?
+  /// Tool names the server offered at its last working check.
+  tools         Json              @default("[]")
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   assignments   BotMcpServer[]

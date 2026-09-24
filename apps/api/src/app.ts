@@ -428,6 +428,7 @@ export async function createApp(
   const router = createRouter({
     cloudAgent,
     verifyModel: (model, signal) => runtime.verifyModel(model, signal),
+    checkMcpServer: (server, context) => mcp.check(server, context),
     prisma,
     events,
     auth,

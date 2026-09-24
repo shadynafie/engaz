@@ -24,6 +24,7 @@ import type {
   ConnectorRegistry,
   EncryptedSecretStore,
   IntegrationProviderSettings,
+  McpConnector,
   MemoryProviderResolver,
   PiOAuthLogins,
   RemoteConnectorDependencies,
@@ -87,6 +88,7 @@ import type { Actor, ComputerStatus, McpServer, Me, SpaceNavigation } from "@eng
 import {
   appContract,
   IntegrationProviderIdSchema,
+  McpCheckStatusSchema,
   OPENAI_COMPATIBLE_PROVIDER_ID,
   usableModelId,
 } from "@engaz/contracts";
@@ -350,6 +352,10 @@ function mcpServerDto(
     secretId: string | null;
     enabled: boolean;
     revision: number;
+    checkStatus: string;
+    checkMessage: string | null;
+    checkedAt: Date | null;
+    tools: unknown;
     createdAt: Date;
     updatedAt: Date;
   },
@@ -378,6 +384,14 @@ function mcpServerDto(
     headerKeys,
     hasSecret: row.secretId !== null,
     oauthStatus,
+    check: {
+      status: McpCheckStatusSchema.catch("unchecked").parse(row.checkStatus),
+      message: row.checkMessage,
+      checkedAt: row.checkedAt?.toISOString() ?? null,
+      tools: Array.isArray(row.tools)
+        ? row.tools.filter((tool): tool is string => typeof tool === "string")
+        : [],
+    },
     enabled: row.enabled,
     revision: row.revision,
     createdAt: row.createdAt.toISOString(),
@@ -425,6 +439,8 @@ export interface RouterDeps {
   cloudAgent?: CloudAgentConnection | null;
   /** Sends one test request with a new model connection before it is saved. */
   verifyModel: AgentRuntime["verifyModel"];
+  /** Connects to an MCP server, lists its tools, and records the result on the row. */
+  checkMcpServer: McpConnector["check"];
   prisma: PrismaClient;
   events: ThreadEvents;
   auth: Auth;
@@ -486,6 +502,34 @@ export function createRouter(deps: RouterDeps) {
   const repos = createRepos(deps.prisma);
   const onboardingDeps = { prisma: deps.prisma, events: deps.events, connectors: deps.connectors };
   const mcpOAuth = deps.mcpOAuth ?? new McpOAuthBroker(deps.prisma, deps.secrets);
+
+  /** Assignments cascade; the encrypted credential must go with the server. */
+  async function deleteMcpServer(
+    server: { id: string; secretId: string | null },
+    actor: Actor,
+  ): Promise<void> {
+    await deps.prisma.$transaction([
+      deps.prisma.mcpServer.delete({ where: { id: server.id } }),
+      ...(server.secretId
+        ? [
+            deps.prisma.secret.deleteMany({
+              where: { id: server.secretId, spaceId: actor.spaceId, userId: actor.userId },
+            }),
+          ]
+        : []),
+    ]);
+  }
+
+  /** Checks the server as saved and returns it with the fresh status. */
+  async function checkedMcpServer(
+    row: Parameters<McpConnector["check"]>[0],
+    actor: Actor,
+    signal?: AbortSignal,
+  ): Promise<McpServer> {
+    await deps.checkMcpServer(row, connectionContext(actor, "mcp.check", signal));
+    const checked = (await deps.prisma.mcpServer.findUnique({ where: { id: row.id } })) ?? row;
+    return mcpServerDto(checked, await mcpOAuth.statusFor(checked, actor));
+  }
   const groupRepos = createGroupRepos(deps.prisma);
   const taughtSkills = createTaughtSkillsService({
     prisma: deps.prisma,
@@ -2947,7 +2991,15 @@ export function createRouter(deps: RouterDeps) {
               },
             });
           });
-          return mcpServerDto(row, await mcpOAuth.statusFor(row, context.actor));
+          // A server that cannot be reached is not kept; one waiting for sign-in is.
+          const checked = await checkedMcpServer(row, context.actor, context.signal);
+          if (checked.check.status === "failing") {
+            await deleteMcpServer(row, context.actor);
+            throw new ORPCError("BAD_REQUEST", {
+              message: checked.check.message ?? "Could not connect to this MCP server",
+            });
+          }
+          return checked;
         }),
         update: authed.mcp.servers.update.handler(async ({ context, input }) => {
           const row = await deps.prisma.$transaction(async (tx) => {
@@ -3063,7 +3115,14 @@ export function createRouter(deps: RouterDeps) {
             }
             return updated;
           });
-          return mcpServerDto(row, await mcpOAuth.statusFor(row, context.actor));
+          return checkedMcpServer(row, context.actor, context.signal);
+        }),
+        check: authed.mcp.servers.check.handler(async ({ context, input }) => {
+          const row = await deps.prisma.mcpServer.findFirst({
+            where: { id: input.id, spaceId: context.actor.spaceId, userId: context.actor.userId },
+          });
+          if (!row) throw new IsolationError();
+          return checkedMcpServer(row, context.actor, context.signal);
         }),
         remove: authed.mcp.servers.remove.handler(async ({ context, input }) => {
           const server = await deps.prisma.mcpServer.findFirst({
@@ -3075,21 +3134,7 @@ export function createRouter(deps: RouterDeps) {
             select: { id: true, secretId: true },
           });
           if (!server) throw new IsolationError();
-          // Assignments cascade; the encrypted credential must go with the server.
-          await deps.prisma.$transaction([
-            deps.prisma.mcpServer.delete({ where: { id: server.id } }),
-            ...(server.secretId
-              ? [
-                  deps.prisma.secret.deleteMany({
-                    where: {
-                      id: server.secretId,
-                      spaceId: context.actor.spaceId,
-                      userId: context.actor.userId,
-                    },
-                  }),
-                ]
-              : []),
-          ]);
+          await deleteMcpServer(server, context.actor);
           return { ok: true as const };
         }),
       },

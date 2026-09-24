@@ -10,6 +10,12 @@ test("connects an MCP server through the OAuth popup callback", async ({ page },
 
   let oauthStatus: McpServer["oauthStatus"] = "none";
   let hasSecret = false;
+  let check: McpServer["check"] = {
+    status: "sign_in",
+    message: null,
+    checkedAt: "2026-08-24T00:00:00.000Z",
+    tools: [],
+  };
   const server: McpServer = {
     id: "mcp-oauth-server",
     spaceId: "mcp-oauth-workspace",
@@ -24,6 +30,7 @@ test("connects an MCP server through the OAuth popup callback", async ({ page },
     headerKeys: [],
     hasSecret,
     oauthStatus,
+    check,
     enabled: true,
     revision: 1,
     createdAt: "2026-08-24T00:00:00.000Z",
@@ -42,7 +49,16 @@ test("connects an MCP server through the OAuth popup callback", async ({ page },
   await page.context().route("**/rpc/mcp/servers/list", async (route) => {
     await route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify({ json: [{ ...server, hasSecret, oauthStatus }] }),
+      body: JSON.stringify({ json: [{ ...server, hasSecret, oauthStatus, check }] }),
+    });
+  });
+  // Signing in is followed by a connection check, which finds the server's tools.
+  await page.context().route("**/rpc/mcp/servers/check", async (route) => {
+    expect(route.request().postDataJSON()).toEqual({ json: { id: server.id } });
+    check = { ...check, status: "working", tools: ["list_issues", "create_issue", "search"] };
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ json: { ...server, hasSecret, oauthStatus, check } }),
     });
   });
   await page.context().route("**/rpc/mcp/assignments/all", async (route) => {
@@ -90,6 +106,7 @@ test("connects an MCP server through the OAuth popup callback", async ({ page },
   await page.getByRole("button", { name: "Manage MCP servers", exact: true }).click();
   await expect(page.getByRole("heading", { name: "MCP servers" })).toBeVisible();
   await expect(page.getByText("Linear MCP", { exact: true })).toBeVisible();
+  await expect(page.getByText("Sign in needed", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Access token (optional)")).toBeHidden();
   await captureScreenshot(page, testInfo, "mcp-oauth-ready");
 
@@ -98,26 +115,28 @@ test("connects an MCP server through the OAuth popup callback", async ({ page },
   await page.getByText("Advanced", { exact: true }).click();
 
   const popupPromise = page.waitForEvent("popup");
-  await page.getByRole("button", { name: "Connect OAuth", exact: true }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   const popup = await popupPromise;
   await completionStarted;
   await expect(popup.getByText("Finishing MCP connection…", { exact: true })).toBeVisible();
   await captureScreenshot(popup, testInfo, "mcp-oauth-callback");
 
   releaseCompletion();
-  await expect(page.getByText("OAuth connected", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Reconnect OAuth", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Disconnect", exact: true })).toBeVisible();
+  await expect(page.getByText("Working · 3 tools", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Check again", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
   await expect.poll(() => popup.isClosed()).toBe(true);
   await captureScreenshot(page, testInfo, "mcp-oauth-connected");
 
   oauthStatus = "reconnect";
   hasSecret = true;
+  check = { ...check, status: "sign_in", tools: [] };
   await page.evaluate((channelName) => {
     const channel = new BroadcastChannel(channelName);
     channel.postMessage({ type: "mcp-oauth-complete" });
     channel.close();
   }, MCP_OAUTH_CHANNEL);
-  await expect(page.getByText("OAuth expired", { exact: true })).toBeVisible();
+  await expect(page.getByText("Sign in needed", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "mcp-oauth-expired");
 });

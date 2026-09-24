@@ -22,21 +22,43 @@ import {
   TabsTrigger,
 } from "@engaz/ui-web";
 import { t } from "@lingui/core/macro";
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Check, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { connectMcpOauth, MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
 import { rpc } from "../lib/rpc";
 
-function oauthStatusText(server: McpServer): string | null {
-  if (server.oauthStatus === "connected") return t`OAuth connected`;
-  if (server.oauthStatus === "reconnect") return t`OAuth expired`;
-  return server.hasSecret ? t`credential saved` : null;
-}
-
-function oauthActionLabel(server: McpServer, pending: boolean): string {
-  if (pending) return t`Connecting…`;
-  return server.oauthStatus === "none" ? t`Connect OAuth` : t`Reconnect OAuth`;
+/** Whether agents can use the server right now, from its last connection check. */
+function McpServerStatus({ server }: { server: McpServer }) {
+  const { status, message, tools, checkedAt } = server.check;
+  const tone =
+    status === "working"
+      ? "bg-success"
+      : status === "failing"
+        ? "bg-destructive"
+        : status === "sign_in"
+          ? "bg-warning"
+          : "bg-muted-foreground/40";
+  return (
+    <div
+      className="mt-2 text-xs"
+      title={checkedAt ? t`Checked ${new Date(checkedAt).toLocaleString()}` : undefined}
+    >
+      <p className="flex items-center gap-1.5 text-foreground">
+        <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${tone}`} />
+        {status === "working" ? (
+          <Plural value={tools.length} one="Working · # tool" other="Working · # tools" />
+        ) : status === "sign_in" ? (
+          <Trans>Sign in needed</Trans>
+        ) : status === "failing" ? (
+          <Trans>Needs attention</Trans>
+        ) : (
+          <Trans>Not checked yet</Trans>
+        )}
+      </p>
+      {status === "failing" && message ? <p className="mt-1 text-destructive">{message}</p> : null}
+    </div>
+  );
 }
 
 export function McpServersOverlay({ onClose }: { onClose: () => void }) {
@@ -57,6 +79,10 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [oauthPending, setOauthPending] = useState<string | null>(null);
+  const [checking, setChecking] = useState<string | null>(null);
+  // The sign-in window reports back on a channel; this is the server it was for.
+  const oauthPendingRef = useRef<string | null>(null);
+  oauthPendingRef.current = oauthPending;
 
   async function refresh() {
     const [nextServers, nextBots, assignments] = await Promise.all([
@@ -90,8 +116,10 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
     const channel = new BroadcastChannel(MCP_OAUTH_CHANNEL);
     channel.onmessage = (event: MessageEvent) => {
       if ((event.data as { type?: string } | null)?.type !== "mcp-oauth-complete") return;
+      const serverId = oauthPendingRef.current;
       setOauthPending(null);
-      void refresh().catch(() => undefined);
+      if (serverId) void checkServer(serverId);
+      else void refresh().catch(() => undefined);
     };
     return () => channel.close();
   }, []);
@@ -109,7 +137,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
       return;
     }
     if (transport !== "stdio" && !endpoint.trim()) {
-      setError(t`Add an HTTPS server URL.`);
+      setError(t`Add the server URL.`);
       return;
     }
     if (transport === "stdio" && !command.trim()) {
@@ -159,6 +187,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
         }),
       );
       await refresh();
+      if (created.check.status === "sign_in") void connectOAuth(created);
       setName("");
       setEndpoint("");
       setSecret("");
@@ -179,8 +208,11 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
     try {
       const result = await connectMcpOauth(server.id);
       if (result !== "cancelled") setOauthPending(null);
+      if (result === "connected") {
+        await checkServer(server.id);
+        return;
+      }
       await refresh();
-      if (result === "connected") return;
       if (result === "already_connected") {
         setError(t`This server is already connected. Disconnect it first to authorize again.`);
         return;
@@ -193,6 +225,19 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not start OAuth`);
       setOauthPending(null);
+    }
+  }
+
+  async function checkServer(serverId: string) {
+    setError(null);
+    setChecking(serverId);
+    try {
+      const checked = await rpc.mcp.servers.check({ id: serverId });
+      setServers((list) => list.map((server) => (server.id === serverId ? checked : server)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t`Could not check this server`);
+    } finally {
+      setChecking(null);
     }
   }
 
@@ -412,7 +457,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
                 disabled={saving}
                 onClick={() => void addServer()}
               >
-                {saving ? <Trans>Adding…</Trans> : <Trans>Add server</Trans>}
+                {saving ? <Trans>Checking…</Trans> : <Trans>Add server</Trans>}
               </Button>
             </CardContent>
           </Card>
@@ -427,7 +472,8 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
                 </p>
               ) : (
                 servers.map((server) => {
-                  const statusText = oauthStatusText(server);
+                  const needsSignIn =
+                    server.check.status === "sign_in" || server.oauthStatus === "reconnect";
                   return (
                     <Card key={server.id} size="sm">
                       <CardContent>
@@ -440,13 +486,7 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
                         <p className="mt-1 text-xs text-muted-foreground">
                           {server.endpoint ?? server.command ?? server.slug}
                         </p>
-                        {statusText ? (
-                          <p
-                            className={`mt-2 text-[11px] ${server.oauthStatus === "reconnect" ? "text-warning" : "text-muted-foreground"}`}
-                          >
-                            {statusText}
-                          </p>
-                        ) : null}
+                        <McpServerStatus server={server} />
                         <div className="mt-3 flex flex-wrap items-center gap-1.5">
                           <span className="text-[11px] text-muted-foreground">
                             <Trans>Agents:</Trans>
@@ -472,28 +512,44 @@ export function McpServersOverlay({ onClose }: { onClose: () => void }) {
                           })}
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          {server.transport !== "stdio" ? (
-                            <>
-                              <Button
-                                type="button"
-                                size="sm"
-                                disabled={oauthPending === server.id}
-                                onClick={() => void connectOAuth(server)}
-                              >
-                                {oauthActionLabel(server, oauthPending === server.id)}
-                              </Button>
-                              {server.oauthStatus !== "none" ? (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={oauthPending === server.id}
-                                  onClick={() => void disconnectOAuth(server)}
-                                >
-                                  <Trans>Disconnect</Trans>
-                                </Button>
-                              ) : null}
-                            </>
+                          {needsSignIn ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={oauthPending === server.id}
+                              onClick={() => void connectOAuth(server)}
+                            >
+                              {oauthPending === server.id ? (
+                                <Trans>Signing in…</Trans>
+                              ) : (
+                                <Trans>Sign in</Trans>
+                              )}
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={checking === server.id}
+                              onClick={() => void checkServer(server.id)}
+                            >
+                              {checking === server.id ? (
+                                <Trans>Checking…</Trans>
+                              ) : (
+                                <Trans>Check again</Trans>
+                              )}
+                            </Button>
+                          )}
+                          {server.oauthStatus === "connected" ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={oauthPending === server.id}
+                              onClick={() => void disconnectOAuth(server)}
+                            >
+                              <Trans>Sign out</Trans>
+                            </Button>
                           ) : null}
                           <Button
                             type="button"

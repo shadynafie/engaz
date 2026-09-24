@@ -675,6 +675,18 @@ export const McpServerConfigInput = z.discriminatedUnion("transport", [
 ]);
 export type McpServerConfigInput = z.infer<typeof McpServerConfigInput>;
 
+export const McpCheckStatusSchema = z.enum(["unchecked", "working", "sign_in", "failing"]);
+export type McpCheckStatus = z.infer<typeof McpCheckStatusSchema>;
+
+/** The last connection check: can agents use this server now, and with which tools. */
+export const McpServerCheckSchema = z.object({
+  status: McpCheckStatusSchema,
+  message: z.string().nullable(),
+  checkedAt: z.string().nullable(),
+  tools: z.array(z.string()),
+});
+export type McpServerCheck = z.infer<typeof McpServerCheckSchema>;
+
 export const McpServerSchema = z.object({
   id: Id,
   spaceId: Id,
@@ -689,6 +701,7 @@ export const McpServerSchema = z.object({
   headerKeys: z.array(z.string()),
   hasSecret: z.boolean(),
   oauthStatus: z.enum(["none", "connected", "reconnect"]),
+  check: McpServerCheckSchema,
   enabled: z.boolean(),
   revision: z.number().int().positive(),
   createdAt: z.string(),

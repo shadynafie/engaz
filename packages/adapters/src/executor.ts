@@ -1594,6 +1594,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           return autoReviewPreferencePromise;
         };
         const tools = [...builtins, ...exposedConnectorTools];
+        // A tool the agent was not offered this run (never granted, or taken away since) is
+        // refused before approval rules run, so the owner is never asked to approve it.
+        const knownToolNames = new Set([...BUILTIN_AGENT_TOOL_NAMES, ...tools.map((t) => t.name)]);
         const approvedEffects = await deps.prisma.externalEffect.findMany({
           where: { runId, status: "approved" },
           orderBy: APPROVED_EFFECT_REPLAY_ORDER,
@@ -1755,6 +1758,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (handedOff) {
             return { error: "This stage was handed off. End the turn without more tool calls." };
           }
+          if (!knownToolNames.has(name)) return { error: `unknown tool ${name}` };
           if (PAGE_BROWSER_TOOL_NAMES.has(name) && !pageBrowserAllowed) {
             return { error: "Page browser is unavailable on this computer." };
           }

@@ -1,10 +1,8 @@
-import { BUILTIN_AGENT_SKILLS } from "@engaz/adapters";
 import type { Actor, AgentSkill, AgentSkillSource } from "@engaz/contracts";
 import {
   buildSkillMd,
   findSkillByName,
   isSkillReadOnly,
-  mergeBuiltinSkills,
   parseSkillMd,
   type SkillSource,
 } from "@engaz/core";
@@ -17,12 +15,15 @@ type AgentSkillRow = {
   description: string;
   content: string;
   source: string;
+  bots: { botId: string }[];
   createdAt: Date;
   updatedAt: Date;
 };
 
+const withBots = { bots: { select: { botId: true }, orderBy: { createdAt: "asc" as const } } };
+
 function asSource(value: string): AgentSkillSource {
-  if (value === "builtin" || value === "plugin" || value === "user") return value;
+  if (value === "plugin" || value === "user") return value;
   return "user";
 }
 
@@ -35,22 +36,10 @@ export function mapAgentSkill(row: AgentSkillRow): AgentSkill {
     content: row.content,
     source,
     readOnly: isSkillReadOnly(source as SkillSource),
+    botIds: row.bots.map((bot) => bot.botId),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
-}
-
-function builtinCatalog(): AgentSkill[] {
-  return BUILTIN_AGENT_SKILLS.map((skill) => ({
-    id: `builtin:${skill.name}`,
-    name: skill.name,
-    description: skill.description,
-    content: skill.content,
-    source: "builtin" as const,
-    readOnly: true,
-    createdAt: new Date(0).toISOString(),
-    updatedAt: new Date(0).toISOString(),
-  }));
 }
 
 export function resolveSkillContent(input: {
@@ -126,36 +115,50 @@ export function createAgentSkillsService(prisma: PrismaClient) {
         spaceId: actor.spaceId,
         userId: actor.userId,
       },
+      include: withBots,
     });
     if (!row) throw new IsolationError();
     return row;
   }
 
+  async function ownedBot(actor: Actor, botId: string) {
+    const bot = await prisma.bot.findFirst({
+      where: { id: botId, spaceId: actor.spaceId, userId: actor.userId },
+      select: { id: true },
+    });
+    if (!bot) throw new IsolationError();
+    return bot;
+  }
+
+  function scope(actor: Actor, botId?: string) {
+    return {
+      spaceId: actor.spaceId,
+      userId: actor.userId,
+      ...(botId ? { bots: { some: { botId } } } : {}),
+    };
+  }
+
   return {
-    async list(actor: Actor): Promise<Omit<AgentSkill, "content">[]> {
+    async list(actor: Actor, botId?: string): Promise<Omit<AgentSkill, "content">[]> {
       const rows = await prisma.agentSkill.findMany({
-        where: { spaceId: actor.spaceId, userId: actor.userId },
+        where: scope(actor, botId),
+        include: withBots,
         orderBy: [{ name: "asc" }, { id: "asc" }],
       });
-      return mergeBuiltinSkills(builtinCatalog(), rows.map(mapAgentSkill)).map(
-        ({ content: _content, ...entry }) => entry,
-      );
+      return rows.map(mapAgentSkill).map(({ content: _content, ...entry }) => entry);
     },
 
-    async listWithContent(actor: Actor): Promise<AgentSkill[]> {
+    /** With botId, only the skills that agent receives. */
+    async listWithContent(actor: Actor, botId?: string): Promise<AgentSkill[]> {
       const rows = await prisma.agentSkill.findMany({
-        where: { spaceId: actor.spaceId, userId: actor.userId },
+        where: scope(actor, botId),
+        include: withBots,
         orderBy: [{ name: "asc" }, { id: "asc" }],
       });
-      return mergeBuiltinSkills(builtinCatalog(), rows.map(mapAgentSkill));
+      return rows.map(mapAgentSkill);
     },
 
     async get(actor: Actor, input: { skillId?: string; name?: string }): Promise<AgentSkill> {
-      if (input.skillId?.startsWith("builtin:")) {
-        const builtin = builtinCatalog().find((skill) => skill.id === input.skillId);
-        if (!builtin) throw new IsolationError();
-        return builtin;
-      }
       if (input.skillId) {
         return mapAgentSkill(await owned(actor, input.skillId));
       }
@@ -165,20 +168,26 @@ export function createAgentSkillsService(prisma: PrismaClient) {
           spaceId: actor.spaceId,
           userId: actor.userId,
         },
+        include: withBots,
         orderBy: [{ name: "asc" }, { id: "asc" }],
       });
       const row = findSkillByName(rows, name);
-      if (row) return mapAgentSkill(row);
-      const builtin = findSkillByName(builtinCatalog(), name);
-      if (!builtin) throw new IsolationError();
-      return builtin;
+      if (!row) throw new IsolationError();
+      return mapAgentSkill(row);
     },
 
     async create(
       actor: Actor,
-      input: { content?: string; name?: string; description?: string; body?: string },
+      input: {
+        content?: string;
+        name?: string;
+        description?: string;
+        body?: string;
+        botId?: string;
+      },
     ): Promise<AgentSkill> {
       const resolved = resolveSkillContent(input);
+      const bot = input.botId ? await ownedBot(actor, input.botId) : null;
       const clash = await prisma.agentSkill.findFirst({
         where: {
           spaceId: actor.spaceId,
@@ -186,10 +195,7 @@ export function createAgentSkillsService(prisma: PrismaClient) {
           name: { equals: resolved.name, mode: "insensitive" },
         },
       });
-      if (
-        clash ||
-        builtinCatalog().some((s) => s.name.toLowerCase() === resolved.name.toLowerCase())
-      ) {
+      if (clash) {
         throw new ORPCError("CONFLICT", { message: "A skill with that name already exists." });
       }
       try {
@@ -201,7 +207,9 @@ export function createAgentSkillsService(prisma: PrismaClient) {
             description: resolved.description,
             content: resolved.content,
             source: "user",
+            ...(bot ? { bots: { create: { botId: bot.id } } } : {}),
           },
+          include: withBots,
         });
         return mapAgentSkill(row);
       } catch (error) {
@@ -228,7 +236,7 @@ export function createAgentSkillsService(prisma: PrismaClient) {
     ): Promise<AgentSkill> {
       const existing = await owned(actor, input.skillId);
       if (isSkillReadOnly(asSource(existing.source) as SkillSource)) {
-        throw new ORPCError("BAD_REQUEST", { message: "Builtin and plugin skills are read-only." });
+        throw new ORPCError("BAD_REQUEST", { message: "Plugin skills are read-only." });
       }
       const resolved = resolveSkillContent({ ...input, prior: existing });
       if (!findSkillByName([existing], resolved.name)) {
@@ -240,14 +248,11 @@ export function createAgentSkillsService(prisma: PrismaClient) {
             NOT: { id: existing.id },
           },
         });
-        if (
-          clash ||
-          builtinCatalog().some((s) => s.name.toLowerCase() === resolved.name.toLowerCase())
-        ) {
+        if (clash) {
           throw new ORPCError("CONFLICT", { message: "A skill with that name already exists." });
         }
       }
-      // Mutate only owner-scoped user rows (never builtin/plugin), even if source was tampered.
+      // Mutate only owner-scoped user rows (never plugin), even if source was tampered.
       try {
         const updated = await prisma.agentSkill.updateMany({
           where: {
@@ -274,21 +279,13 @@ export function createAgentSkillsService(prisma: PrismaClient) {
         }
         throw error;
       }
-      const row = await prisma.agentSkill.findFirst({
-        where: {
-          id: existing.id,
-          spaceId: actor.spaceId,
-          userId: actor.userId,
-        },
-      });
-      if (!row) throw new IsolationError();
-      return mapAgentSkill(row);
+      return mapAgentSkill(await owned(actor, existing.id));
     },
 
     async remove(actor: Actor, skillId: string): Promise<{ ok: true }> {
       const existing = await owned(actor, skillId);
       if (isSkillReadOnly(asSource(existing.source) as SkillSource)) {
-        throw new ORPCError("BAD_REQUEST", { message: "Builtin and plugin skills are read-only." });
+        throw new ORPCError("BAD_REQUEST", { message: "Plugin skills are read-only." });
       }
       const deleted = await prisma.agentSkill.deleteMany({
         where: {
@@ -300,6 +297,28 @@ export function createAgentSkillsService(prisma: PrismaClient) {
       });
       if (deleted.count !== 1) throw new IsolationError();
       return { ok: true };
+    },
+
+    async setAssigned(
+      actor: Actor,
+      input: { skillId: string; botId: string; assigned: boolean },
+    ): Promise<Omit<AgentSkill, "content">> {
+      const [skill, bot] = await Promise.all([
+        owned(actor, input.skillId),
+        ownedBot(actor, input.botId),
+      ]);
+      const key = { botId_skillId: { botId: bot.id, skillId: skill.id } };
+      if (input.assigned) {
+        await prisma.botSkill.upsert({
+          where: key,
+          create: { botId: bot.id, skillId: skill.id },
+          update: {},
+        });
+      } else {
+        await prisma.botSkill.deleteMany({ where: { botId: bot.id, skillId: skill.id } });
+      }
+      const { content: _content, ...entry } = mapAgentSkill(await owned(actor, skill.id));
+      return entry;
     },
   };
 }

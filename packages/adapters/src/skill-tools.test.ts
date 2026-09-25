@@ -1,6 +1,5 @@
-import { buildSkillMd, formatSkillsCatalogInstruction, parseSkillMd } from "@engaz/core";
+import { buildSkillMd, formatSkillsCatalogInstruction } from "@engaz/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { BUILTIN_AGENT_SKILLS } from "./builtin-skills.js";
 import {
   listAgentSkillRecords,
   skillCreateFromTool,
@@ -191,7 +190,7 @@ describe("skill tools", () => {
     expect(catalog).toContain("skill_read");
   });
 
-  it("rejects update/delete for plugin and builtin skills", async () => {
+  it("rejects update/delete for plugin skills", async () => {
     prisma = makePrisma([
       {
         id: "plugin-1",
@@ -212,50 +211,9 @@ describe("skill tools", () => {
         name: "Plugin recipe",
         description: "hijack",
       }),
-    ).toEqual({ error: "Builtin and plugin skills are read-only." });
+    ).toEqual({ error: "Plugin skills are read-only." });
     expect(await skillDeleteFromTool(prisma as never, owner, { name: "Plugin recipe" })).toEqual({
-      error: "Builtin and plugin skills are read-only.",
-    });
-  });
-
-  it("ships builtin skills as valid, readable, read-only SKILL.md records", async () => {
-    expect(BUILTIN_AGENT_SKILLS.map((skill) => skill.name)).toContain("Interrogate");
-    for (const skill of BUILTIN_AGENT_SKILLS) {
-      const parsed = parseSkillMd(skill.content);
-      expect(parsed).toMatchObject({ name: skill.name, description: skill.description });
-      // / picker truncates at 72; keep descriptions short so "review only" stays visible.
-      expect(skill.description.length).toBeLessThanOrEqual(72);
-    }
-
-    const records = await listAgentSkillRecords(prisma as never, owner);
-    const interrogate = records.find((row) => row.name === "Interrogate");
-    expect(interrogate).toMatchObject({
-      id: "builtin:Interrogate",
-      source: "builtin",
-      readOnly: true,
-    });
-    expect(formatSkillsCatalogInstruction(records)).toContain("- Interrogate:");
-    expect(formatSkillsCatalogInstruction(records)).toContain("Review only");
-
-    const read = await skillReadFromTool(prisma as never, owner, { name: "interrogate" });
-    expect(read).toMatchObject({ name: "Interrogate", source: "builtin", readOnly: true });
-    expect(String(read.content)).toContain("Do not modify files");
-
-    expect(
-      await skillCreateFromTool(prisma as never, owner, {
-        name: "interrogate",
-        description: "shadow the builtin",
-        body: "steps",
-      }),
-    ).toEqual({ error: 'A skill named "Interrogate" already exists.' });
-    expect(
-      await skillUpdateFromTool(prisma as never, owner, {
-        name: "Interrogate",
-        description: "hijack",
-      }),
-    ).toEqual({ error: "Builtin and plugin skills are read-only." });
-    expect(await skillDeleteFromTool(prisma as never, owner, { name: "Interrogate" })).toEqual({
-      error: "Builtin and plugin skills are read-only.",
+      error: "Plugin skills are read-only.",
     });
   });
 

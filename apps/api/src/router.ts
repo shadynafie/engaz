@@ -1131,6 +1131,15 @@ export function createRouter(deps: RouterDeps) {
             })),
           });
         }
+        const skills = await deps.prisma.botSkill.findMany({
+          where: { botId: source.id },
+          select: { skillId: true },
+        });
+        if (skills.length) {
+          await deps.prisma.botSkill.createMany({
+            data: skills.map(({ skillId }) => ({ botId: duplicate.id, skillId })),
+          });
+        }
         return duplicate;
       }),
       reorder: authed.bots.reorder.handler(async ({ context, input }) => {
@@ -2640,7 +2649,7 @@ export function createRouter(deps: RouterDeps) {
           });
           if (existing) return { runId: existing.id };
         }
-        const skillRecords = await agentSkills.listWithContent(context.actor);
+        const skillRecords = await agentSkills.listWithContent(context.actor, bot.id);
         const prompt = expandSkillReferencesInPrompt(routine.prompt, skillRecords);
         let run: { id: string };
         try {
@@ -2796,7 +2805,9 @@ export function createRouter(deps: RouterDeps) {
       ),
     },
     agentSkills: {
-      list: authed.agentSkills.list.handler(async ({ context }) => agentSkills.list(context.actor)),
+      list: authed.agentSkills.list.handler(async ({ context, input }) =>
+        agentSkills.list(context.actor, input.botId),
+      ),
       get: authed.agentSkills.get.handler(async ({ context, input }) =>
         agentSkills.get(context.actor, input),
       ),
@@ -2808,6 +2819,9 @@ export function createRouter(deps: RouterDeps) {
       ),
       remove: authed.agentSkills.remove.handler(async ({ context, input }) =>
         agentSkills.remove(context.actor, input.skillId),
+      ),
+      setAssigned: authed.agentSkills.setAssigned.handler(async ({ context, input }) =>
+        agentSkills.setAssigned(context.actor, input),
       ),
     },
     capabilities: {

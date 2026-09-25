@@ -20,6 +20,7 @@ function savedSkill(name: string, source = "user") {
     description: "Saved review recipe",
     content: buildSkillMd({ name, description: "Saved review recipe", body: "Saved steps" }),
     source,
+    bots: [] as { botId: string }[],
     createdAt: new Date(0),
     updatedAt: new Date(0),
   };
@@ -55,7 +56,7 @@ function setup(rows: ReturnType<typeof savedSkill>[] = []) {
   };
 }
 
-describe("built-in skill precedence in the API", () => {
+describe("agent skills in the API", () => {
   it.each(["interrogate", " Interrogate "])(
     "keeps %j listed, readable and mutable",
     async (name) => {
@@ -75,14 +76,11 @@ describe("built-in skill precedence in the API", () => {
         service.update(actor, { skillId: "saved-1", description: "Updated recipe" }),
       ).resolves.toMatchObject({ name: name.trim(), description: "Updated recipe" });
       await expect(service.remove(actor, "saved-1")).resolves.toEqual({ ok: true });
-      await expect(service.get(actor, { name: "Interrogate" })).resolves.toMatchObject({
-        id: "builtin:Interrogate",
-        readOnly: true,
-      });
+      await expect(service.get(actor, { name: "Interrogate" })).rejects.toThrow();
     },
   );
 
-  it("preserves plugin precedence and read-only enforcement", async () => {
+  it("keeps plugin skills read-only", async () => {
     const { service, agentSkill } = setup([savedSkill(" Interrogate ", "plugin")]);
     await expect(service.get(actor, { name: "interrogate" })).resolves.toMatchObject({
       id: "saved-1",
@@ -98,16 +96,11 @@ describe("built-in skill precedence in the API", () => {
   });
 
   it.each([{ spaceId: "other-space" }, { userId: "other-user" }])(
-    "does not let foreign skills shadow the builtin: %j",
+    "does not expose another owner's skill: %j",
     async (foreignOwner) => {
       const { service } = setup([{ ...savedSkill(" Interrogate "), ...foreignOwner }]);
-      await expect(service.get(actor, { name: "interrogate" })).resolves.toMatchObject({
-        id: "builtin:Interrogate",
-        readOnly: true,
-      });
-      await expect(service.list(actor)).resolves.toEqual([
-        expect.objectContaining({ id: "builtin:Interrogate" }),
-      ]);
+      await expect(service.get(actor, { name: "interrogate" })).rejects.toThrow();
+      await expect(service.list(actor)).resolves.toEqual([]);
       await expect(service.get(actor, { skillId: "saved-1" })).rejects.toThrow();
     },
   );

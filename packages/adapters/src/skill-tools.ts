@@ -2,13 +2,11 @@ import {
   buildSkillMd,
   findSkillByName,
   isSkillReadOnly,
-  mergeBuiltinSkills,
   parseSkillMd,
   type SkillRecord,
   type SkillSource,
 } from "@engaz/core";
 import type { PrismaClient } from "@engaz/db";
-import { BUILTIN_AGENT_SKILLS } from "./builtin-skills.js";
 
 export const SKILL_TOOL_NAMES = new Set([
   "skill_read",
@@ -25,6 +23,8 @@ const MAX_SKILL_DESCRIPTION_CHARS = 2000;
 type SkillOwner = {
   spaceId: string;
   userId: string;
+  /** The agent running: it only sees, changes, and is given the skills assigned to it. */
+  botId?: string;
 };
 
 type AgentSkillRow = {
@@ -36,7 +36,7 @@ type AgentSkillRow = {
 };
 
 function asSource(value: string): SkillSource {
-  if (value === "builtin" || value === "plugin" || value === "user") return value;
+  if (value === "plugin" || value === "user") return value;
   return "user";
 }
 
@@ -50,17 +50,6 @@ function toRecord(row: AgentSkillRow): SkillRecord & { id: string } {
     source,
     readOnly: isSkillReadOnly(source),
   };
-}
-
-function builtinRecords(): Array<SkillRecord & { id: string }> {
-  return BUILTIN_AGENT_SKILLS.map((skill) => ({
-    id: `builtin:${skill.name}`,
-    name: skill.name,
-    description: skill.description,
-    content: skill.content,
-    source: "builtin" as const,
-    readOnly: true,
-  }));
 }
 
 function rejectOversizedContent(content: string): string | undefined {
@@ -87,10 +76,14 @@ export async function listAgentSkillRecords(
   owner: SkillOwner,
 ): Promise<Array<SkillRecord & { id: string }>> {
   const rows = await prisma.agentSkill.findMany({
-    where: { spaceId: owner.spaceId, userId: owner.userId },
+    where: {
+      spaceId: owner.spaceId,
+      userId: owner.userId,
+      ...(owner.botId ? { bots: { some: { botId: owner.botId } } } : {}),
+    },
     orderBy: [{ name: "asc" }, { id: "asc" }],
   });
-  return mergeBuiltinSkills(builtinRecords(), rows.map(toRecord));
+  return rows.map(toRecord);
 }
 
 async function findOwnedSkill(
@@ -153,7 +146,8 @@ export async function skillCreateFromTool(
   const oversized = rejectOversizedContent(content);
   if (oversized) return { error: oversized };
 
-  const existing = await findOwnedSkill(prisma, owner, { name });
+  // Names are unique per owner, including skills this agent is not given.
+  const existing = await findOwnedSkill(prisma, { ...owner, botId: undefined }, { name });
   if (existing) return { error: `A skill named "${existing.name}" already exists.` };
 
   try {
@@ -165,6 +159,7 @@ export async function skillCreateFromTool(
         description,
         content,
         source: "user",
+        ...(owner.botId ? { bots: { create: { botId: owner.botId } } } : {}),
       },
     });
     return {
@@ -196,8 +191,8 @@ export async function skillUpdateFromTool(
     name: input.name,
   });
   if (!existing) return { error: "Skill not found." };
-  if (existing.readOnly || existing.source !== "user" || existing.id.startsWith("builtin:")) {
-    return { error: "Builtin and plugin skills are read-only." };
+  if (existing.readOnly || existing.source !== "user") {
+    return { error: "Plugin skills are read-only." };
   }
 
   let nextContent = existing.content;
@@ -234,7 +229,7 @@ export async function skillUpdateFromTool(
   if (oversized) return { error: oversized };
 
   if (nextName.toLowerCase() !== existing.name.toLowerCase()) {
-    const clash = await findOwnedSkill(prisma, owner, { name: nextName });
+    const clash = await findOwnedSkill(prisma, { ...owner, botId: undefined }, { name: nextName });
     if (clash && clash.id !== existing.id) {
       return { error: `A skill named "${clash.name}" already exists.` };
     }
@@ -269,8 +264,8 @@ export async function skillDeleteFromTool(
 ): Promise<Record<string, unknown>> {
   const existing = await findOwnedSkill(prisma, owner, input);
   if (!existing) return { error: "Skill not found." };
-  if (existing.readOnly || existing.source !== "user" || existing.id.startsWith("builtin:")) {
-    return { error: "Builtin and plugin skills are read-only." };
+  if (existing.readOnly || existing.source !== "user") {
+    return { error: "Plugin skills are read-only." };
   }
   const deleted = await prisma.agentSkill.deleteMany({
     where: {

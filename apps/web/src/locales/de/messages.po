@@ -139,9 +139,6 @@ msgstr ""
 msgid "About spaces"
 msgstr ""
 
-msgid "Access token"
-msgstr ""
-
 msgid "Access token (optional)"
 msgstr "Zugriffstoken (optional)"
 
@@ -222,9 +219,6 @@ msgstr "OpenAPI hinzufügen"
 
 msgid "Add server"
 msgstr "Server hinzufügen"
-
-msgid "Add server URL"
-msgstr ""
 
 msgid "Add the server address."
 msgstr ""
@@ -380,9 +374,6 @@ msgstr "Vor dem Senden externer E-Mails nachfragen"
 msgid "Ask the owner of this Engaz for an invitation link."
 msgstr ""
 
-msgid "Ask the server owner to configure this provider."
-msgstr ""
-
 #. placeholder {0}: preset.time
 msgid "at {0}"
 msgstr "um {0}"
@@ -468,9 +459,6 @@ msgid "Bots are working"
 msgstr "Bots arbeiten"
 
 msgid "Brain label"
-msgstr ""
-
-msgid "Browse MCP servers"
 msgstr ""
 
 msgid "Call"
@@ -960,8 +948,14 @@ msgstr "Auswahl konnte nicht gespeichert werden"
 msgid "Could not save that voice"
 msgstr "Stimme konnte nicht gespeichert werden"
 
+msgid "Could not save the access token"
+msgstr ""
+
 msgid "Could not save this choice"
 msgstr "Diese Auswahl konnte nicht gespeichert werden"
+
+msgid "Could not search"
+msgstr ""
 
 msgid "Could not search catalog"
 msgstr ""
@@ -1146,9 +1140,6 @@ msgstr ""
 msgid "Desktop update"
 msgstr ""
 
-msgid "Direct MCP"
-msgstr ""
-
 msgid "Disconnect"
 msgstr "Trennen"
 
@@ -1191,9 +1182,6 @@ msgstr "{name} herunterladen"
 
 msgid "Download as markdown"
 msgstr "Als Markdown herunterladen"
-
-msgid "Download Executor"
-msgstr ""
 
 msgid "Downloading…"
 msgstr ""
@@ -1302,6 +1290,9 @@ msgstr "Fehlgeschlagen."
 
 msgid "Failure handling"
 msgstr "Fehlerbehandlung"
+
+msgid "Find a server"
+msgstr ""
 
 msgid "Find models"
 msgstr "Modelle suchen"
@@ -1732,6 +1723,9 @@ msgstr "Übernahme erforderlich"
 msgid "Needs you"
 msgstr ""
 
+msgid "New access token"
+msgstr ""
+
 msgid "New bot"
 msgstr "Neuer Bot"
 
@@ -1786,9 +1780,6 @@ msgstr ""
 msgid "No longer active"
 msgstr "Nicht mehr aktiv"
 
-msgid "No managed app catalog is configured on this deployment."
-msgstr "Für diese Bereitstellung ist kein verwalteter App-Katalog konfiguriert."
-
 msgid "No matching models"
 msgstr "Keine passenden Modelle"
 
@@ -1833,9 +1824,6 @@ msgstr ""
 
 msgid "Not connected"
 msgstr "Nicht verbunden"
-
-msgid "Not in the plugin catalog"
-msgstr ""
 
 msgid "Not now"
 msgstr "Jetzt nicht"
@@ -2268,9 +2256,6 @@ msgid "Search bots and switch conversations"
 msgstr ""
 
 msgid "Search by domain"
-msgstr ""
-
-msgid "Search integrations.sh"
 msgstr ""
 
 msgid "Search models"

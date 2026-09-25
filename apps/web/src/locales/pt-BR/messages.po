@@ -139,9 +139,6 @@ msgstr ""
 msgid "About spaces"
 msgstr ""
 
-msgid "Access token"
-msgstr ""
-
 msgid "Access token (optional)"
 msgstr "Token de acesso (opcional)"
 
@@ -222,9 +219,6 @@ msgstr "Adicionar OpenAPI"
 
 msgid "Add server"
 msgstr "Adicionar servidor"
-
-msgid "Add server URL"
-msgstr ""
 
 msgid "Add the server address."
 msgstr ""
@@ -380,9 +374,6 @@ msgstr "Perguntar antes de enviar e-mail externo"
 msgid "Ask the owner of this Engaz for an invitation link."
 msgstr ""
 
-msgid "Ask the server owner to configure this provider."
-msgstr ""
-
 #. placeholder {0}: preset.time
 msgid "at {0}"
 msgstr "em {0}"
@@ -468,9 +459,6 @@ msgid "Bots are working"
 msgstr "Bots estão trabalhando"
 
 msgid "Brain label"
-msgstr ""
-
-msgid "Browse MCP servers"
 msgstr ""
 
 msgid "Call"
@@ -960,8 +948,14 @@ msgstr "Não foi possível salvar essa opção"
 msgid "Could not save that voice"
 msgstr "Não foi possível salvar essa voz"
 
+msgid "Could not save the access token"
+msgstr ""
+
 msgid "Could not save this choice"
 msgstr "Não foi possível salvar esta opção"
+
+msgid "Could not search"
+msgstr ""
 
 msgid "Could not search catalog"
 msgstr ""
@@ -1146,9 +1140,6 @@ msgstr ""
 msgid "Desktop update"
 msgstr ""
 
-msgid "Direct MCP"
-msgstr ""
-
 msgid "Disconnect"
 msgstr "Desconectar"
 
@@ -1191,9 +1182,6 @@ msgstr "Baixar {name}"
 
 msgid "Download as markdown"
 msgstr "Baixar como markdown"
-
-msgid "Download Executor"
-msgstr ""
 
 msgid "Downloading…"
 msgstr ""
@@ -1302,6 +1290,9 @@ msgstr "Falhou."
 
 msgid "Failure handling"
 msgstr "Tratamento de falhas"
+
+msgid "Find a server"
+msgstr ""
 
 msgid "Find models"
 msgstr "Encontrar modelos"
@@ -1732,6 +1723,9 @@ msgstr "Requer assumir o controle"
 msgid "Needs you"
 msgstr ""
 
+msgid "New access token"
+msgstr ""
+
 msgid "New bot"
 msgstr "Novo bot"
 
@@ -1786,9 +1780,6 @@ msgstr ""
 msgid "No longer active"
 msgstr "Não está mais ativo"
 
-msgid "No managed app catalog is configured on this deployment."
-msgstr "Nenhum catálogo de aplicativos gerenciados está configurado nesta implantação."
-
 msgid "No matching models"
 msgstr ""
 
@@ -1833,9 +1824,6 @@ msgstr ""
 
 msgid "Not connected"
 msgstr "Não Conectado"
-
-msgid "Not in the plugin catalog"
-msgstr ""
 
 msgid "Not now"
 msgstr "Agora não"
@@ -2268,9 +2256,6 @@ msgid "Search bots and switch conversations"
 msgstr ""
 
 msgid "Search by domain"
-msgstr ""
-
-msgid "Search integrations.sh"
 msgstr ""
 
 msgid "Search models"

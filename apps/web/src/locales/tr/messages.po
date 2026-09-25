@@ -139,9 +139,6 @@ msgstr ""
 msgid "About spaces"
 msgstr ""
 
-msgid "Access token"
-msgstr ""
-
 msgid "Access token (optional)"
 msgstr "Erişim token'ı (isteğe bağlı)"
 
@@ -222,9 +219,6 @@ msgstr "OpenAPI ekle"
 
 msgid "Add server"
 msgstr "Sunucu ekle"
-
-msgid "Add server URL"
-msgstr ""
 
 msgid "Add the server address."
 msgstr ""
@@ -380,9 +374,6 @@ msgstr "Dışarıya e-posta göndermeden önce sor"
 msgid "Ask the owner of this Engaz for an invitation link."
 msgstr ""
 
-msgid "Ask the server owner to configure this provider."
-msgstr ""
-
 #. placeholder {0}: preset.time
 msgid "at {0}"
 msgstr "saat {0}"
@@ -468,9 +459,6 @@ msgid "Bots are working"
 msgstr "Botlar çalışıyor"
 
 msgid "Brain label"
-msgstr ""
-
-msgid "Browse MCP servers"
 msgstr ""
 
 msgid "Call"
@@ -960,8 +948,14 @@ msgstr "Bu seçim kaydedilemedi"
 msgid "Could not save that voice"
 msgstr "Bu ses kaydedilemedi"
 
+msgid "Could not save the access token"
+msgstr ""
+
 msgid "Could not save this choice"
 msgstr "Bu seçim kaydedilemedi"
+
+msgid "Could not search"
+msgstr ""
 
 msgid "Could not search catalog"
 msgstr ""
@@ -1146,9 +1140,6 @@ msgstr ""
 msgid "Desktop update"
 msgstr ""
 
-msgid "Direct MCP"
-msgstr ""
-
 msgid "Disconnect"
 msgstr "Bağlantıyı kes"
 
@@ -1191,9 +1182,6 @@ msgstr "{name} indir"
 
 msgid "Download as markdown"
 msgstr "Markdown olarak indir"
-
-msgid "Download Executor"
-msgstr ""
 
 msgid "Downloading…"
 msgstr ""
@@ -1302,6 +1290,9 @@ msgstr "Başarısız oldu."
 
 msgid "Failure handling"
 msgstr "Hata yönetimi"
+
+msgid "Find a server"
+msgstr ""
 
 msgid "Find models"
 msgstr "Model bul"
@@ -1732,6 +1723,9 @@ msgstr "Devralma bekliyor"
 msgid "Needs you"
 msgstr ""
 
+msgid "New access token"
+msgstr ""
+
 msgid "New bot"
 msgstr "Yeni bot"
 
@@ -1786,9 +1780,6 @@ msgstr ""
 msgid "No longer active"
 msgstr "Artık etkin değil"
 
-msgid "No managed app catalog is configured on this deployment."
-msgstr ""
-
 msgid "No matching models"
 msgstr ""
 
@@ -1833,9 +1824,6 @@ msgstr ""
 
 msgid "Not connected"
 msgstr "Bağlı değil"
-
-msgid "Not in the plugin catalog"
-msgstr ""
 
 msgid "Not now"
 msgstr "Şimdi değil"
@@ -2268,9 +2256,6 @@ msgid "Search bots and switch conversations"
 msgstr ""
 
 msgid "Search by domain"
-msgstr ""
-
-msgid "Search integrations.sh"
 msgstr ""
 
 msgid "Search models"

@@ -139,9 +139,6 @@ msgstr ""
 msgid "About spaces"
 msgstr ""
 
-msgid "Access token"
-msgstr ""
-
 msgid "Access token (optional)"
 msgstr "एक्सेस टोकन (वैकल्पिक)"
 
@@ -222,9 +219,6 @@ msgstr "OpenAPI जोड़ें"
 
 msgid "Add server"
 msgstr "सर्वर जोड़ें"
-
-msgid "Add server URL"
-msgstr ""
 
 msgid "Add the server address."
 msgstr ""
@@ -380,9 +374,6 @@ msgstr "बाहरी ईमेल भेजने से पहले पू�
 msgid "Ask the owner of this Engaz for an invitation link."
 msgstr ""
 
-msgid "Ask the server owner to configure this provider."
-msgstr ""
-
 #. placeholder {0}: preset.time
 msgid "at {0}"
 msgstr "{0} बजे"
@@ -468,9 +459,6 @@ msgid "Bots are working"
 msgstr "बॉट काम कर रहे हैं"
 
 msgid "Brain label"
-msgstr ""
-
-msgid "Browse MCP servers"
 msgstr ""
 
 msgid "Call"
@@ -960,8 +948,14 @@ msgstr "वह विकल्प सहेजा नहीं जा सका"
 msgid "Could not save that voice"
 msgstr "वह आवाज़ सहेजी नहीं जा सकी"
 
+msgid "Could not save the access token"
+msgstr ""
+
 msgid "Could not save this choice"
 msgstr "यह विकल्प सहेजा नहीं जा सका"
+
+msgid "Could not search"
+msgstr ""
 
 msgid "Could not search catalog"
 msgstr ""
@@ -1146,9 +1140,6 @@ msgstr ""
 msgid "Desktop update"
 msgstr ""
 
-msgid "Direct MCP"
-msgstr ""
-
 msgid "Disconnect"
 msgstr "डिस्कनेक्ट करें"
 
@@ -1191,9 +1182,6 @@ msgstr "{name} डाउनलोड करें"
 
 msgid "Download as markdown"
 msgstr "मार्कडाउन के रूप में डाउनलोड करें"
-
-msgid "Download Executor"
-msgstr ""
 
 msgid "Downloading…"
 msgstr ""
@@ -1302,6 +1290,9 @@ msgstr "विफल।"
 
 msgid "Failure handling"
 msgstr "विफलता प्रबंधन"
+
+msgid "Find a server"
+msgstr ""
 
 msgid "Find models"
 msgstr "मॉडल खोजें"
@@ -1732,6 +1723,9 @@ msgstr "नियंत्रण लेना ज़रूरी"
 msgid "Needs you"
 msgstr ""
 
+msgid "New access token"
+msgstr ""
+
 msgid "New bot"
 msgstr "नया बॉट"
 
@@ -1786,9 +1780,6 @@ msgstr ""
 msgid "No longer active"
 msgstr "अब सक्रिय नहीं"
 
-msgid "No managed app catalog is configured on this deployment."
-msgstr "इस डिप्लॉयमेंट पर कोई प्रबंधित ऐप कैटलॉग कॉन्फ़िगर नहीं है।"
-
 msgid "No matching models"
 msgstr ""
 
@@ -1833,9 +1824,6 @@ msgstr ""
 
 msgid "Not connected"
 msgstr "कनेक्टेड नहीं"
-
-msgid "Not in the plugin catalog"
-msgstr ""
 
 msgid "Not now"
 msgstr "अभी नहीं"
@@ -2268,9 +2256,6 @@ msgid "Search bots and switch conversations"
 msgstr ""
 
 msgid "Search by domain"
-msgstr ""
-
-msgid "Search integrations.sh"
 msgstr ""
 
 msgid "Search models"

@@ -139,9 +139,6 @@ msgstr ""
 msgid "About spaces"
 msgstr ""
 
-msgid "Access token"
-msgstr ""
-
 msgid "Access token (optional)"
 msgstr "访问令牌（可选）"
 
@@ -222,9 +219,6 @@ msgstr "添加 OpenAPI"
 
 msgid "Add server"
 msgstr "添加服务器"
-
-msgid "Add server URL"
-msgstr ""
 
 msgid "Add the server address."
 msgstr ""
@@ -380,9 +374,6 @@ msgstr "发送外部邮件前询问"
 msgid "Ask the owner of this Engaz for an invitation link."
 msgstr ""
 
-msgid "Ask the server owner to configure this provider."
-msgstr ""
-
 #. placeholder {0}: preset.time
 msgid "at {0}"
 msgstr "{0}"
@@ -468,9 +459,6 @@ msgid "Bots are working"
 msgstr "Bot 正在工作"
 
 msgid "Brain label"
-msgstr ""
-
-msgid "Browse MCP servers"
 msgstr ""
 
 msgid "Call"
@@ -960,8 +948,14 @@ msgstr "无法保存该选择"
 msgid "Could not save that voice"
 msgstr "无法保存该语音"
 
+msgid "Could not save the access token"
+msgstr ""
+
 msgid "Could not save this choice"
 msgstr "无法保存此选择"
+
+msgid "Could not search"
+msgstr ""
 
 msgid "Could not search catalog"
 msgstr ""
@@ -1146,9 +1140,6 @@ msgstr ""
 msgid "Desktop update"
 msgstr ""
 
-msgid "Direct MCP"
-msgstr ""
-
 msgid "Disconnect"
 msgstr "断开"
 
@@ -1191,9 +1182,6 @@ msgstr "下载 {name}"
 
 msgid "Download as markdown"
 msgstr "下载为 Markdown"
-
-msgid "Download Executor"
-msgstr ""
 
 msgid "Downloading…"
 msgstr ""
@@ -1302,6 +1290,9 @@ msgstr "失败。"
 
 msgid "Failure handling"
 msgstr "失败处理"
+
+msgid "Find a server"
+msgstr ""
 
 msgid "Find models"
 msgstr "查找模型"
@@ -1732,6 +1723,9 @@ msgstr "需要接管"
 msgid "Needs you"
 msgstr ""
 
+msgid "New access token"
+msgstr ""
+
 msgid "New bot"
 msgstr "新建 Bot"
 
@@ -1786,9 +1780,6 @@ msgstr "还没有群聊。"
 msgid "No longer active"
 msgstr "已停用"
 
-msgid "No managed app catalog is configured on this deployment."
-msgstr "此部署未配置托管应用目录。"
-
 msgid "No matching models"
 msgstr "没有匹配的模型"
 
@@ -1833,9 +1824,6 @@ msgstr ""
 
 msgid "Not connected"
 msgstr "未连接"
-
-msgid "Not in the plugin catalog"
-msgstr "不在插件目录中"
 
 msgid "Not now"
 msgstr "暂不"
@@ -2268,9 +2256,6 @@ msgid "Search bots and switch conversations"
 msgstr ""
 
 msgid "Search by domain"
-msgstr ""
-
-msgid "Search integrations.sh"
 msgstr ""
 
 msgid "Search models"

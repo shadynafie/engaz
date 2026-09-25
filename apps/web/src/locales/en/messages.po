@@ -139,9 +139,6 @@ msgstr "About groups"
 msgid "About spaces"
 msgstr "About spaces"
 
-msgid "Access token"
-msgstr "Access token"
-
 msgid "Access token (optional)"
 msgstr "Access token (optional)"
 
@@ -222,9 +219,6 @@ msgstr "Add OpenAPI"
 
 msgid "Add server"
 msgstr "Add server"
-
-msgid "Add server URL"
-msgstr "Add server URL"
 
 msgid "Add the server address."
 msgstr "Add the server address."
@@ -380,9 +374,6 @@ msgstr "Ask before sending external email"
 msgid "Ask the owner of this Engaz for an invitation link."
 msgstr "Ask the owner of this Engaz for an invitation link."
 
-msgid "Ask the server owner to configure this provider."
-msgstr "Ask the server owner to configure this provider."
-
 #. placeholder {0}: preset.time
 msgid "at {0}"
 msgstr "at {0}"
@@ -469,9 +460,6 @@ msgstr "Bots are working"
 
 msgid "Brain label"
 msgstr "Brain label"
-
-msgid "Browse MCP servers"
-msgstr "Browse MCP servers"
 
 msgid "Call"
 msgstr "Call"
@@ -960,8 +948,14 @@ msgstr "Could not save that choice"
 msgid "Could not save that voice"
 msgstr "Could not save that voice"
 
+msgid "Could not save the access token"
+msgstr "Could not save the access token"
+
 msgid "Could not save this choice"
 msgstr "Could not save this choice"
+
+msgid "Could not search"
+msgstr "Could not search"
 
 msgid "Could not search catalog"
 msgstr "Could not search catalog"
@@ -1146,9 +1140,6 @@ msgstr "Desktop app"
 msgid "Desktop update"
 msgstr "Desktop update"
 
-msgid "Direct MCP"
-msgstr "Direct MCP"
-
 msgid "Disconnect"
 msgstr "Disconnect"
 
@@ -1191,9 +1182,6 @@ msgstr "Download {name}"
 
 msgid "Download as markdown"
 msgstr "Download as markdown"
-
-msgid "Download Executor"
-msgstr "Download Executor"
 
 msgid "Downloading…"
 msgstr "Downloading…"
@@ -1302,6 +1290,9 @@ msgstr "Failed."
 
 msgid "Failure handling"
 msgstr "Failure handling"
+
+msgid "Find a server"
+msgstr "Find a server"
 
 msgid "Find models"
 msgstr "Find models"
@@ -1732,6 +1723,9 @@ msgstr "Needs takeover"
 msgid "Needs you"
 msgstr "Needs you"
 
+msgid "New access token"
+msgstr "New access token"
+
 msgid "New bot"
 msgstr "New bot"
 
@@ -1786,9 +1780,6 @@ msgstr "No group chats yet."
 msgid "No longer active"
 msgstr "No longer active"
 
-msgid "No managed app catalog is configured on this deployment."
-msgstr "No managed app catalog is configured on this deployment."
-
 msgid "No matching models"
 msgstr "No matching models"
 
@@ -1833,9 +1824,6 @@ msgstr "Not checked yet"
 
 msgid "Not connected"
 msgstr "Not connected"
-
-msgid "Not in the plugin catalog"
-msgstr "Not in the plugin catalog"
 
 msgid "Not now"
 msgstr "Not now"
@@ -2269,9 +2257,6 @@ msgstr "Search bots and switch conversations"
 
 msgid "Search by domain"
 msgstr "Search by domain"
-
-msgid "Search integrations.sh"
-msgstr "Search integrations.sh"
 
 msgid "Search models"
 msgstr "Search models"

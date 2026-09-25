@@ -128,7 +128,8 @@ tags:
     timeout: 10000
 - assertVisible: "Weekly report"
 - takeScreenshot: "14d-agent-skills"
-- tapOn: "Daily standup"
+# Tap the description: the switch beside it shares the skill's name.
+- tapOn: "When I ask for standup notes."
 - assertVisible: "When to use"
 - takeScreenshot: "14e-agent-skill-editor"
 

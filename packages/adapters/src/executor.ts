@@ -111,7 +111,7 @@ import {
   formatAgentEnvironmentInstruction,
   redactAgentCommandResult,
 } from "./agent-environment.js";
-import { buildApprovalAskBlock } from "./approval-ask.js";
+import { approvalNotificationBody, buildApprovalAskBlock } from "./approval-ask.js";
 import {
   approvalPausedToolResult,
   approvalReplayPathError,
@@ -1568,6 +1568,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const connectorSchemas = new Map(
           exposedConnectorTools.map((tool) => [tool.name, tool.inputSchema] as const),
         );
+        const connectorDescriptions = new Map(
+          exposedConnectorTools.map((tool) => [tool.name, tool.description] as const),
+        );
         let approvalRulesPromise: Promise<ActionApprovalRule[]> | undefined;
         const loadApprovalRules = () => {
           approvalRulesPromise ??= deps.prisma.actionApprovalRule
@@ -1594,6 +1597,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           return autoReviewPreferencePromise;
         };
         const tools = [...builtins, ...exposedConnectorTools];
+        // A tool the agent was not offered this run (never granted, or taken away since) is
+        // refused before approval rules run, so the owner is never asked to approve it.
+        const knownToolNames = new Set([...BUILTIN_AGENT_TOOL_NAMES, ...tools.map((t) => t.name)]);
         const approvedEffects = await deps.prisma.externalEffect.findMany({
           where: { runId, status: "approved" },
           orderBy: APPROVED_EFFECT_REPLAY_ORDER,
@@ -1755,6 +1761,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (handedOff) {
             return { error: "This stage was handed off. End the turn without more tool calls." };
           }
+          if (!knownToolNames.has(name)) return { error: `unknown tool ${name}` };
           if (PAGE_BROWSER_TOOL_NAMES.has(name) && !pageBrowserAllowed) {
             return { error: "Page browser is unavailable on this computer." };
           }
@@ -1782,6 +1789,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (approvedReplay.args) connectorCall.args = approvedReplay.args;
           let catalogRemapped = false;
           let resolvedToolSchema: Record<string, unknown> | undefined;
+          let resolvedDescription: string | undefined;
           if (name.startsWith("cloud_agent_") && !validCloudAgentArgs(name, args)) {
             return {
               error: "Invalid cloud agent arguments. Raw environment variables are not supported.",
@@ -1799,6 +1807,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 args = resolved.call.args;
                 catalogRemapped = true;
                 resolvedToolSchema = resolved.tool.inputSchema;
+                resolvedDescription = resolved.tool.description;
                 effectRequest = catalogApprovalRequest(
                   connectorCall.tool,
                   connectorCall.args,
@@ -2192,6 +2201,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               blocks: [
                 buildApprovalAskBlock(applied!.effect.id, name, args, runSecrets, {
                   reviewReason,
+                  toolDescription: connectorDescriptions.get(name) ?? resolvedDescription,
                 }),
               ],
             });
@@ -2204,7 +2214,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
             await notifyRun(deps, run, {
               kind: "help",
               title: `${bot.name} needs approval`,
-              body: `Review before ${name}`,
+              // Only what the tool does, never its arguments: this may show on a lock screen.
+              body: approvalNotificationBody(
+                name,
+                connectorDescriptions.get(name) ?? resolvedDescription,
+              ),
               botId: bot.id,
               threadId: thread.id,
             });

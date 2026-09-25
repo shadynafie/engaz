@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildApprovalAskBlock } from "./approval-ask.js";
+import { approvalNotificationBody, buildApprovalAskBlock } from "./approval-ask.js";
 
 describe("buildApprovalAskBlock", () => {
   it("binds the approval to its effect and redacts secrets", () => {
@@ -69,5 +69,36 @@ describe("buildApprovalAskBlock", () => {
     });
     if (block.kind !== "ask") throw new Error("expected ask block");
     expect(block.detail).toContain("stay separate from other spaces");
+  });
+
+  it("names a connector tool by what it does and keeps its exact name in the details", () => {
+    const block = buildApprovalAskBlock(
+      "effect-1",
+      "mcp__treg__notes.write",
+      { text: "hello" },
+      [],
+      { toolDescription: "Write a note to your notebook\nLonger help text follows." },
+    );
+
+    expect(block).toMatchObject({
+      text: "Review: Write a note to your notebook",
+      detail: "tool: mcp__treg__notes.write",
+    });
+    expect(approvalNotificationBody("mcp__treg__notes.write", "Write a note")).toBe(
+      "Review: Write a note",
+    );
+  });
+
+  it("keeps its own summary for tools that have one", () => {
+    const block = buildApprovalAskBlock(
+      "effect-1",
+      "destination.write",
+      { collection: "notes", title: "Plan" },
+      [],
+      { toolDescription: "Write a record" },
+    );
+
+    expect(block).toMatchObject({ text: 'Review before writing "Plan" to notes' });
+    expect(approvalNotificationBody("mcp__x__y")).toBe("Review before mcp__x__y");
   });
 });

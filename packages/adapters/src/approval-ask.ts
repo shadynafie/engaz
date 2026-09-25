@@ -3,23 +3,32 @@ import { redactSecrets } from "@engaz/core";
 
 const MAX_APPROVAL_SUMMARY_LENGTH = 500;
 const MAX_APPROVAL_DETAIL_LENGTH = 4_000;
+const OWN_SUMMARY = new Set(["destination.write", "delete_bot", "archive_bot", "create_space"]);
 
 export function buildApprovalAskBlock(
   effectId: string,
   toolName: string,
   args: Record<string, unknown>,
   secrets: string[],
-  options?: { reviewReason?: string },
+  options?: { reviewReason?: string; toolDescription?: string },
 ): MessageBlock {
+  // Tools with their own summary below keep it; others read better by what they do.
+  const described = OWN_SUMMARY.has(toolName)
+    ? undefined
+    : approvalDescription(options?.toolDescription);
   const summary = describeApprovalAction(toolName, args);
-  const detail = formatApprovalDetail(toolName, args, options?.reviewReason);
+  const detail = formatApprovalDetail(toolName, args, options?.reviewReason, Boolean(described));
   const safeDetail = detail ? redactSecrets(detail, secrets) : undefined;
   return {
     kind: "ask",
     approvalEffectId: effectId,
     text: truncate(
       redactSecrets(
-        toolName === "create_space" ? `${summary}?` : `Review before ${summary}`,
+        toolName === "create_space"
+          ? `${summary}?`
+          : described
+            ? `Review: ${described}`
+            : `Review before ${summary}`,
         secrets,
       ),
       MAX_APPROVAL_SUMMARY_LENGTH,
@@ -58,15 +67,32 @@ function describeApprovalAction(toolName: string, args: Record<string, unknown>)
   return target ? `${toolName} → ${target}` : toolName;
 }
 
+/**
+ * A connector tool's own description reads better than its code name, but it comes from the
+ * connector, so the card keeps the exact tool name in its details too.
+ */
+export function approvalDescription(description: string | undefined): string | undefined {
+  const firstLine = description?.trim().split(/\n/)[0]?.trim();
+  if (!firstLine) return undefined;
+  return firstLine.length > 120 ? `${firstLine.slice(0, 120)}…` : firstLine;
+}
+
+export function approvalNotificationBody(toolName: string, description?: string): string {
+  const described = OWN_SUMMARY.has(toolName) ? undefined : approvalDescription(description);
+  return described ? `Review: ${described}` : `Review before ${toolName}`;
+}
+
 function formatApprovalDetail(
   toolName: string,
   args: Record<string, unknown>,
   reviewReason?: string,
+  namesTool = false,
 ): string | undefined {
   const lines: string[] = [];
   if (reviewReason?.trim()) {
     lines.push(reviewReason.trim().replace(/\u2014|\u2013/g, "-"));
   }
+  if (namesTool) lines.push(`tool: ${toolName}`);
   if (toolName === "create_space") {
     lines.push(
       "Bots, groups, chats, files, memory, and integrations in this space stay separate from other spaces.",

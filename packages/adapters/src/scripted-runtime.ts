@@ -437,6 +437,17 @@ code-b
       },
     ];
   }
+  // Tests name an MCP tool exactly as the agent sees it, e.g. mcp__treg__notes.write.
+  const mcpTool = /use the mcp tool (mcp__[a-z0-9_-]+__[a-z0-9_.-]+)/i.exec(prompt)?.[1];
+  if (mcpTool) {
+    return [
+      {
+        assistant: "using that tool now.",
+        toolCalls: [{ name: mcpTool, args: { text: "written by Engaz" } }],
+        complete: true,
+      },
+    ];
+  }
   if (lower.includes("connector") || lower.includes("crm") || lower.includes("destination")) {
     return [
       {

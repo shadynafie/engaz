@@ -182,6 +182,67 @@ describe("MCP connector session cache", () => {
     }
   });
 
+  it("refuses a tool the owner unticked, and every tool once the server is taken away", async () => {
+    const state = {
+      failNext: false,
+      initializations: 0,
+      calls: [] as string[],
+      tools: [
+        { name: "search", inputSchema: { type: "object" } },
+        { name: "delete_page", inputSchema: { type: "object" } },
+      ],
+    };
+    vi.stubGlobal("fetch", mcpFetch(state));
+    // The owner gave this agent only "search".
+    let assignment: typeof ASSIGNMENT | null = {
+      ...ASSIGNMENT,
+      allowAllTools: false,
+      allowedTools: ["search"] as never[],
+    };
+    const prisma = {
+      botMcpServer: {
+        findMany: vi.fn(async () => (assignment ? [assignment] : [])),
+        findFirst: vi.fn(async () => assignment),
+      },
+    };
+    const connector = new McpConnector(prisma as never, {} as never, { network: TEST_NETWORK });
+    const context = {
+      spaceId: "w1",
+      userId: "u1",
+      botId: "bot-1",
+      signal: new AbortController().signal,
+    } as never;
+    const collect = async (toolName: string) => {
+      const events: unknown[] = [];
+      const call = {
+        tool: `mcp__demo__${toolName}`,
+        args: {},
+        executionId: toolName,
+        route: { connectorId: "mcp", resourceId: "server-1", toolName },
+      };
+      for await (const event of connector.execute(call as never, context)) events.push(event);
+      return events;
+    };
+
+    expect((await connector.discoverTools(context)).map((tool) => tool.name)).toEqual([
+      "mcp__demo__search",
+    ]);
+    expect(await collect("search")).toMatchObject([{ type: "result" }]);
+    // A call the model makes up for an unticked tool is refused before it reaches the server.
+    expect(await collect("delete_page")).toEqual([
+      { type: "error", message: "MCP tool is not assigned to this bot" },
+    ]);
+
+    // Taking the server away applies to the very next call.
+    assignment = null;
+    expect(await connector.discoverTools(context)).toEqual([]);
+    expect(await collect("search")).toEqual([
+      { type: "error", message: "MCP tool is not assigned to this bot" },
+    ]);
+    expect(state.calls).toEqual(["search"]);
+    await connector.close();
+  });
+
   it("records a discovery failure as a failed tool completion", async () => {
     vi.stubGlobal("fetch", mcpFetch({ failNext: true, initializations: 0 }));
     const append = vi.fn().mockResolvedValue(undefined);

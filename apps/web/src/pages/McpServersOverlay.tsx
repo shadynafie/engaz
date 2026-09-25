@@ -1,5 +1,5 @@
 import type { Bot, BotMcpServer, McpServer } from "@engaz/contracts";
-import { deriveMcpSlug } from "@engaz/core";
+import { deriveMcpSlug, suggestedServerName } from "@engaz/core";
 import {
   Button,
   Checkbox,
@@ -19,7 +19,6 @@ import { ChevronRight, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PluginStatus } from "../components/PluginStatus";
 import { connectMcpOauth, MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
-import { suggestedServerName } from "../lib/mcp-server-name";
 import { rpc } from "../lib/rpc";
 import type { McpServerDraft } from "./PluginsOverlay";
 

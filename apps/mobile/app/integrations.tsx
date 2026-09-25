@@ -1,4 +1,9 @@
-import type { CapabilityInstall, Connection, ConnectionCatalogItem } from "@engaz/contracts";
+import type {
+  CapabilityInstall,
+  Connection,
+  ConnectionCatalogItem,
+  McpServer,
+} from "@engaz/contracts";
 import {
   abortableDelay,
   buildFeaturedConnectorTiles,
@@ -7,7 +12,8 @@ import {
   filterConnectionCatalogItems,
   humanizeToolName,
 } from "@engaz/core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -28,7 +34,7 @@ import { useI18n } from "../lib/i18n";
 import { loadLastBotId } from "../lib/last-bot";
 import { native, useThemedStyles } from "../lib/native";
 
-type SourceKind = "treg" | "executor" | "mcp" | "api" | "graphql";
+type SourceKind = "api" | "graphql";
 type ConnectionTool = { name: string; description: string };
 
 const LOGO_SIZE = 32;
@@ -83,13 +89,15 @@ export default function Integrations() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(CONNECTION_CATALOG_PAGE_SIZE);
+  const router = useRouter();
   const [sources, setSources] = useState<CapabilityInstall[]>([]);
+  const [mcpServers, setMcpServers] = useState<McpServer[] | null>(null);
   const [sourceKind, setSourceKind] = useState<SourceKind | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [credential, setCredential] = useState("");
-  const [requiresAuth, setRequiresAuth] = useState(true);
+  const [requiresAuth, setRequiresAuth] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
@@ -103,7 +111,11 @@ export default function Integrations() {
   const [toolsTick, setToolsTick] = useState(0);
   const connectionAttempt = useRef<AbortController | null>(null);
 
-  const featuredTiles = useMemo(() => buildFeaturedConnectorTiles(catalog), [catalog]);
+  // Featured apps this catalog lacks are left out rather than shown disabled.
+  const featuredTiles = useMemo(
+    () => buildFeaturedConnectorTiles(catalog).filter((tile) => tile.item && !tile.missing),
+    [catalog],
+  );
   const showFeatured = !query.trim();
   const catalogApps = useMemo(() => filterConnectionCatalogItems(catalog, query), [catalog, query]);
   const renderedApps = catalogApps.slice(0, visibleCount);
@@ -158,6 +170,14 @@ export default function Integrations() {
     return () => connectionAttempt.current?.abort();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      void rpc<McpServer[]>("mcp/servers/list")
+        .then(setMcpServers)
+        .catch(() => setMcpServers(null));
+    }, []),
+  );
+
   useEffect(() => {
     if (!detailKey) {
       setTools([]);
@@ -191,7 +211,7 @@ export default function Integrations() {
     setName("");
     setUrl("");
     setCredential("");
-    setRequiresAuth(true);
+    setRequiresAuth(false);
   }
 
   function openDetail(item: ConnectionCatalogItem) {
@@ -342,10 +362,10 @@ export default function Integrations() {
   function beginSource(kind: SourceKind) {
     setSourceKind(kind);
     setSourceError(null);
-    setName(kind === "treg" ? "Treg" : kind === "executor" ? "Executor" : "");
-    setUrl(kind === "treg" ? "https://treg.to/mcp/" : "");
+    setName("");
+    setUrl("");
     setCredential("");
-    setRequiresAuth(kind === "treg" || kind === "executor");
+    setRequiresAuth(false);
   }
 
   async function addSource() {
@@ -354,29 +374,14 @@ export default function Integrations() {
     setSourceError(null);
     try {
       await rpc("capabilities/install", {
-        kind: sourceKind === "treg" || sourceKind === "executor" ? "mcp" : sourceKind,
-        name:
-          name.trim() ||
-          (sourceKind === "treg"
-            ? "Treg"
-            : sourceKind === "executor"
-              ? "Executor"
-              : sourceKind === "graphql"
-                ? "GraphQL"
-                : t("Custom connector")),
+        kind: sourceKind,
+        name: name.trim() || (sourceKind === "graphql" ? "GraphQL" : t("Custom connector")),
         source: url.trim(),
         credential: credential.trim() || undefined,
         config:
-          sourceKind === "treg"
-            ? { preset: "treg", auth: { type: "bearer" } }
-            : sourceKind === "api"
-              ? { openApi: true, auth: { type: requiresAuth ? "bearer" : "none" } }
-              : sourceKind === "graphql"
-                ? { auth: { type: requiresAuth ? "bearer" : "none" } }
-                : {
-                    preset: "custom",
-                    auth: { type: sourceKind === "executor" || requiresAuth ? "bearer" : "none" },
-                  },
+          sourceKind === "api"
+            ? { openApi: true, auth: { type: requiresAuth ? "bearer" : "none" } }
+            : { auth: { type: requiresAuth ? "bearer" : "none" } },
       });
       setCredential("");
       setSourceKind(null);
@@ -566,10 +571,35 @@ export default function Integrations() {
     );
   }
 
+  function mcpSummary(list: McpServer[] | null) {
+    if (!list || list.length === 0) {
+      return t("Connect tools from a server on the internet or your network");
+    }
+    const attention = list.filter((server) => server.check.status !== "working").length;
+    if (attention === 1) return t("1 needs attention");
+    if (attention > 1) return t("{count} need attention", { count: attention });
+    return t("{count} working", { count: list.length });
+  }
+
   return (
     <SafeAreaView edges={["bottom"]} style={styles.screen}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
         {!detailItem ? (
+          <Pressable
+            accessibilityRole="button"
+            testID="integrations-mcp"
+            onPress={() => router.push("/mcp-servers")}
+            style={styles.row}
+          >
+            <View style={styles.grow}>
+              <Text style={styles.title}>{t("MCP servers")}</Text>
+              <Text style={styles.secondary}>{mcpSummary(mcpServers)}</Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </Pressable>
+        ) : null}
+
+        {!detailItem && catalog.length > 0 ? (
           <TextInput
             value={query}
             onChangeText={(value) => {
@@ -601,34 +631,7 @@ export default function Integrations() {
             {catalogReady && catalog.length > 0 ? (
               <View style={catalogColumns === 2 ? styles.catalogGrid : styles.catalogStack}>
                 {showFeatured
-                  ? featuredTiles.map((tile) => {
-                      const item = tile.item;
-                      const key = item ? itemKey(item) : tile.id;
-                      const disabled = tile.missing || !item;
-                      if (item && !tile.missing) {
-                        return renderCatalogTile(item, tile.label);
-                      }
-                      return (
-                        <View
-                          key={key}
-                          style={[
-                            styles.row,
-                            catalogColumns === 2 ? styles.catalogCell : null,
-                            disabled ? { opacity: 0.7 } : null,
-                          ]}
-                        >
-                          <ConnectorLogo label={tile.label} styles={styles} />
-                          <View style={styles.grow}>
-                            <Text numberOfLines={1} style={styles.title}>
-                              {tile.label}
-                            </Text>
-                            {disabled ? (
-                              <Text style={styles.secondary}>{t("Not in the plugin catalog")}</Text>
-                            ) : null}
-                          </View>
-                        </View>
-                      );
-                    })
+                  ? featuredTiles.map((tile) => renderCatalogTile(tile.item!, tile.label))
                   : null}
                 {renderedApps.map((item) => renderCatalogTile(item, item.name))}
               </View>
@@ -665,7 +668,7 @@ export default function Integrations() {
             {advancedOpen ? (
               <View style={styles.advancedBody}>
                 <View style={styles.accountActions}>
-                  {(["mcp", "api", "graphql", "executor", "treg"] as const).map((kind) => (
+                  {(["api", "graphql"] as const).map((kind) => (
                     <Pressable
                       key={kind}
                       accessibilityRole="button"
@@ -673,18 +676,32 @@ export default function Integrations() {
                       style={styles.smallButton}
                     >
                       <Text style={styles.buttonLabel}>
-                        {kind === "treg"
-                          ? t("Add Treg")
-                          : kind === "executor"
-                            ? t("Add Executor")
-                            : kind === "mcp"
-                              ? t("Add MCP server")
-                              : kind === "graphql"
-                                ? t("Add GraphQL")
-                                : t("Add OpenAPI")}
+                        {kind === "graphql" ? t("Add GraphQL") : t("Add OpenAPI")}
                       </Text>
                     </Pressable>
                   ))}
+                  {/* MCP presets open the MCP servers screen already filled in. */}
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() =>
+                      router.push({ pathname: "/mcp-servers", params: { name: "Executor" } })
+                    }
+                    style={styles.smallButton}
+                  >
+                    <Text style={styles.buttonLabel}>{t("Add Executor")}</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/mcp-servers",
+                        params: { name: "Treg", endpoint: "https://treg.to/mcp/" },
+                      })
+                    }
+                    style={styles.smallButton}
+                  >
+                    <Text style={styles.buttonLabel}>{t("Add Treg")}</Text>
+                  </Pressable>
                 </View>
 
                 {sourceError ? <Text style={styles.error}>{sourceError}</Text> : null}
@@ -692,15 +709,7 @@ export default function Integrations() {
                 {sourceKind ? (
                   <View style={styles.card}>
                     <Text style={styles.title}>
-                      {sourceKind === "treg"
-                        ? t("Connect Treg")
-                        : sourceKind === "executor"
-                          ? t("Connect Executor")
-                          : sourceKind === "mcp"
-                            ? t("Remote MCP server")
-                            : sourceKind === "graphql"
-                              ? t("GraphQL endpoint")
-                              : t("OpenAPI JSON")}
+                      {sourceKind === "graphql" ? t("GraphQL endpoint") : t("OpenAPI JSON")}
                     </Text>
                     <TextInput
                       value={name}
@@ -709,50 +718,36 @@ export default function Integrations() {
                       placeholderTextColor={native.tertiaryLabel}
                       style={styles.input}
                     />
-                    {sourceKind !== "treg" ? (
-                      <TextInput
-                        value={url}
-                        onChangeText={setUrl}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        placeholder={
-                          sourceKind === "mcp"
-                            ? t("https://example.com/mcp")
-                            : sourceKind === "executor"
-                              ? t("https://executor.example/mcp")
-                              : sourceKind === "graphql"
-                                ? t("https://example.com/graphql")
-                                : t("https://example.com/openapi.json")
-                        }
-                        placeholderTextColor={native.tertiaryLabel}
-                        style={styles.input}
-                      />
-                    ) : null}
-                    {sourceKind !== "treg" && sourceKind !== "executor" ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => setRequiresAuth((value) => !value)}
-                        style={styles.authToggle}
-                      >
-                        <Text style={styles.secondary}>
-                          {requiresAuth ? t("Bearer authentication") : t("No authentication")}
-                        </Text>
-                      </Pressable>
-                    ) : null}
-                    {sourceKind === "treg" || sourceKind === "executor" || requiresAuth ? (
+                    <TextInput
+                      value={url}
+                      onChangeText={setUrl}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      placeholder={
+                        sourceKind === "graphql"
+                          ? t("https://example.com/graphql")
+                          : t("https://example.com/openapi.json")
+                      }
+                      placeholderTextColor={native.tertiaryLabel}
+                      style={styles.input}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => setRequiresAuth((value) => !value)}
+                      style={styles.authToggle}
+                    >
+                      <Text style={styles.secondary}>
+                        {requiresAuth ? t("Bearer authentication") : t("No authentication")}
+                      </Text>
+                    </Pressable>
+                    {requiresAuth ? (
                       <TextInput
                         value={credential}
                         onChangeText={setCredential}
                         secureTextEntry
                         autoCapitalize="none"
                         autoCorrect={false}
-                        placeholder={
-                          sourceKind === "treg"
-                            ? t("Treg token")
-                            : sourceKind === "executor"
-                              ? t("Executor token")
-                              : t("Bearer token")
-                        }
+                        placeholder={t("Bearer token")}
                         placeholderTextColor={native.tertiaryLabel}
                         style={styles.input}
                       />

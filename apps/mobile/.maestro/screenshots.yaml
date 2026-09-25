@@ -103,13 +103,24 @@ tags:
 
 - openLink: "engaz:///integrations"
 - extendedWaitUntil:
-    visible: "Search apps"
+    visible: "MCP servers"
     timeout: 10000
 - takeScreenshot: "13-integrations"
 - tapOn:
     id: "integrations-advanced"
-- assertVisible: "Add MCP server"
+- assertVisible: "Add OpenAPI"
 - takeScreenshot: "14-integrations-advanced"
+
+- openLink: "engaz:///mcp-servers"
+- extendedWaitUntil:
+    visible: "Crawler"
+    timeout: 10000
+# A lone server opens with its details showing.
+- assertVisible: "Read a web page as text"
+- takeScreenshot: "14b-mcp-servers"
+- tapOn: "Add server"
+- assertVisible: "Server address"
+- takeScreenshot: "14c-mcp-add-server"
 
 - openLink: "engaz:///thread?botId=${ENGAZ_SCREENSHOT_BOT_ID}&name=Researcher"
 - extendedWaitUntil:

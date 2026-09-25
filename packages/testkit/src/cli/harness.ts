@@ -92,6 +92,7 @@ async function main() {
         "packages/testkit/src/pi-offline.postgres.test.ts",
         "packages/testkit/src/computer-approval.postgres.test.ts",
         "packages/testkit/src/mcp-check.postgres.test.ts",
+        "packages/testkit/src/agent-skills.postgres.test.ts",
         "packages/testkit/src/signup-invites.postgres.test.ts",
         "packages/testkit/src/eval-history.postgres.test.ts",
         "packages/testkit/src/eval-customer-support.postgres.test.ts",

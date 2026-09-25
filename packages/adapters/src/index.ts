@@ -12,7 +12,6 @@ export * from "./box-sandbox.js";
 export * from "./browser-emulator.js";
 export * from "./browser-provider-factory.js";
 export * from "./browser-tools.js";
-export * from "./builtin-skills.js";
 export * from "./builtin-tools.js";
 export * from "./cartesia-voice.js";
 export * from "./chat-sdk-surface.js";

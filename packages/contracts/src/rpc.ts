@@ -513,7 +513,10 @@ export const appContract = {
   },
   /** Claude Agent Skills (SKILL.md recipes) shared across assistants (not taught/demo skills). Pi already understands this format; we persist and inject them. */
   agentSkills: {
-    list: oc.output(z.array(AgentSkillCatalogEntrySchema)),
+    /** With botId, only the skills that agent receives. */
+    list: oc
+      .input(z.object({ botId: Id.optional() }).default({}))
+      .output(z.array(AgentSkillCatalogEntrySchema)),
     get: oc
       .input(
         z
@@ -532,6 +535,9 @@ export const appContract = {
     create: oc.input(CreateAgentSkillInput).output(AgentSkillSchema),
     update: oc.input(UpdateAgentSkillInput).output(AgentSkillSchema),
     remove: oc.input(z.object({ skillId: Id })).output(z.object({ ok: z.literal(true) })),
+    setAssigned: oc
+      .input(z.object({ skillId: Id, botId: Id, assigned: z.boolean() }))
+      .output(AgentSkillCatalogEntrySchema),
   },
   capabilities: {
     list: oc.output(z.array(CapabilityInstallSchema)),

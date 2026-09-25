@@ -133,6 +133,9 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr ""
 
+msgid "A skill with that name already exists."
+msgstr ""
+
 msgid "About groups"
 msgstr ""
 
@@ -1207,11 +1210,17 @@ msgstr ""
 msgid "Earlier message"
 msgstr "Frühere Nachricht"
 
+msgid "Edit fields"
+msgstr ""
+
 msgid "Edit first"
 msgstr "Zuerst bearbeiten"
 
 msgid "Edit Profile"
 msgstr "Profil bearbeiten"
+
+msgid "Edit SKILL.md"
+msgstr ""
 
 msgid "Email"
 msgstr "E-Mail"
@@ -1428,6 +1437,9 @@ msgstr "Instanz-API-Schlüssel"
 msgid "Instruction"
 msgstr "Anweisung"
 
+msgid "Instructions"
+msgstr ""
+
 msgid "Integration domain"
 msgstr ""
 
@@ -1478,9 +1490,6 @@ msgstr "Erinnerungen behalten"
 
 msgid "key"
 msgstr ""
-
-msgid "Knowledge"
-msgstr "Wissen"
 
 msgid "Language"
 msgstr "Sprache"
@@ -1804,9 +1813,6 @@ msgstr "Keine Ergebnisse"
 msgid "No runs yet"
 msgstr ""
 
-msgid "No skills yet"
-msgstr "Noch keine Skills"
-
 msgid "No team conversations yet."
 msgstr ""
 
@@ -1996,9 +2002,6 @@ msgstr "Reaktionen"
 
 msgid "Read replies aloud"
 msgstr "Antworten vorlesen"
-
-msgid "read-only"
-msgstr "schreibgeschützt"
 
 msgid "Reasoning effort"
 msgstr "Denkaufwand"
@@ -2459,6 +2462,9 @@ msgstr "Wird gewechselt…"
 msgid "System"
 msgstr "System"
 
+msgid "Taught"
+msgstr ""
+
 msgid "Teach a task"
 msgstr "Aufgabe anlernen"
 
@@ -2496,6 +2502,9 @@ msgid "Thinking"
 msgstr "Denkmodus"
 
 msgid "This agent has no plugins yet."
+msgstr ""
+
+msgid "This agent has no skills yet."
 msgstr ""
 
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
@@ -2639,6 +2648,9 @@ msgstr "Dieses Modell verwenden"
 #. placeholder {0}: invite.usedByEmail
 #. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
+msgstr ""
+
+msgid "Used by {usedBy}"
 msgstr ""
 
 msgid "Verify and add"

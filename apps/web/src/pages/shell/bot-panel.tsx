@@ -28,6 +28,7 @@ import { X } from "lucide-react";
 import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { rpc } from "../../lib/rpc";
 import { AgentPlugins } from "./AgentPlugins";
+import { AgentSkills } from "./AgentSkills";
 import { AvatarStudioPopover } from "./avatar-studio-popover";
 
 const ScratchpadSection = lazy(() =>
@@ -473,6 +474,7 @@ export function BotSettings({
         />
       </div>
       <AgentPlugins botId={bot.id} onManage={onOpenPlugins} />
+      <AgentSkills botId={bot.id} onSkillsChange={onSkillsChange} />
       <details
         data-testid="bot-settings-advanced"
         className="group mt-5"
@@ -491,9 +493,7 @@ export function BotSettings({
         <ComputerModePicker value={computerMode} onChange={setComputerMode} />
         <Suspense fallback={null}>
           <ScratchpadSection botId={bot.id} />
-          {advancedOpened ? (
-            <KnowledgeSection botId={bot.id} onSkillsChange={onSkillsChange} />
-          ) : null}
+          {advancedOpened ? <KnowledgeSection botId={bot.id} /> : null}
         </Suspense>
         <label htmlFor={`${ids}-model`} className={fieldLabelClass}>
           <Trans>Model</Trans>

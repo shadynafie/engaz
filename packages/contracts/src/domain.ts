@@ -486,7 +486,7 @@ export const TaughtSkillSchema = z.object({
 });
 export type TaughtSkill = z.infer<typeof TaughtSkillSchema>;
 
-export const AgentSkillSourceSchema = z.enum(["user", "builtin", "plugin"]);
+export const AgentSkillSourceSchema = z.enum(["user", "plugin"]);
 export type AgentSkillSource = z.infer<typeof AgentSkillSourceSchema>;
 
 export const AgentSkillSchema = z.object({
@@ -496,6 +496,8 @@ export const AgentSkillSchema = z.object({
   content: z.string(),
   source: AgentSkillSourceSchema,
   readOnly: z.boolean(),
+  /** Agents that receive this skill. */
+  botIds: z.array(Id),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -507,6 +509,7 @@ export const AgentSkillCatalogEntrySchema = AgentSkillSchema.pick({
   description: true,
   source: true,
   readOnly: true,
+  botIds: true,
 });
 export type AgentSkillCatalogEntry = z.infer<typeof AgentSkillCatalogEntrySchema>;
 
@@ -516,6 +519,8 @@ export const CreateAgentSkillInput = z
     name: z.string().min(1).max(80).optional(),
     description: z.string().min(1).max(2000).optional(),
     body: z.string().max(100_000).optional(),
+    /** Give the new skill to this agent. */
+    botId: Id.optional(),
   })
   .superRefine((input, ctx) => {
     if (input.content?.trim()) return;

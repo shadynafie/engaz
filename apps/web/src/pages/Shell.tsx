@@ -1090,10 +1090,12 @@ export function ShellPage() {
     };
   }, []);
 
+  // The / picker offers the skills the open agent is given; a group offers all of them.
+  const skillsBotId = active?.id;
   useEffect(() => {
     let cancelled = false;
     void rpc.agentSkills
-      .list()
+      .list({ botId: skillsBotId })
       .then((skills) => {
         if (!cancelled) setAgentSkills(skills);
       })
@@ -1103,14 +1105,14 @@ export function ShellPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [skillsBotId]);
 
   const refreshAgentSkills = useCallback(() => {
     void rpc.agentSkills
-      .list()
+      .list({ botId: skillsBotId })
       .then(setAgentSkills)
       .catch(() => undefined);
-  }, []);
+  }, [skillsBotId]);
 
   useEffect(() => {
     void rpc.voice

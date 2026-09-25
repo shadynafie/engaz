@@ -133,6 +133,9 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr ""
 
+msgid "A skill with that name already exists."
+msgstr ""
+
 msgid "About groups"
 msgstr ""
 
@@ -1207,11 +1210,17 @@ msgstr ""
 msgid "Earlier message"
 msgstr "पुराना संदेश"
 
+msgid "Edit fields"
+msgstr ""
+
 msgid "Edit first"
 msgstr "पहले संपादित करें"
 
 msgid "Edit Profile"
 msgstr "प्रोफ़ाइल संपादित करें"
+
+msgid "Edit SKILL.md"
+msgstr ""
 
 msgid "Email"
 msgstr "ईमेल"
@@ -1428,6 +1437,9 @@ msgstr "इंस्टेंस API कुंजी"
 msgid "Instruction"
 msgstr "निर्देश"
 
+msgid "Instructions"
+msgstr ""
+
 msgid "Integration domain"
 msgstr ""
 
@@ -1478,9 +1490,6 @@ msgstr "मेमोरी रखें"
 
 msgid "key"
 msgstr ""
-
-msgid "Knowledge"
-msgstr "ज्ञान"
 
 msgid "Language"
 msgstr "भाषा"
@@ -1804,9 +1813,6 @@ msgstr "कोई परिणाम नहीं"
 msgid "No runs yet"
 msgstr ""
 
-msgid "No skills yet"
-msgstr "अभी तक कोई स्किल नहीं"
-
 msgid "No team conversations yet."
 msgstr ""
 
@@ -1996,9 +2002,6 @@ msgstr "प्रतिक्रियाएँ"
 
 msgid "Read replies aloud"
 msgstr "उत्तर पढ़कर सुनाएं"
-
-msgid "read-only"
-msgstr "केवल पढ़ने योग्य"
 
 msgid "Reasoning effort"
 msgstr "रीज़निंग प्रयास"
@@ -2459,6 +2462,9 @@ msgstr "बदला जा रहा है…"
 msgid "System"
 msgstr "सिस्टम"
 
+msgid "Taught"
+msgstr ""
+
 msgid "Teach a task"
 msgstr "कोई कार्य सिखाएं"
 
@@ -2496,6 +2502,9 @@ msgid "Thinking"
 msgstr "सोच रहा है"
 
 msgid "This agent has no plugins yet."
+msgstr ""
+
+msgid "This agent has no skills yet."
 msgstr ""
 
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
@@ -2639,6 +2648,9 @@ msgstr "यह मॉडल उपयोग करें"
 #. placeholder {0}: invite.usedByEmail
 #. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
+msgstr ""
+
+msgid "Used by {usedBy}"
 msgstr ""
 
 msgid "Verify and add"

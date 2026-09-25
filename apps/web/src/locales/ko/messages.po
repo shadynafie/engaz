@@ -133,6 +133,9 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr ""
 
+msgid "A skill with that name already exists."
+msgstr ""
+
 msgid "About groups"
 msgstr ""
 
@@ -1207,11 +1210,17 @@ msgstr ""
 msgid "Earlier message"
 msgstr "이전 메시지"
 
+msgid "Edit fields"
+msgstr ""
+
 msgid "Edit first"
 msgstr "수정 후 보내기"
 
 msgid "Edit Profile"
 msgstr "Bot 정보 수정"
+
+msgid "Edit SKILL.md"
+msgstr ""
 
 msgid "Email"
 msgstr "이메일"
@@ -1428,6 +1437,9 @@ msgstr "인스턴스 API 키"
 msgid "Instruction"
 msgstr "실행할 내용"
 
+msgid "Instructions"
+msgstr ""
+
 msgid "Integration domain"
 msgstr ""
 
@@ -1478,9 +1490,6 @@ msgstr "기억은 유지"
 
 msgid "key"
 msgstr "key"
-
-msgid "Knowledge"
-msgstr "지식"
 
 msgid "Language"
 msgstr "언어"
@@ -1804,9 +1813,6 @@ msgstr "검색 결과가 없습니다"
 msgid "No runs yet"
 msgstr "아직 실행 기록이 없습니다"
 
-msgid "No skills yet"
-msgstr "아직 스킬이 없습니다"
-
 msgid "No team conversations yet."
 msgstr ""
 
@@ -1996,9 +2002,6 @@ msgstr "반응"
 
 msgid "Read replies aloud"
 msgstr "답변을 자동으로 읽기"
-
-msgid "read-only"
-msgstr "읽기 전용"
 
 msgid "Reasoning effort"
 msgstr "추론 강도"
@@ -2459,6 +2462,9 @@ msgstr "전환 중…"
 msgid "System"
 msgstr "시스템"
 
+msgid "Taught"
+msgstr ""
+
 msgid "Teach a task"
 msgstr "작업 가르치기"
 
@@ -2496,6 +2502,9 @@ msgid "Thinking"
 msgstr "생각 깊이"
 
 msgid "This agent has no plugins yet."
+msgstr ""
+
+msgid "This agent has no skills yet."
 msgstr ""
 
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
@@ -2639,6 +2648,9 @@ msgstr "이 모델 사용"
 #. placeholder {0}: invite.usedByEmail
 #. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
+msgstr ""
+
+msgid "Used by {usedBy}"
 msgstr ""
 
 msgid "Verify and add"

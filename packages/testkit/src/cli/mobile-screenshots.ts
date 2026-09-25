@@ -9,6 +9,7 @@ import {
   PipedreamConnector,
   ThirdPartyConnectorEmulator,
 } from "@engaz/adapters";
+import { buildSkillMd } from "@engaz/core";
 import { createThreadMessage, type PrismaClient } from "@engaz/db";
 import { serve } from "@hono/node-server";
 import { sessionCookieHeader } from "../index.js";
@@ -303,6 +304,35 @@ async function seedFixture(app: App, prisma: PrismaClient) {
       serverId: crawler.id,
       allowAllTools: false,
       allowedTools: ["search", "scrape"],
+    },
+  });
+
+  // Researcher has one skill switched on; a second skill is in the catalog but not given to it.
+  await prisma.agentSkill.create({
+    data: {
+      spaceId: botThread.spaceId,
+      userId: botThread.userId,
+      name: "Daily standup",
+      description: "When I ask for standup notes.",
+      content: buildSkillMd({
+        name: "Daily standup",
+        description: "When I ask for standup notes.",
+        body: "1. Summarize wins.\n2. List blockers.",
+      }),
+      bots: { create: { botId: researcher.id } },
+    },
+  });
+  await prisma.agentSkill.create({
+    data: {
+      spaceId: botThread.spaceId,
+      userId: botThread.userId,
+      name: "Weekly report",
+      description: "Every Friday, summarize the week.",
+      content: buildSkillMd({
+        name: "Weekly report",
+        description: "Every Friday, summarize the week.",
+        body: "Totals first, then highlights.",
+      }),
     },
   });
 

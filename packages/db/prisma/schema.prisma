@@ -401,6 +401,7 @@ model Bot {
   runs              Run[]
   steeringMessages  SteeringMessage[]
   mcpServers        BotMcpServer[]
+  skills            BotSkill[]
   groupMembers      ChatGroupMember[]
   botSecrets BotSecret[]
 
@@ -799,12 +800,26 @@ model AgentSkill {
   content     String
   /// user | builtin | plugin — only user skills are writable via API/tools.
   source      String   @default("user")
+  bots        BotSkill[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([spaceId, userId])
   // Case-insensitive unique index agent_skills_spaceId_userId_name_lower_key is created in SQL.
   @@map("agent_skills")
+}
+
+/// Which agents receive an agent skill. A skill no agent is given stays in the catalog unused.
+model BotSkill {
+  botId     String
+  bot       Bot        @relation(fields: [botId], references: [id], onDelete: Cascade)
+  skillId   String
+  skill     AgentSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@id([botId, skillId])
+  @@index([skillId])
+  @@map("bot_skills")
 }
 
 model Connection {

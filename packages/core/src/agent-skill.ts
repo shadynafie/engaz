@@ -6,7 +6,7 @@
 
 const FRONTMATTER_FENCE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
-export type SkillSource = "user" | "builtin" | "plugin";
+export type SkillSource = "user" | "plugin";
 
 export type ParsedSkillMd = {
   name: string;
@@ -54,7 +54,7 @@ const ROUTINE_SKILL_MENTION =
   /(?:^|[\s(,])@([A-Za-z][\w-]*(?:[ ]+[A-Za-z][\w-]*){0,5})(?=[\s,.)]|$)/g;
 
 export function isSkillReadOnly(source: SkillSource): boolean {
-  return source === "builtin" || source === "plugin";
+  return source === "plugin";
 }
 
 /**
@@ -130,7 +130,7 @@ export function formatSkillsCatalogInstruction(entries: SkillCatalogEntry[]): st
     "When a skill matches the user's request, call skill_read for that name and follow it immediately. Prefer matching skills over improvising multi-step recipes.",
     "Users can force a skill with /Name in the composer. Routines may mention a skill as @Name — that loads the skill at fire time.",
     "Create a skill with skill_create when a multi-step task is worth repeating (or when asked). After creating one, mention /Name so the user can open it.",
-    "Only skill_update / skill_delete user-created skills (not builtin or plugin).",
+    "Only skill_update / skill_delete user-created skills (not plugin skills).",
   ].join("\n");
 }
 
@@ -205,14 +205,6 @@ export function extractRoutineSkillMentions(prompt: string, knownNames?: string[
     match = ROUTINE_SKILL_MENTION.exec(prompt);
   }
   return names;
-}
-
-/** Keep user-owned skills reachable when a later builtin claims the same name. */
-export function mergeBuiltinSkills<T extends { name: string }>(
-  builtins: readonly T[],
-  userSkills: readonly T[],
-): T[] {
-  return [...builtins.filter((skill) => !findSkillByName(userSkills, skill.name)), ...userSkills];
 }
 
 export function findSkillByName<T extends { name: string }>(

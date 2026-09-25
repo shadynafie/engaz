@@ -133,6 +133,9 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr "A bit of everything"
 
+msgid "A skill with that name already exists."
+msgstr "A skill with that name already exists."
+
 msgid "About groups"
 msgstr "About groups"
 
@@ -1207,11 +1210,17 @@ msgstr "Each link lets one person create an account. Links expire after 7 days."
 msgid "Earlier message"
 msgstr "Earlier message"
 
+msgid "Edit fields"
+msgstr "Edit fields"
+
 msgid "Edit first"
 msgstr "Edit first"
 
 msgid "Edit Profile"
 msgstr "Edit Profile"
+
+msgid "Edit SKILL.md"
+msgstr "Edit SKILL.md"
 
 msgid "Email"
 msgstr "Email"
@@ -1428,6 +1437,9 @@ msgstr "Instance API key"
 msgid "Instruction"
 msgstr "Instruction"
 
+msgid "Instructions"
+msgstr "Instructions"
+
 msgid "Integration domain"
 msgstr "Integration domain"
 
@@ -1478,9 +1490,6 @@ msgstr "Keep memories"
 
 msgid "key"
 msgstr "key"
-
-msgid "Knowledge"
-msgstr "Knowledge"
 
 msgid "Language"
 msgstr "Language"
@@ -1804,9 +1813,6 @@ msgstr "No results"
 msgid "No runs yet"
 msgstr "No runs yet"
 
-msgid "No skills yet"
-msgstr "No skills yet"
-
 msgid "No team conversations yet."
 msgstr "No team conversations yet."
 
@@ -1996,9 +2002,6 @@ msgstr "Reactions"
 
 msgid "Read replies aloud"
 msgstr "Read replies aloud"
-
-msgid "read-only"
-msgstr "read-only"
 
 msgid "Reasoning effort"
 msgstr "Reasoning effort"
@@ -2459,6 +2462,9 @@ msgstr "Switching…"
 msgid "System"
 msgstr "System"
 
+msgid "Taught"
+msgstr "Taught"
+
 msgid "Teach a task"
 msgstr "Teach a task"
 
@@ -2497,6 +2503,9 @@ msgstr "Thinking"
 
 msgid "This agent has no plugins yet."
 msgstr "This agent has no plugins yet."
+
+msgid "This agent has no skills yet."
+msgstr "This agent has no skills yet."
 
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
 msgstr "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
@@ -2640,6 +2649,9 @@ msgstr "Use this model"
 #. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
 msgstr "Used by {0}"
+
+msgid "Used by {usedBy}"
+msgstr "Used by {usedBy}"
 
 msgid "Verify and add"
 msgstr "Verify and add"

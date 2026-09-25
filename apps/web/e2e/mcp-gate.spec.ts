@@ -32,7 +32,7 @@ test("an agent uses the one tool it was given, and cannot once it is taken away"
     timeout: 30_000,
   });
   // The card says what the tool does, in the server's words.
-  await expect(page.getByText("Review: Write a deterministic emulated note")).toBeVisible();
+  await expect(page.getByText("Review: Write a deterministic emulated note").last()).toBeVisible();
   await captureScreenshot(page, testInfo, "mcp-gate-action");
   await page.getByRole("button", { name: "Allow once", exact: true }).click();
   await expect(page.getByText("Allowed once", { exact: true })).toBeVisible();

@@ -10,6 +10,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/published-image-boot.yml"
+      - "apps/web/e2e-image/**"
+      - "apps/web/playwright.image.config.ts"
       - "infra/compose/install-images.sh"
       - "infra/compose/docker-compose.images.yml"
       - "infra/compose/docker-compose.data-dir.yml"
@@ -41,8 +43,9 @@ jobs:
     env:
       ARCH: ${{ matrix.arch }}
     steps:
+      # The installer below comes from the documented download; the checkout supplies the
+      # first-run journey that is run against it.
       - uses: actions/checkout@v5
-        if: github.event_name == 'pull_request'
         with:
           persist-credentials: false
 
@@ -78,6 +81,33 @@ jobs:
           echo
           curl -fsS http://127.0.0.1:7791/api/auth/capabilities
           echo
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        timeout-minutes: 5
+        run: pnpm --filter @engaz/web exec playwright install chromium
+
+      - name: Start the fake model and MCP server
+        run: |
+          node apps/web/e2e-image/fake-services.mjs > "$RUNNER_TEMP/fake-services.log" 2>&1 &
+          curl -fsS --retry 10 --retry-delay 1 --retry-all-errors http://127.0.0.1:8099/v1/models
+
+      - name: Walk a new owner through first run
+        run: pnpm --filter @engaz/web exec playwright test -c playwright.image.config.ts
+
+      - name: Keep first-run screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: first-run-${{ matrix.arch }}
+          path: test-results/image
+          if-no-files-found: ignore
+          retention-days: 14
           docker compose --env-file .env -f docker-compose.images.yml ps
 
       - name: Pull the updater image
@@ -104,7 +134,9 @@ jobs:
       - name: Show service logs
         if: failure()
         working-directory: ${{ runner.temp }}/engaz
-        run: docker compose --env-file .env -f docker-compose.images.yml logs --no-color --tail 200 || true
+        run: |
+          docker compose --env-file .env -f docker-compose.images.yml logs --no-color --tail 200 || true
+          cat "$RUNNER_TEMP/fake-services.log" || true
 
   data-dir:
     # Uses this revision's installer and Compose files with the published images, so an

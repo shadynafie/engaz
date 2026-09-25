@@ -111,7 +111,7 @@ import {
   formatAgentEnvironmentInstruction,
   redactAgentCommandResult,
 } from "./agent-environment.js";
-import { buildApprovalAskBlock } from "./approval-ask.js";
+import { approvalNotificationBody, buildApprovalAskBlock } from "./approval-ask.js";
 import {
   approvalPausedToolResult,
   approvalReplayPathError,
@@ -1568,6 +1568,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const connectorSchemas = new Map(
           exposedConnectorTools.map((tool) => [tool.name, tool.inputSchema] as const),
         );
+        const connectorDescriptions = new Map(
+          exposedConnectorTools.map((tool) => [tool.name, tool.description] as const),
+        );
         let approvalRulesPromise: Promise<ActionApprovalRule[]> | undefined;
         const loadApprovalRules = () => {
           approvalRulesPromise ??= deps.prisma.actionApprovalRule
@@ -1786,6 +1789,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (approvedReplay.args) connectorCall.args = approvedReplay.args;
           let catalogRemapped = false;
           let resolvedToolSchema: Record<string, unknown> | undefined;
+          let resolvedDescription: string | undefined;
           if (name.startsWith("cloud_agent_") && !validCloudAgentArgs(name, args)) {
             return {
               error: "Invalid cloud agent arguments. Raw environment variables are not supported.",
@@ -1803,6 +1807,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 args = resolved.call.args;
                 catalogRemapped = true;
                 resolvedToolSchema = resolved.tool.inputSchema;
+                resolvedDescription = resolved.tool.description;
                 effectRequest = catalogApprovalRequest(
                   connectorCall.tool,
                   connectorCall.args,
@@ -2196,6 +2201,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               blocks: [
                 buildApprovalAskBlock(applied!.effect.id, name, args, runSecrets, {
                   reviewReason,
+                  toolDescription: connectorDescriptions.get(name) ?? resolvedDescription,
                 }),
               ],
             });
@@ -2208,7 +2214,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
             await notifyRun(deps, run, {
               kind: "help",
               title: `${bot.name} needs approval`,
-              body: `Review before ${name}`,
+              // Only what the tool does, never its arguments: this may show on a lock screen.
+              body: approvalNotificationBody(
+                name,
+                connectorDescriptions.get(name) ?? resolvedDescription,
+              ),
               botId: bot.id,
               threadId: thread.id,
             });

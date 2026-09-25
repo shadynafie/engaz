@@ -36,6 +36,8 @@ test("a new owner goes from sign-up to a working agent with a plugin", async ({
   // localhost inside Docker is Engaz itself; the owner is told what to use instead.
   await serverUrl.fill("http://127.0.0.1:8099/v1");
   await page.getByLabel("Model id").fill("fake-model");
+  // A key is optional for a model server, so its field starts folded away.
+  await page.locator("summary", { hasText: "API key" }).click();
   await apiKey.fill("fake-good-key");
   await cont.click();
   await expect(page.getByText(/use host\.docker\.internal instead of 127\.0\.0\.1/)).toBeVisible({

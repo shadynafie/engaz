@@ -6,7 +6,7 @@ export default defineConfig({
   testDir: "./e2e-image",
   forbidOnly: Boolean(process.env.CI),
   workers: 1,
-  timeout: 600_000,
+  timeout: 300_000,
   expect: { timeout: 20_000 },
   reporter: [...(process.env.CI ? ([["github"]] as const) : []), ["list"] as const],
   outputDir: "../../test-results/image",

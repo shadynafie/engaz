@@ -277,6 +277,35 @@ async function seedFixture(app: App, prisma: PrismaClient) {
     },
   });
 
+  // A working MCP server that Researcher may use two of three tools from.
+  const crawler = await prisma.mcpServer.create({
+    data: {
+      spaceId: botThread.spaceId,
+      userId: botThread.userId,
+      slug: "crawler",
+      name: "Crawler",
+      transport: "streamable_http",
+      endpoint: "https://crawler.example.test/mcp",
+      checkStatus: "working",
+      checkedAt: new Date(),
+      tools: [
+        { name: "search", description: "Search the web" },
+        { name: "scrape", description: "Read a web page as text" },
+        { name: "screenshot", description: "Take a screenshot of a web page" },
+      ],
+    },
+  });
+  await prisma.botMcpServer.create({
+    data: {
+      spaceId: botThread.spaceId,
+      userId: botThread.userId,
+      botId: researcher.id,
+      serverId: crawler.id,
+      allowAllTools: false,
+      allowedTools: ["search", "scrape"],
+    },
+  });
+
   return { botId: researcher.id, groupId: group.id, routineId: routine.id };
 }
 

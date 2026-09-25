@@ -222,7 +222,7 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   });
   // MCP servers have one home, reachable without opening Advanced.
   await expect(page.getByTestId("integrations-mcp")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Add MCP server", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add MCP server", exact: true })).toBeHidden();
   await expect(page.getByRole("button", { name: "Add OpenAPI", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add GraphQL", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add Executor", exact: true })).toBeVisible();
@@ -230,14 +230,13 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await expect(page.getByText("Tool sources", { exact: true })).toBeVisible();
   // Thin Advanced smoke only. GraphQL install and order screenshots live in graphql-integrations.spec.ts.
   await expect(page.getByTestId("integrations-catalog-feed")).toBeVisible();
-  // Catalog Search is optional chrome; add buttons stay MCP → OpenAPI → GraphQL → Executor → Treg.
+  // Catalog Search is optional chrome; add buttons stay OpenAPI → GraphQL → Executor → Treg.
   const advancedActions = advanced.getByTestId("integrations-advanced-add").locator("button");
-  await expect(advancedActions).toHaveCount(5);
-  await expect(advancedActions.nth(0)).toHaveText("Add MCP server");
-  await expect(advancedActions.nth(1)).toHaveText("Add OpenAPI");
-  await expect(advancedActions.nth(2)).toHaveText("Add GraphQL");
-  await expect(advancedActions.nth(3)).toHaveText("Add Executor");
-  await expect(advancedActions.nth(4)).toHaveText("Add Treg");
+  await expect(advancedActions).toHaveCount(4);
+  await expect(advancedActions.nth(0)).toHaveText("Add OpenAPI");
+  await expect(advancedActions.nth(1)).toHaveText("Add GraphQL");
+  await expect(advancedActions.nth(2)).toHaveText("Add Executor");
+  await expect(advancedActions.nth(3)).toHaveText("Add Treg");
 
   const feed = page.getByTestId("integrations-catalog-feed");
   await feed.getByRole("textbox", { name: "Integration domain" }).fill("github.com");

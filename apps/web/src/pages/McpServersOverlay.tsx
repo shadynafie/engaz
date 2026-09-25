@@ -104,6 +104,12 @@ export function McpServersOverlay({
   const [saving, setSaving] = useState(false);
   const [oauthPending, setOauthPending] = useState<string | null>(null);
   const [checking, setChecking] = useState<string | null>(null);
+  const [newToken, setNewToken] = useState("");
+  const [findQuery, setFindQuery] = useState("");
+  const [found, setFound] = useState<{ name: string; endpoint: string; host: string }[] | null>(
+    null,
+  );
+  const [finding, setFinding] = useState(false);
   // The sign-in window reports back on a channel; this is the server it was for.
   const oauthPendingRef = useRef<string | null>(null);
   oauthPendingRef.current = oauthPending;
@@ -159,6 +165,33 @@ export function McpServersOverlay({
     };
     return () => channel.close();
   }, []);
+
+  /** Looks up remote MCP servers in the public integrations catalog. */
+  async function findServers() {
+    if (!findQuery.trim()) return;
+    setError(null);
+    setFinding(true);
+    try {
+      const response = await rpc.capabilities.catalogSearch({
+        query: findQuery.trim(),
+        usePublicCatalog: true,
+      });
+      const byEndpoint = new Map<string, { name: string; endpoint: string; host: string }>();
+      for (const result of response.results) {
+        for (const surface of result.surfaces) {
+          if (surface.kind !== "mcp" || !URL.canParse(surface.source ?? "")) continue;
+          const url = new URL(surface.source!);
+          if (url.protocol !== "https:") continue;
+          byEndpoint.set(url.href, { name: result.name, endpoint: url.href, host: url.host });
+        }
+      }
+      setFound([...byEndpoint.values()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t`Could not search`);
+    } finally {
+      setFinding(false);
+    }
+  }
 
   function toggleSelectedBot(id: string) {
     setSelectedBotIds((current) =>
@@ -260,6 +293,21 @@ export function McpServersOverlay({
       setServers((list) => list.map((server) => (server.id === serverId ? checked : server)));
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not check this server`);
+    } finally {
+      setChecking(null);
+    }
+  }
+
+  /** Swaps in a new access token, keeping the server's agents and tool choices. */
+  async function replaceToken(server: McpServer) {
+    setError(null);
+    setChecking(server.id);
+    try {
+      const updated = await rpc.mcp.servers.update({ id: server.id, secret: newToken.trim() });
+      setServers((list) => list.map((item) => (item.id === server.id ? updated : item)));
+      setNewToken("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t`Could not save the access token`);
     } finally {
       setChecking(null);
     }
@@ -391,18 +439,78 @@ export function McpServersOverlay({
             </Field>
           </>
         ) : (
-          <Field>
-            <FieldLabel htmlFor="mcp-endpoint">
-              <Trans>Server address</Trans>
-            </FieldLabel>
-            <Input
-              id="mcp-endpoint"
-              value={endpoint}
-              autoFocus
-              onChange={(e) => setEndpoint(e.target.value)}
-              placeholder="https://example.com/mcp"
-            />
-          </Field>
+          <>
+            {draft ? null : (
+              <details className="group" open={found !== null}>
+                <summary className="flex cursor-pointer list-none items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+                  <Trans>Find a server</Trans>
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="size-3.5 transition-transform group-open:rotate-90"
+                  />
+                </summary>
+                <div className="mt-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      aria-label={t`Search apps`}
+                      placeholder={t`Search apps`}
+                      value={findQuery}
+                      onChange={(e) => {
+                        setFindQuery(e.target.value);
+                        setFound(null);
+                      }}
+                      onKeyDown={(e) => {
+                        // Enter searches here instead of submitting the add form.
+                        if (e.key !== "Enter") return;
+                        e.preventDefault();
+                        void findServers();
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={finding || !findQuery.trim()}
+                      onClick={() => void findServers()}
+                    >
+                      {finding ? <Trans>Searching…</Trans> : <Trans>Search</Trans>}
+                    </Button>
+                  </div>
+                  {found?.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      <Trans>No remote MCP servers found</Trans>
+                    </p>
+                  ) : null}
+                  {found?.map((result) => (
+                    <button
+                      key={result.endpoint}
+                      type="button"
+                      aria-pressed={endpoint === result.endpoint}
+                      onClick={() => {
+                        setEndpoint(result.endpoint);
+                        setName(result.name);
+                      }}
+                      className={`flex w-full min-w-0 items-baseline justify-between gap-3 rounded-lg px-3 py-2 text-start text-sm hover:bg-accent ${endpoint === result.endpoint ? "bg-muted" : ""}`}
+                    >
+                      <span className="text-foreground">{result.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">{result.host}</span>
+                    </button>
+                  ))}
+                </div>
+              </details>
+            )}
+            <Field>
+              <FieldLabel htmlFor="mcp-endpoint">
+                <Trans>Server address</Trans>
+              </FieldLabel>
+              <Input
+                id="mcp-endpoint"
+                value={endpoint}
+                autoFocus
+                onChange={(e) => setEndpoint(e.target.value)}
+                placeholder="https://example.com/mcp"
+              />
+            </Field>
+          </>
         )}
         <Field>
           <FieldLabel htmlFor="mcp-name">
@@ -545,7 +653,10 @@ export function McpServersOverlay({
                           <button
                             type="button"
                             aria-expanded={open}
-                            onClick={() => setExpanded(open ? null : server.id)}
+                            onClick={() => {
+                              setExpanded(open ? null : server.id);
+                              setNewToken("");
+                            }}
                             className="text-start text-[15px] font-medium text-foreground after:absolute after:inset-0 after:rounded-xl hover:after:bg-accent/40"
                           >
                             {server.name}
@@ -614,6 +725,28 @@ export function McpServersOverlay({
                                 );
                               })}
                             </ul>
+                          ) : null}
+                          {server.check.status === "failing" &&
+                          server.transport !== "stdio" &&
+                          server.oauthStatus === "none" ? (
+                            // A rejected token is the usual failure; replacing it keeps everything else.
+                            <div className="flex gap-2">
+                              <Input
+                                type="password"
+                                aria-label={t`New access token`}
+                                placeholder={t`New access token`}
+                                value={newToken}
+                                onChange={(e) => setNewToken(e.target.value)}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                disabled={checking === server.id || !newToken.trim()}
+                                onClick={() => void replaceToken(server)}
+                              >
+                                <Trans>Save</Trans>
+                              </Button>
+                            </div>
                           ) : null}
                           <div className="flex flex-wrap gap-2">
                             {needsSignIn ? null : (

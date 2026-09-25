@@ -33,7 +33,6 @@ import {
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Check, ChevronDown, ChevronLeft, ChevronUp, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { IntegrationSetup } from "../components/integrations/IntegrationSetup";
 import { PluginStatus } from "../components/PluginStatus";
 import { optionalCatalogFeedProbe } from "../lib/optional-catalog-feed";
 import { rpc } from "../lib/rpc";
@@ -85,7 +84,6 @@ export function PluginsOverlay({
   activeBotId?: string;
 }) {
   const { t } = useLingui();
-  const [setupOpen, setSetupOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(CONNECTION_CATALOG_PAGE_SIZE);
   const [catalog, setCatalog] = useState<ConnectionCatalogItem[]>([]);
@@ -191,8 +189,14 @@ export function PluginsOverlay({
     };
   }, [detailKey, toolsTick]);
 
-  const featuredTiles = useMemo(() => buildFeaturedConnectorTiles(catalog), [catalog]);
   const showFeatured = !query.trim();
+  // Featured apps this catalog lacks are left out rather than shown disabled.
+  const featuredTiles = useMemo(
+    () => buildFeaturedConnectorTiles(catalog).filter((tile) => tile.item && !tile.missing),
+    [catalog],
+  );
+  const featured = showFeatured ? featuredTiles.map((tile) => tile.item!) : [];
+  const featuredLabels = new Map(featuredTiles.map((tile) => [itemKey(tile.item!), tile.label]));
 
   const visible = useMemo(() => filterConnectionCatalogItems(catalog, query), [catalog, query]);
   const rendered = visible.slice(0, visibleCount);
@@ -718,7 +722,7 @@ export function PluginsOverlay({
           </DialogClose>
         </DialogHeader>
 
-        {!detailItem ? (
+        {!detailItem && catalog.length > 0 ? (
           <div className="px-8 pt-4">
             <Input
               value={query}
@@ -734,28 +738,6 @@ export function PluginsOverlay({
         ) : null}
 
         <div id="integration-list" className="rk-scroll flex-1 overflow-y-auto px-8 py-6">
-          <Button
-            variant="outline"
-            className="mb-4"
-            onClick={() => setSetupOpen((current) => !current)}
-          >
-            <Trans>Browse MCP servers</Trans>
-          </Button>
-          {setupOpen ? (
-            <div className="mb-6">
-              <IntegrationSetup
-                botId={activeBotId}
-                onDone={() => {
-                  setSetupOpen(false);
-                  void refresh().catch((err: unknown) =>
-                    setCatalogError(
-                      err instanceof Error ? err.message : t`Could not load integrations`,
-                    ),
-                  );
-                }}
-              />
-            </div>
-          ) : null}
           {catalogError ? <p className="mb-4 text-sm text-destructive">{catalogError}</p> : null}
 
           {detailItem ? (
@@ -768,92 +750,12 @@ export function PluginsOverlay({
                 </p>
               ) : null}
 
-              {showFeatured ? (
-                <div className="mb-6" data-testid="featured-connectors">
-                  {!loading && catalog.length === 0 ? (
-                    <p className="text-[13.5px] leading-6 text-muted-foreground/80">
-                      {EMPTY_PLUGIN_CATALOG_MESSAGE}
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {featuredTiles.map((tile) => {
-                        const item = tile.item;
-                        const key = item ? itemKey(item) : tile.id;
-                        const disabled = tile.missing || !item;
-                        if (item && !tile.missing) {
-                          // Featured is the stable hit target for connection-tile-* in E2E.
-                          return renderCatalogTile(item, tile.label, item.logo, {
-                            tileTestId: true,
-                          });
-                        }
-                        return (
-                          <div
-                            key={key}
-                            className={`flex min-w-0 items-center gap-3 rounded-xl px-2.5 py-2 ${
-                              disabled ? "opacity-70" : ""
-                            }`}
-                          >
-                            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent text-sm font-semibold text-foreground">
-                              {tile.label[0]}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-[15px] font-medium text-foreground">
-                                {tile.label}
-                              </div>
-                              {disabled ? (
-                                <div className="truncate text-[12.5px] text-muted-foreground">
-                                  <Trans>Not in the plugin catalog</Trans>
-                                </div>
-                              ) : null}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ) : null}
-
-              {!loading && catalog.length === 0 && !showFeatured ? (
-                <p className="text-muted-foreground/80">
-                  <Trans>No managed app catalog is configured on this deployment.</Trans>
-                </p>
-              ) : null}
-              {!loading && catalog.length > 0 && visible.length === 0 && !showFeatured ? (
-                <p className="text-muted-foreground/80">
-                  <Trans>No apps match your search.</Trans>
-                </p>
-              ) : null}
-              {visible.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {rendered.map((item) =>
-                    renderCatalogTile(item, item.name, item.logo, {
-                      // Avoid duplicate connection-tile-* ids while featured is also shown.
-                      tileTestId: !showFeatured,
-                    }),
-                  )}
-                </div>
-              ) : null}
-              {rendered.length < visible.length ? (
-                <div className="mt-4 flex justify-center">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="rounded-full"
-                    size="sm"
-                    onClick={() => setVisibleCount((count) => count + CONNECTION_CATALOG_PAGE_SIZE)}
-                  >
-                    <Trans>Show more</Trans>
-                  </Button>
-                </div>
-              ) : null}
-
               {onOpenMcp ? (
                 <button
                   type="button"
                   data-testid="integrations-mcp"
                   onClick={() => onOpenMcp()}
-                  className="mt-8 flex w-full items-center justify-between gap-3 rounded-xl border border-border px-4 py-3 text-start hover:bg-accent"
+                  className="mb-6 flex w-full items-center justify-between gap-3 rounded-xl border border-border px-4 py-3 text-start hover:bg-accent"
                 >
                   <span>
                     <span className="block text-[15px] font-medium text-foreground">
@@ -879,6 +781,51 @@ export function PluginsOverlay({
                     ›
                   </span>
                 </button>
+              ) : null}
+
+              {!loading && catalog.length === 0 ? (
+                <p className="text-[13.5px] leading-6 text-muted-foreground/80">
+                  {EMPTY_PLUGIN_CATALOG_MESSAGE}
+                </p>
+              ) : null}
+              {!loading && catalog.length > 0 && visible.length === 0 && !showFeatured ? (
+                <p className="text-muted-foreground/80">
+                  <Trans>No apps match your search.</Trans>
+                </p>
+              ) : null}
+              {/* Featured apps lead the same grid as the rest of the catalog. */}
+              {featured.length > 0 || visible.length > 0 ? (
+                <div
+                  className="grid grid-cols-2 gap-2"
+                  data-testid={showFeatured ? "featured-connectors" : undefined}
+                >
+                  {featured.map((item) =>
+                    renderCatalogTile(
+                      item,
+                      featuredLabels.get(itemKey(item)) ?? item.name,
+                      item.logo,
+                    ),
+                  )}
+                  {rendered.map((item) =>
+                    renderCatalogTile(item, item.name, item.logo, {
+                      // Avoid duplicate connection-tile-* ids while featured is also shown.
+                      tileTestId: !showFeatured,
+                    }),
+                  )}
+                </div>
+              ) : null}
+              {rendered.length < visible.length ? (
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="rounded-full"
+                    size="sm"
+                    onClick={() => setVisibleCount((count) => count + CONNECTION_CATALOG_PAGE_SIZE)}
+                  >
+                    <Trans>Show more</Trans>
+                  </Button>
+                </div>
               ) : null}
 
               <details
@@ -1007,15 +954,6 @@ export function PluginsOverlay({
                   ) : null}
 
                   <div data-testid="integrations-advanced-add" className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="rounded-full"
-                      size="sm"
-                      onClick={() => onOpenMcp?.()}
-                    >
-                      <Trans>Add MCP server</Trans>
-                    </Button>
                     <Button
                       type="button"
                       variant="secondary"

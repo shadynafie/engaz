@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 
-test("setup exposes all integration choices and saves only the selected provider", async ({
+test("setup offers the app providers and saves only the selected one", async ({
   page,
 }, testInfo) => {
   const saved: unknown[] = [];
@@ -30,8 +30,12 @@ test("setup exposes all integration choices and saves only the selected provider
   await expect(page.getByRole("heading", { name: "Server integrations" })).toBeHidden();
   await page.goto("/integrations/setup");
   await expect(page.getByRole("heading", { name: "Server integrations" })).toBeVisible();
-  for (const name of ["Direct MCP", "Composio", "Pipedream", "Executor"]) {
+  for (const name of ["Composio", "Pipedream"]) {
     await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
+  }
+  // MCP servers have their own screen, so this page only sets up app providers.
+  for (const name of ["Direct MCP", "Executor"]) {
+    await expect(page.getByRole("button", { name, exact: true })).toBeHidden();
   }
   await expect(page.getByLabel("API key", { exact: true })).toBeHidden();
   await captureScreenshot(page, testInfo, "integration-setup-options");
@@ -52,140 +56,7 @@ test("setup exposes all integration choices and saves only the selected provider
   });
 });
 
-test("direct MCP connects a catalog result without asking for a URL and assigns it to the agent", async ({
-  page,
-}, testInfo) => {
-  await page.route("**/rpc/integrationSetup/get", (route) =>
-    route.fulfill({
-      json: {
-        json: {
-          canConfigure: true,
-          needsSetup: true,
-          webUrl: "https://example.test/integrations/setup",
-          providers: [],
-        },
-      },
-    }),
-  );
-  let serverId = "";
-  await page.route("**/rpc/capabilities/catalogSearch", (route) =>
-    route.fulfill({
-      json: {
-        json: {
-          enabled: true,
-          results: [
-            {
-              domain: "notion.example.test",
-              name: "Notion",
-              description: "",
-              pageUrl: null,
-              surfaces: [
-                {
-                  kind: "mcp",
-                  slug: "notion",
-                  // The API checks the server on connect; the emulator answers here.
-                  source: "https://mcp.example.test/mcp",
-                  auth: null,
-                },
-              ],
-            },
-          ],
-        },
-      },
-    }),
-  );
-  await page.route("**/rpc/mcp/oauth/begin", (route) => {
-    serverId = route.request().postDataJSON().json.serverId;
-    return route.fulfill({ json: { json: { status: "already_connected" } } });
-  });
-  await signup(page, `direct-mcp-setup-${Date.now()}@engaz.test`, "password12", "Direct MCP");
-  await completeOnboarding(page);
-  await page.goto("/integrations/setup");
-  const assigned = page.waitForResponse(
-    (response) => response.url().includes("/rpc/mcp/assignments/approve") && response.ok(),
-  );
-  await page.getByRole("textbox", { name: "Search apps", exact: true }).fill("Notion");
-  await page.getByRole("button", { name: "Search integrations.sh", exact: true }).click();
-  await expect(page.getByText("Notion", { exact: true })).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "Server URL" })).toBeHidden();
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Connected", exact: true })).toBeVisible();
-  await captureScreenshot(page, testInfo, "integration-setup-direct-connected");
-  const response = await assigned;
-  expect(response.request().postDataJSON().json.serverId).toBe(serverId);
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.waitForURL(/\/app\//);
-  await expect(page.getByRole("combobox", { name: "Message Chief" })).toBeVisible();
-});
-
-test("Executor reconnect saves a replacement token before authorization", async ({ page }) => {
-  await page.route("**/rpc/integrationSetup/get", (route) =>
-    route.fulfill({
-      json: {
-        json: {
-          canConfigure: true,
-          needsSetup: true,
-          webUrl: "https://example.test/integrations/setup",
-          providers: [],
-        },
-      },
-    }),
-  );
-  await signup(page, `executor-reconnect-${Date.now()}@engaz.test`, "password12", "Executor Test");
-  await completeOnboarding(page);
-  await page.goto("/integrations/setup");
-  await expect(page.getByRole("heading", { name: "Server integrations" })).toBeVisible();
-  const server = await page.evaluate(async () => {
-    const response = await fetch("/rpc/mcp/servers/create", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-engaz-space-id": localStorage.getItem("engaz:space-id") ?? "",
-      },
-      body: JSON.stringify({
-        json: {
-          slug: "existing-executor",
-          name: "Executor",
-          transport: "streamable_http",
-          endpoint: "https://executor.example.test/mcp",
-          secret: "fake-old-token",
-          headers: { "X-Test": "fake-header" },
-        },
-      }),
-    });
-    if (!response.ok) throw new Error(`Server creation failed: ${response.status}`);
-    return (await response.json()).json;
-  });
-  let saved = false;
-  await page.route("**/rpc/mcp/servers/update", async (route) => {
-    expect(route.request().postDataJSON()).toEqual({
-      json: { id: server.id, secret: "fake-new-token" },
-    });
-    const response = await route.fetch();
-    expect(response.ok()).toBe(true);
-    const updated = (await response.json()).json;
-    expect(updated.headerKeys).toEqual(["X-Test"]);
-    expect(updated.revision).toBe(server.revision + 1);
-    saved = true;
-    await route.fulfill({ response });
-  });
-  await page.route("**/rpc/mcp/oauth/begin", (route) => {
-    expect(saved).toBe(true);
-    return route.fulfill({ json: { json: { status: "already_connected" } } });
-  });
-  await page.getByRole("button", { name: "Executor", exact: true }).click();
-  await page
-    .getByRole("textbox", { name: "Server URL", exact: true })
-    .fill("https://executor.example.test/mcp");
-  await page.getByLabel("Access token", { exact: true }).fill("fake-new-token");
-  await page.getByRole("button", { name: "Connect", exact: true }).click();
-  await expect.poll(() => saved).toBe(true);
-  await expect(page.getByRole("alert")).toBeHidden();
-});
-
-test("remote members skip server setup and keep direct MCP connections", async ({
-  page,
-}, testInfo) => {
+test("remote members skip server setup and still add MCP servers", async ({ page }, testInfo) => {
   await page.route("**/rpc/integrationSetup/get", (route) =>
     route.fulfill({
       json: {
@@ -203,13 +74,11 @@ test("remote members skip server setup and keep direct MCP connections", async (
   await expect(page.getByRole("heading", { name: "Create your first bot" })).toHaveCount(0);
   await captureScreenshot(page, testInfo, "remote-member-onboarding");
   await completeOnboarding(page);
-  await page.goto("/integrations/setup?mode=mcp");
+  await page.getByText("Integrations", { exact: true }).click();
+  await page.getByTestId("integrations-mcp").click();
   await expect(page.getByRole("heading", { name: "Add MCP server" })).toBeVisible();
-  for (const name of ["Composio", "Pipedream", "Executor"]) {
-    await expect(page.getByRole("button", { name, exact: true })).toBeHidden();
-  }
-  await expect(page.getByRole("textbox", { name: "Search apps", exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "remote-member-mcp");
+  await page.getByRole("button", { name: "Close MCP servers" }).click();
   await page.goto("/integrations/setup");
   await page.waitForURL(/\/app/);
   await expect(page.getByRole("heading", { name: "Server integrations" })).toBeHidden();

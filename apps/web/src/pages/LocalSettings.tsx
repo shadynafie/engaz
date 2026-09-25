@@ -45,7 +45,7 @@ export function LocalSettingsPage() {
             {section === "models" ? (
               <ModelSettingsOverlay onClose={() => setSection(null)} localOwner />
             ) : null}
-            {section === "integrations" ? <IntegrationSetup serverSetup managedOnly /> : null}
+            {section === "integrations" ? <IntegrationSetup /> : null}
           </>
         ) : null}
       </div>

@@ -139,9 +139,6 @@ msgstr "О группах"
 msgid "About spaces"
 msgstr "О пространствах"
 
-msgid "Access token"
-msgstr "Токен доступа"
-
 msgid "Access token (optional)"
 msgstr "Токен доступа (необязательно)"
 
@@ -222,9 +219,6 @@ msgstr "Добавить OpenAPI"
 
 msgid "Add server"
 msgstr "Добавить сервер"
-
-msgid "Add server URL"
-msgstr "Добавьте URL сервера"
 
 msgid "Add the server address."
 msgstr ""
@@ -380,9 +374,6 @@ msgstr "Спросите перед отправкой внешнего элек
 msgid "Ask the owner of this Engaz for an invitation link."
 msgstr ""
 
-msgid "Ask the server owner to configure this provider."
-msgstr "Попросите владельца сервера настроить этого провайдера."
-
 #. placeholder {0}: preset.time
 msgid "at {0}"
 msgstr "в {0}"
@@ -469,9 +460,6 @@ msgstr "Боты работают"
 
 msgid "Brain label"
 msgstr ""
-
-msgid "Browse MCP servers"
-msgstr "Просмотреть MCP-серверы"
 
 msgid "Call"
 msgstr "Вызов"
@@ -960,8 +948,14 @@ msgstr "Не удалось сохранить этот выбор"
 msgid "Could not save that voice"
 msgstr "Не удалось сохранить этот голос"
 
+msgid "Could not save the access token"
+msgstr ""
+
 msgid "Could not save this choice"
 msgstr "Не удалось сохранить этот выбор."
+
+msgid "Could not search"
+msgstr ""
 
 msgid "Could not search catalog"
 msgstr "Не удалось выполнить поиск по каталогу"
@@ -1146,9 +1140,6 @@ msgstr "Настольное приложение"
 msgid "Desktop update"
 msgstr "Обновление настольного приложения"
 
-msgid "Direct MCP"
-msgstr "Прямой MCP"
-
 msgid "Disconnect"
 msgstr "Отключить"
 
@@ -1191,9 +1182,6 @@ msgstr "Скачать {name}"
 
 msgid "Download as markdown"
 msgstr "Скачать как Markdown"
-
-msgid "Download Executor"
-msgstr "Скачать Executor"
 
 msgid "Downloading…"
 msgstr "Скачивание…"
@@ -1302,6 +1290,9 @@ msgstr "Неуспешный."
 
 msgid "Failure handling"
 msgstr "Обработка сбоев"
+
+msgid "Find a server"
+msgstr ""
 
 msgid "Find models"
 msgstr "Найти модели"
@@ -1732,6 +1723,9 @@ msgstr "Требуется передача управления"
 msgid "Needs you"
 msgstr "Требуется ваше участие"
 
+msgid "New access token"
+msgstr ""
+
 msgid "New bot"
 msgstr "Новый бот"
 
@@ -1786,9 +1780,6 @@ msgstr "Групповых чатов пока нет."
 msgid "No longer active"
 msgstr "Больше не активен"
 
-msgid "No managed app catalog is configured on this deployment."
-msgstr "В этом развертывании не настроен каталог управляемых приложений."
-
 msgid "No matching models"
 msgstr "Нет подходящих моделей"
 
@@ -1833,9 +1824,6 @@ msgstr ""
 
 msgid "Not connected"
 msgstr "Не подключено"
-
-msgid "Not in the plugin catalog"
-msgstr "Нет в каталоге плагинов"
 
 msgid "Not now"
 msgstr "Не сейчас"
@@ -2269,9 +2257,6 @@ msgstr "Искать ботов и переключать диалоги"
 
 msgid "Search by domain"
 msgstr "Поиск по домену"
-
-msgid "Search integrations.sh"
-msgstr "Поиск integrations.sh"
 
 msgid "Search models"
 msgstr "Поиск моделей"

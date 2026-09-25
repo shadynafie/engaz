@@ -90,9 +90,11 @@ tags:
     direction: DOWN
 - takeScreenshot: "11-models"
 - tapOn: "Show more"
+# The full provider list is long; the default 20s can run out as it arrives.
 - scrollUntilVisible:
     element: "Show less"
     direction: DOWN
+    timeout: 60000
 - takeScreenshot: "11b-all-providers"
 
 - openLink: "engaz:///voice"

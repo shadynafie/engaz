@@ -378,10 +378,52 @@
   font-size: 19px;
   line-height: 1.6;
 }
+.workbench-setup__install { margin-top: 54px; }
+.workbench-setup__install > p {
+  margin: 0 0 16px;
+  font-size: 17px;
+  line-height: 1.5;
+}
+.workbench-setup__command {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--primary-foreground) 35%, transparent);
+  border-radius: 6px;
+  padding: 10px;
+}
+.workbench-setup__command code {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  align-self: center;
+  padding: 12px;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.workbench-setup__command button {
+  flex: 0 0 auto;
+  min-width: 148px;
+  border: 0;
+  border-radius: 3px;
+  background: var(--primary-foreground);
+  padding: 12px 18px;
+  color: var(--primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.workbench-setup__command button:hover,
+.workbench-setup__command button:focus-visible {
+  outline: 2px solid var(--primary-foreground);
+  outline-offset: 3px;
+}
 .workbench-setup__steps {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 80px 0 0;
+  margin: 64px 0 0;
   border-block: 1px solid color-mix(in srgb, var(--primary-foreground) 24%, transparent);
   padding: 0;
   list-style: none;
@@ -525,6 +567,10 @@
   .workbench-setup { padding-block: 95px 105px; }
   .workbench-setup h2 { font-size: clamp(50px, 12vw, 74px); }
   .workbench-setup__intro > p:last-child { font-size: 17px; }
+  .workbench-setup__install { margin-top: 42px; }
+  .workbench-setup__command { display: block; }
+  .workbench-setup__command code { display: block; }
+  .workbench-setup__command button { width: 100%; margin-top: 8px; }
   .workbench-setup__steps { display: block; margin-top: 55px; }
   .workbench-setup__steps li,
   .workbench-setup__steps li:first-child { display: grid; grid-template-columns: 42px 1fr; gap: 0 12px; border-left: 0; padding: 22px 0; }

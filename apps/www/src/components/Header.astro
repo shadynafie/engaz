@@ -20,7 +20,7 @@ type Props = {
 const locale = Astro.props.locale ?? DEFAULT_LOCALE;
 const copy = Astro.props.copy ?? getHomeCopy(locale).nav;
 const homeHref = Astro.props.homeHref ?? localeHomePath(locale);
-const setupLabel = getHomeCopy(locale).roster.installGuide;
+const setupLabel = getHomeCopy(locale).roster.installLabel;
 
 const NAV_LINKS = [
   { href: localeHashPath(locale, "product"), label: copy.product },
@@ -45,7 +45,7 @@ const NAV_LINKS = [
   </div>
   <div class="site-header__right">
     <div class="site-header__cta">
-      <Button href={DOCS_URL} size="sm" external>{setupLabel}</Button>
+      <Button href={localeHashPath(locale, "selfhost")} size="sm">{setupLabel}</Button>
     </div>
     <details class="site-menu" data-site-menu>
       <summary class="site-menu__toggle" aria-label={copy.menu}>

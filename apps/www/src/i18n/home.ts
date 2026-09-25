@@ -281,7 +281,7 @@ const ZH_ROSTER: RosterBot[] = [
 const HOME_COPY: Record<Locale, HomeCopy> = {
   en: {
     title: "Engaz | Self-hosted AI team workspace",
-    description: "Engaz is an open-source, self-hosted workspace for your AI team. Create agents, connect compatible models, and choose which plugins they can access.",
+    description: "Free, open-source AI team software for solo founders and small businesses. Self-host Engaz, give agents work, and keep control.",
     ogImageAlt: "Engaz. AI teammates. Real progress. Self-hosted on your own installation.",
     availableLanguage: "English",
     skipToContent: "Skip to content",
@@ -298,10 +298,10 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       viewOnGithub: "View on GitHub",
     },
     hero: {
-      badge: "Open source",
+      badge: "Free & open source",
       pill: "Self-hosted",
       heading: "AI teammates. Real progress.",
-      lead: "Give an agent a task, follow its work in one place, and step in when it needs you—on an installation you control.",
+      lead: "For solo founders and small businesses: put AI agents to work on the jobs that keep your business moving. Give them tasks, follow progress, and step in when needed.",
       getStarted: "See the workspace",
       viewOnGithub: "View on GitHub",
       setupWithAgent: "Set up with your agent",
@@ -336,7 +336,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       eyebrow: "First run",
       heading: "Your team starts on your machine.",
       installLabel: "Install Engaz",
-      installInstruction: "Run this in a terminal on the computer that will host Engaz.",
+      installInstruction: "No clone or image build is needed. Run one command in a terminal:",
       installRequirements: "Requires Docker Engine 26+, Compose, curl, and OpenSSL. Choose durable storage before starting.",
       status: "Active development",
       installGuide: "Installation guide",
@@ -351,8 +351,8 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     openSource: {
       eyebrow: "Why Engaz",
-      heading: "Your installation. Your choices.",
-      copy: "Run Engaz on your own hardware. Its source is Apache-2.0 licensed. Models and connected services may receive task content when you use them.",
+      heading: "Your AI team. Free to self-host.",
+      copy: "Run Engaz on your own hardware. The software is Apache-2.0 licensed; hosting and model providers may have costs.",
       selfHostTitle: "Self-host",
       selfHostMeta: "In active development",
       selfHostItems: [
@@ -422,7 +422,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
   },
   de: {
     title: "Engaz | Selbst gehosteter Arbeitsbereich für KI-Teams",
-    description: "Engaz ist ein quelloffener, selbst gehosteter Arbeitsbereich für dein KI-Team. Erstelle Agenten, verbinde kompatible Modelle und bestimme ihren Plugin-Zugriff.",
+    description: "Kostenlose Open-Source-Software für KI-Teams in kleinen Unternehmen. Hoste Engaz selbst, gib Agenten Aufgaben und behalte die Kontrolle.",
     ogImageAlt: "Engaz. KI-Teamkollegen. Echter Fortschritt. Auf deiner eigenen Installation.",
     availableLanguage: "German",
     skipToContent: "Zum Inhalt springen",
@@ -439,10 +439,10 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       viewOnGithub: "Auf GitHub ansehen",
     },
     hero: {
-      badge: "Open Source",
+      badge: "Kostenlos & Open Source",
       pill: "Self-hosted",
       heading: "KI-Teamkollegen. Echter Fortschritt.",
-      lead: "Gib einem Agenten eine Aufgabe, verfolge seine Arbeit an einem Ort und greife bei Bedarf ein – auf einer Installation unter deiner Kontrolle.",
+      lead: "Für Solo-Gründer und kleine Unternehmen: Lass KI-Agenten bei der täglichen Arbeit helfen. Gib ihnen Aufgaben, verfolge den Fortschritt und greife bei Bedarf ein.",
       getStarted: "Arbeitsbereich ansehen",
       viewOnGithub: "Auf GitHub ansehen",
       setupWithAgent: "Mit deinem Agenten einrichten",
@@ -477,7 +477,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       eyebrow: "Erster Start",
       heading: "Dein Team startet auf deinem Rechner.",
       installLabel: "Engaz installieren",
-      installInstruction: "Führe diesen Befehl im Terminal des Computers aus, auf dem Engaz laufen soll.",
+      installInstruction: "Kein Klonen und kein Image-Build nötig. Starte mit einem Befehl im Terminal:",
       installRequirements: "Benötigt Docker Engine 26+, Compose, curl und OpenSSL. Wähle vor dem Start einen dauerhaften Speicherort.",
       status: "In aktiver Entwicklung",
       installGuide: "Installationsanleitung",
@@ -492,8 +492,8 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     openSource: {
       eyebrow: "Warum Engaz",
-      heading: "Deine Installation. Deine Entscheidungen.",
-      copy: "Betreibe Engaz auf eigener Hardware. Der Quellcode steht unter Apache-2.0. Modelle und verbundene Dienste können bei Nutzung Aufgabeninhalte erhalten.",
+      heading: "Dein KI-Team. Kostenlos selbst hosten.",
+      copy: "Betreibe Engaz auf eigener Hardware. Die Software steht unter Apache-2.0; Hosting und Modellanbieter können Kosten verursachen.",
       selfHostTitle: "Self-host",
       selfHostMeta: "In aktiver Entwicklung",
       selfHostItems: [
@@ -563,7 +563,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
   },
   ko: {
     title: "Engaz | 직접 호스팅하는 AI 팀 워크스페이스",
-    description: "Engaz는 직접 호스팅하는 오픈소스 AI 팀 워크스페이스입니다. 에이전트를 만들고 호환 모델을 연결하며 각 에이전트의 플러그인 접근을 정하세요.",
+    description: "1인 창업자와 소규모 기업을 위한 무료 오픈소스 AI 팀 소프트웨어. Engaz를 직접 호스팅하고 에이전트에게 업무를 맡기세요.",
     ogImageAlt: "Engaz. AI 팀원. 실제 진전. 직접 운영하는 설치 환경.",
     availableLanguage: "Korean",
     skipToContent: "본문으로 건너뛰기",
@@ -580,10 +580,10 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       viewOnGithub: "GitHub에서 보기",
     },
     hero: {
-      badge: "오픈소스",
+      badge: "무료 오픈소스",
       pill: "셀프 호스트",
       heading: "AI 팀원. 실제 진전.",
-      lead: "에이전트에게 일을 맡기고 한곳에서 진행 상황을 확인하세요. 도움이 필요할 때 직접 개입할 수 있으며, 설치 환경은 직접 관리합니다.",
+      lead: "1인 창업자와 소규모 기업을 위해: AI 에이전트에게 비즈니스 업무를 맡기고, 진행 상황을 확인하고, 필요할 때 직접 개입하세요.",
       getStarted: "워크스페이스 보기",
       viewOnGithub: "GitHub에서 보기",
       setupWithAgent: "에이전트로 설정하기",
@@ -618,7 +618,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       eyebrow: "첫 실행",
       heading: "내 컴퓨터에서 팀을 시작하세요.",
       installLabel: "Engaz 설치",
-      installInstruction: "Engaz를 실행할 컴퓨터의 터미널에서 이 명령어를 실행하세요.",
+      installInstruction: "저장소를 복제하거나 이미지를 빌드할 필요가 없습니다. 터미널에서 명령어 하나만 실행하세요:",
       installRequirements: "Docker Engine 26+, Compose, curl, OpenSSL이 필요합니다. 시작하기 전에 영구 저장 위치를 선택하세요.",
       status: "개발 진행 중",
       installGuide: "설치 안내서",
@@ -633,8 +633,8 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     openSource: {
       eyebrow: "Engaz를 선택하는 이유",
-      heading: "직접 운영하고 직접 선택하세요.",
-      copy: "Engaz를 직접 관리하는 하드웨어에서 실행하세요. 소스는 Apache-2.0 라이선스입니다. 이용하는 모델과 연결 서비스에는 작업 내용이 전달될 수 있습니다.",
+      heading: "나의 AI 팀. 무료로 직접 호스팅하세요.",
+      copy: "Engaz를 내 하드웨어에서 실행하세요. 소프트웨어는 Apache-2.0 라이선스이며, 호스팅과 모델 제공업체에는 비용이 들 수 있습니다.",
       selfHostTitle: "셀프 호스트",
       selfHostMeta: "개발 진행 중",
       selfHostItems: [
@@ -704,7 +704,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
   },
   zh: {
     title: "Engaz | 自托管 AI 团队工作空间",
-    description: "Engaz 是开源的自托管 AI 团队工作空间。创建智能体、连接兼容模型，并决定每个智能体可使用哪些插件。",
+    description: "面向独立创业者和小企业的免费开源 AI 团队软件。自行托管 Engaz，把工作交给智能体，同时保持掌控。",
     ogImageAlt: "Engaz：AI 队友，切实推进工作。运行在你自己的安装环境中。",
     availableLanguage: "Chinese",
     skipToContent: "跳到主要内容",
@@ -721,10 +721,10 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       viewOnGithub: "在 GitHub 上查看",
     },
     hero: {
-      badge: "开源",
+      badge: "免费开源",
       pill: "自托管",
       heading: "AI 队友。切实推进工作。",
-      lead: "给智能体一项任务，在同一个地方跟进工作；需要你时及时介入，并始终掌控自己的安装环境。",
+      lead: "为独立创业者和小企业而建：让 AI 智能体协助处理日常业务，跟进进展，并在需要时亲自介入。",
       getStarted: "查看工作空间",
       viewOnGithub: "在 GitHub 上查看",
       setupWithAgent: "用你的智能体安装",
@@ -759,7 +759,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       eyebrow: "初次使用",
       heading: "在自己的电脑上组建团队。",
       installLabel: "安装 Engaz",
-      installInstruction: "在将要运行 Engaz 的电脑终端中执行此命令。",
+      installInstruction: "无需克隆仓库或构建镜像。在终端运行一条命令即可开始：",
       installRequirements: "需要 Docker Engine 26+、Compose、curl 和 OpenSSL。启动前请选择持久存储位置。",
       status: "持续开发中",
       installGuide: "安装指南",
@@ -774,8 +774,8 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     openSource: {
       eyebrow: "为什么选择 Engaz",
-      heading: "你的安装环境，由你选择。",
-      copy: "在自己的硬件上运行 Engaz。源代码采用 Apache-2.0 许可证。使用模型或已连接服务时，任务内容可能会发送给相应提供方。",
+      heading: "你的 AI 团队，免费自行托管。",
+      copy: "在自己的硬件上运行 Engaz。软件采用 Apache-2.0 许可证；托管和模型服务可能产生费用。",
       selfHostTitle: "自托管",
       selfHostMeta: "持续开发中",
       selfHostItems: [

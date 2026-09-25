@@ -3409,7 +3409,7 @@ export function ShellPage() {
       <aside
         data-testid="side-panel"
         data-panel={panel ?? "closed"}
-        className={`absolute inset-y-0 end-0 z-20 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background transition-[width] duration-150 ease-out md:relative ${
+        className={`absolute inset-y-0 end-0 z-30 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background transition-[width] duration-150 ease-out md:relative ${
           panel && (active || activeGroup || panel === "create")
             ? "w-full max-w-[384px] border-s border-sidebar-border md:w-[384px] md:max-w-none"
             : "pointer-events-none w-0"

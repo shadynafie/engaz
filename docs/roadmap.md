@@ -27,7 +27,7 @@ This baseline describes source and checks, not the safety of an existing install
 
 ## Order of work
 
-Current status: **2 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 moved to the end, after phase 5); 3 verified; 4 verified; 5 planned.** Phase 2 moved ahead of 1.3–1.4 so the first-run experience is right before lifecycle tooling. Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
+Current status: **2 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 moved to the end, after phase 5); 3 verified; 4 verified; 5 in progress (5.1 on the web).** Phase 2 moved ahead of 1.3–1.4 so the first-run experience is right before lifecycle tooling. Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
 
 ### 0. Restore the release gate
 
@@ -80,7 +80,7 @@ Current status: **2 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 mov
 
 ### 5. Polish and release self-hosted v1
 
-1. Apply the existing semantic tokens and monochrome components to changed screens. Test light/dark, keyboard access, narrow web widths, and native navigation. Bot identity color remains the only identity accent.
+1. Apply the existing semantic tokens and monochrome components to changed screens. Test light/dark, keyboard access, narrow web widths, and native navigation. Bot identity color remains the only identity accent. **In progress:** a browser test opens sign-up, the invitation gate, the onboarding model step, Settings → People, Integrations, MCP servers, an agent's settings, and the skill editor in light and dark at desktop and phone widths. It fails on sideways scrolling, controls pushed off screen or covered by something outside the screen, unnamed controls, names truncated to a few characters, and Tab stops that are hidden or show no focus. It found two faults, both fixed: on a phone the message box covered the bottom of an agent's settings (Save, Export, the computer choice), and Integrations cut every app name to one letter. No hardcoded product colors were found on these screens. Native navigation on mobile is still to check.
 2. Verify the same installation with web, Electron, and Expo clients. Release desktop/mobile builds only after their server selection, sign-in, first conversation, plugin permission display, and error recovery are checked. Store listing or update delivery is a separate release gate, not implied by source code.
 3. Make `README.md` the short public user guide and keep technical install, backup, restore, security, and troubleshooting steps in `docs/self-host.md`. Publish versioned images and a tested upgrade/rollback path before calling v1 ready.
 

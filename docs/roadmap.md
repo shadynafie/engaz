@@ -1,6 +1,6 @@
 # Engaz development roadmap
 
-Updated: 2026-09-24. This is the delivery plan and status record for Engaz v1. Change a status only when the linked behavior has been checked; a merged PR alone does not prove a user journey works.
+Updated: 2026-09-25. This is the delivery plan and status record for Engaz v1. Change a status only when the linked behavior has been checked; a merged PR alone does not prove a user journey works.
 
 ## Product goal
 
@@ -17,9 +17,9 @@ The existing orchestration, apps, and provider architecture are the foundation. 
 | Setup | Source setup and an image installer exist. The installer supports a durable host directory and offers opt-in Docker installation on supported Linux hosts, with CI startup checks. | Real NAS and macOS installations remain unverified; macOS and Windows need Docker Desktop installed first. |
 | Data | Postgres and appdata are persisted in Compose volumes; the image installer also supports a host data directory. Source backup and restore instructions exist. | A portable backup and verified restore for the image installer are missing. A configuration directory alone is insufficient. |
 | Ownership | First registration becomes deployment owner; onboarding connects a model and creates a first agent. | First registration wins by design; the installer binds to 127.0.0.1, so only the host can claim. Signup policy after the owner needs an explicit choice. |
-| Plugins | Integrations, MCP, API-based adapters, and agent toggles exist. | Connection tests, clear health, narrow per-agent tool access, and a safe local MCP route need work. Current MCP assignment can grant all tools. |
+| Plugins | MCP servers have one entry point in Integrations on web and mobile, a checked status with the reason for a failure, per-agent tool choice, and an owner-only local network route. The worker and MCP connector refuse a tool an agent was not given, before any approval (phase 3). | OpenAPI and GraphQL sources grant all their operations to the agents they are limited to. MCP sign-in on mobile finishes on web or desktop. |
 | Skills | Shared skill catalog and bot-scoped taught skills exist; agent instructions can be edited under Advanced. | Their relationship and per-agent assignment are unclear to users. |
-| UI | A shared monochrome token system and reusable web components exist. | Settings and integrations are separated, and key agent controls are hard to find. |
+| UI | A shared monochrome token system and reusable web components exist. An agent's settings list its plugins with a Manage link. | Skills are still edited under an agent's Advanced settings (phase 4). |
 | Public website | The four-part homepage and actual UI capture from an isolated scripted run passed browser checks in [PR #27](https://github.com/shadynafie/engaz/pull/27). [PR #28](https://github.com/shadynafie/engaz/pull/28) made free self-hosting and the published-image install command prominent, with a tested copy button, translated copy, and desktop/mobile checks. Cloudflare Pages deployed merge commit `4d472674`; the command and copy action were checked at [engaz.pages.dev](https://engaz.pages.dev/) on 2026-09-25. | The scripted capture does not prove autonomous work or a fresh public installation. |
 | Quality | Main CI, including Web E2E, passed on 2026-09-23 ([run](https://github.com/shadynafie/engaz/actions/runs/35888758429)); the nightly run no longer fails on missing report storage. | Keep it green. |
 

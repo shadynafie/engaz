@@ -5,11 +5,12 @@ import { captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
 test("the owner finds a server in the public catalog and gives it to their agent", async ({
   page,
 }, testInfo) => {
+  const searches: unknown[] = [];
   await page.route("**/rpc/capabilities/catalogSearch", (route) => {
-    expect(route.request().postDataJSON().json).toEqual({
-      query: "treg",
-      usePublicCatalog: true,
-    });
+    const input = route.request().postDataJSON().json;
+    // Integrations probes its own catalog with an empty query; only the public search is faked.
+    if (!input.usePublicCatalog) return route.continue();
+    searches.push(input);
     return route.fulfill({
       json: {
         json: {
@@ -42,6 +43,7 @@ test("the owner finds a server in the public catalog and gives it to their agent
   // Enter searches rather than submitting the empty add form.
   await page.getByRole("textbox", { name: "Search apps" }).press("Enter");
   await page.getByRole("button", { name: /Treg/ }).click();
+  expect(searches).toEqual([{ query: "treg", usePublicCatalog: true }]);
   await expect(page.getByLabel("Server address")).toHaveValue("https://treg.to/mcp/");
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Treg");
   await expect(page.getByRole("checkbox", { name: "Chief", exact: true })).toBeChecked();

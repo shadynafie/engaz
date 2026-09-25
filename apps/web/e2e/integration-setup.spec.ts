@@ -37,7 +37,8 @@ test("setup offers the app providers and saves only the selected one", async ({
   for (const name of ["Direct MCP", "Executor"]) {
     await expect(page.getByRole("button", { name, exact: true })).toBeHidden();
   }
-  await expect(page.getByLabel("API key", { exact: true })).toBeHidden();
+  // Composio is chosen first, so its key field is ready.
+  await expect(page.getByLabel("API key", { exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "integration-setup-options");
   await page.getByRole("button", { name: "Pipedream", exact: true }).click();
   await expect(page.getByLabel("Client ID", { exact: true })).toBeVisible();

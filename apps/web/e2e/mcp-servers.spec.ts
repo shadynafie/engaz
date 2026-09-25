@@ -78,14 +78,10 @@ test("a server whose token stopped working takes a new one without losing its ag
     }));
     await route.fulfill({ response, json: body });
   });
-  let updated: McpServer | null = null;
+  const updates: unknown[] = [];
   await page.route("**/rpc/mcp/servers/update", async (route) => {
-    expect(route.request().postDataJSON()).toEqual({
-      json: { id: server.id, secret: "fake-new-token" },
-    });
-    const response = await route.fetch();
-    updated = (await response.json()).json;
-    await route.fulfill({ response });
+    updates.push(route.request().postDataJSON().json);
+    await route.continue();
   });
 
   await page.getByText("Integrations", { exact: true }).click();
@@ -98,5 +94,8 @@ test("a server whose token stopped working takes a new one without losing its ag
   await expect(page.getByText("Working · 1 tool")).toBeVisible();
   await expect(page.getByLabel("New access token")).toBeHidden();
   await expect(page.getByRole("switch", { name: "Chief" })).toBeChecked();
-  expect(updated!.headerKeys).toEqual(["X-Test"]);
+  expect(updates).toEqual([{ id: server.id, secret: "fake-new-token" }]);
+  // Only the token changed; the server's other credentials stay.
+  const [saved] = await rpc<McpServer[]>(page, "mcp/servers/list", {});
+  expect(saved!.headerKeys).toEqual(["X-Test"]);
 });

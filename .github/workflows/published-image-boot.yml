@@ -81,6 +81,7 @@ jobs:
           echo
           curl -fsS http://127.0.0.1:7791/api/auth/capabilities
           echo
+          docker compose --env-file .env -f docker-compose.images.yml ps
 
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -108,7 +109,6 @@ jobs:
           path: test-results/image
           if-no-files-found: ignore
           retention-days: 14
-          docker compose --env-file .env -f docker-compose.images.yml ps
 
       - name: Pull the updater image
         run: docker pull ghcr.io/shadynafie/engaz/updater:edge

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 
-test("advanced GraphQL install shows Add GraphQL in MCP, OpenAPI, GraphQL, Executor, Treg order", async ({
+test("advanced GraphQL install shows Add GraphQL in OpenAPI, GraphQL, Executor, Treg order", async ({
   page,
 }, testInfo) => {
   const stamp = Date.now();

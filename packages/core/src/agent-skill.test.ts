@@ -6,35 +6,23 @@ import {
   extractRoutineSkillMentions,
   findSkillByName,
   formatSkillsCatalogInstruction,
-  mergeBuiltinSkills,
   parseSkillMd,
 } from "./agent-skill.js";
 
-describe("built-in skill merging", () => {
-  it("uses the same normalized names for catalog precedence and prompt expansion", () => {
-    const builtin = {
-      name: "Interrogate",
-      description: "Builtin review",
-      content: "Builtin instructions",
-      source: "builtin" as const,
-      readOnly: true,
-    };
+describe("skill name matching", () => {
+  it("uses the same normalized names for lookup and prompt expansion", () => {
     const saved = {
-      ...builtin,
       name: " Interrogate ",
+      description: "Saved review",
       content: "Saved instructions",
       source: "user" as const,
       readOnly: false,
     };
-    const skills = mergeBuiltinSkills<typeof builtin | typeof saved>([builtin], [saved]);
-    expect(skills).toEqual([saved]);
-    expect(findSkillByName(skills, " INTERROGATE ")).toBe(saved);
+    expect(findSkillByName([saved], " INTERROGATE ")).toBe(saved);
     for (const prompt of ["/Interrogate\nreview this", "Use @Interrogate to review this"]) {
-      expect(expandSkillReferencesInPrompt(prompt, skills)).toContain("Saved instructions");
-      expect(expandSkillReferencesInPrompt(prompt, skills)).not.toContain("Builtin instructions");
-      expect(expandSkillReferencesInPrompt(prompt, skills)).not.toContain("@Interrogate");
+      expect(expandSkillReferencesInPrompt(prompt, [saved])).toContain("Saved instructions");
+      expect(expandSkillReferencesInPrompt(prompt, [saved])).not.toContain("@Interrogate");
     }
-    expect(mergeBuiltinSkills([builtin], [])).toEqual([builtin]);
   });
 });
 

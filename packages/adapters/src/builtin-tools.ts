@@ -682,8 +682,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   },
   {
     name: "skill_update",
-    description:
-      "Update a user-created skill by name or id. Builtin and plugin skills are read-only.",
+    description: "Update a user-created skill by name or id. Plugin skills are read-only.",
     inputSchema: {
       type: "object",
       properties: {
@@ -698,8 +697,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   },
   {
     name: "skill_delete",
-    description:
-      "Delete a user-created skill by name or id. Builtin and plugin skills cannot be deleted.",
+    description: "Delete a user-created skill by name or id. Plugin skills cannot be deleted.",
     inputSchema: {
       type: "object",
       properties: {

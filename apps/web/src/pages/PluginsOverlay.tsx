@@ -796,7 +796,7 @@ export function PluginsOverlay({
               {/* Featured apps lead the same grid as the rest of the catalog. */}
               {featured.length > 0 || visible.length > 0 ? (
                 <div
-                  className="grid grid-cols-2 gap-2"
+                  className="grid grid-cols-1 gap-2 sm:grid-cols-2"
                   data-testid={showFeatured ? "featured-connectors" : undefined}
                 >
                   {featured.map((item) =>

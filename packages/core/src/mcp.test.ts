@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { suggestedServerName } from "./mcp-server-name";
+import { suggestedServerName } from "./mcp.js";
 
 describe("suggestedServerName", () => {
   it("names a server after the meaningful part of its address", () => {

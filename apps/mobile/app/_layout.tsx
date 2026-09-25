@@ -89,6 +89,7 @@ export default function Layout() {
                 <Stack.Screen name="models" options={{ title: t("Models") }} />
                 <Stack.Screen name="voice" options={{ title: t("Voice") }} />
                 <Stack.Screen name="integrations" options={{ title: t("Integrations") }} />
+                <Stack.Screen name="mcp-servers" options={{ title: t("MCP servers") }} />
                 <Stack.Screen
                   name="new"
                   options={{

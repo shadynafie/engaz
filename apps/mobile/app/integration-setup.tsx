@@ -21,7 +21,7 @@ export default function IntegrationSetup() {
   const { t } = useI18n();
   const styles = useThemedStyles(createStyles);
   const [state, setState] = useState<IntegrationSetupState | null>(null);
-  const [choice, setChoice] = useState("direct");
+  const [choice, setChoice] = useState<"composio" | "pipedream">("composio");
   const [key, setKey] = useState("");
   const [clientId, setClientId] = useState("");
   const [projectId, setProjectId] = useState("");
@@ -38,13 +38,11 @@ export default function IntegrationSetup() {
       })
       .catch(() => setError(t("Could not load integrations")));
   }, []);
+  // MCP servers have their own screen; this one only sets up app providers.
   const choices = [
-    { id: "direct", label: t("Direct MCP") },
     { id: "composio", label: "Composio" },
     { id: "pipedream", label: "Pipedream" },
-    { id: "executor", label: "Executor" },
-  ];
-  const managed = choice === "composio" || choice === "pipedream";
+  ] as const;
   const configured = state?.providers.find((provider) => provider.id === choice)?.configured;
   async function save() {
     setBusy(true);
@@ -104,75 +102,46 @@ export default function IntegrationSetup() {
           </Pressable>
         ))}
       </View>
-      {choice === "composio" || choice === "pipedream" ? (
+      {configured ? <Text style={styles.text}>{t("Connected")}</Text> : null}
+      {choice === "pipedream" ? (
         <>
-          {configured ? <Text style={styles.text}>{t("Connected")}</Text> : null}
-          {state?.canConfigure ? (
-            <>
-              {choice === "pipedream" ? (
-                <>
-                  <Text style={styles.text}>{t("Client ID")}</Text>
-                  <TextInput
-                    accessibilityLabel={t("Client ID")}
-                    value={clientId}
-                    onChangeText={setClientId}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={styles.input}
-                  />
-                  <Text style={styles.text}>{t("Project ID")}</Text>
-                  <TextInput
-                    accessibilityLabel={t("Project ID")}
-                    value={projectId}
-                    onChangeText={setProjectId}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={styles.input}
-                  />
-                </>
-              ) : null}
-              <Text style={styles.text}>
-                {choice === "composio" ? t("API key") : t("Client secret")}
-              </Text>
-              <TextInput
-                accessibilityLabel={choice === "composio" ? t("API key") : t("Client secret")}
-                value={key}
-                onChangeText={setKey}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={styles.input}
-              />
-              {button(t("Get credentials"), () => {
-                void Linking.openURL(
-                  choice === "composio"
-                    ? "https://dashboard.composio.dev"
-                    : "https://pipedream.com/docs/connect/mcp/developers",
-                );
-              })}
-            </>
-          ) : state && !configured ? (
-            <Text style={styles.text}>{t("Ask the server owner to configure this provider.")}</Text>
-          ) : null}
+          <Text style={styles.text}>{t("Client ID")}</Text>
+          <TextInput
+            accessibilityLabel={t("Client ID")}
+            value={clientId}
+            onChangeText={setClientId}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.input}
+          />
+          <Text style={styles.text}>{t("Project ID")}</Text>
+          <TextInput
+            accessibilityLabel={t("Project ID")}
+            value={projectId}
+            onChangeText={setProjectId}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.input}
+          />
         </>
-      ) : (
-        <>
-          <Text style={styles.text}>
-            {choice === "executor"
-              ? t("Set up Executor on your server in the web app.")
-              : t("Finish MCP authorization in the web app.")}
-          </Text>
-          {button(
-            t("Open web app"),
-            () => {
-              const url = new URL(state.webUrl);
-              if (choice === "direct") url.searchParams.set("mode", "mcp");
-              void Linking.openURL(url.toString());
-            },
-            !state,
-          )}
-        </>
-      )}
+      ) : null}
+      <Text style={styles.text}>{choice === "composio" ? t("API key") : t("Client secret")}</Text>
+      <TextInput
+        accessibilityLabel={choice === "composio" ? t("API key") : t("Client secret")}
+        value={key}
+        onChangeText={setKey}
+        secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={styles.input}
+      />
+      {button(t("Get credentials"), () => {
+        void Linking.openURL(
+          choice === "composio"
+            ? "https://dashboard.composio.dev"
+            : "https://pipedream.com/docs/connect/mcp/developers",
+        );
+      })}
       {busy ? <ActivityIndicator /> : null}
       {error ? (
         <Text accessibilityRole="alert" style={styles.error}>
@@ -182,13 +151,11 @@ export default function IntegrationSetup() {
       {button(
         t("Continue"),
         () => {
-          if (managed && key.trim()) void save();
+          if (key.trim()) void save();
           else router.replace("/");
         },
         busy ||
-          (managed &&
-            state?.canConfigure &&
-            !configured &&
+          (!configured &&
             (!key.trim() || (choice === "pipedream" && (!clientId.trim() || !projectId.trim())))),
       )}
       {button(t("Skip"), () => router.replace("/"), busy)}

@@ -133,6 +133,9 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr ""
 
+msgid "A skill with that name already exists."
+msgstr ""
+
 msgid "About groups"
 msgstr "О группах"
 
@@ -1207,11 +1210,17 @@ msgstr ""
 msgid "Earlier message"
 msgstr "Предыдущее сообщение"
 
+msgid "Edit fields"
+msgstr ""
+
 msgid "Edit first"
 msgstr "Сначала отредактируйте"
 
 msgid "Edit Profile"
 msgstr "Редактировать профиль"
+
+msgid "Edit SKILL.md"
+msgstr ""
 
 msgid "Email"
 msgstr "Электронная почта"
@@ -1428,6 +1437,9 @@ msgstr "Ключ API экземпляра"
 msgid "Instruction"
 msgstr "Инструкция"
 
+msgid "Instructions"
+msgstr ""
+
 msgid "Integration domain"
 msgstr "Домен интеграции"
 
@@ -1478,9 +1490,6 @@ msgstr "Сохранить память"
 
 msgid "key"
 msgstr "ключ"
-
-msgid "Knowledge"
-msgstr "Знание"
 
 msgid "Language"
 msgstr "Язык"
@@ -1804,9 +1813,6 @@ msgstr "Нет результатов"
 msgid "No runs yet"
 msgstr "Запусков пока нет"
 
-msgid "No skills yet"
-msgstr "Навыков пока нет"
-
 msgid "No team conversations yet."
 msgstr "Командных диалогов пока нет."
 
@@ -1996,9 +2002,6 @@ msgstr ""
 
 msgid "Read replies aloud"
 msgstr "Читать ответы вслух"
-
-msgid "read-only"
-msgstr "только для чтения"
 
 msgid "Reasoning effort"
 msgstr ""
@@ -2459,6 +2462,9 @@ msgstr "Переключение…"
 msgid "System"
 msgstr "Системная"
 
+msgid "Taught"
+msgstr ""
+
 msgid "Teach a task"
 msgstr "Научить задачу"
 
@@ -2496,6 +2502,9 @@ msgid "Thinking"
 msgstr "рассуждение"
 
 msgid "This agent has no plugins yet."
+msgstr ""
+
+msgid "This agent has no skills yet."
 msgstr ""
 
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
@@ -2639,6 +2648,9 @@ msgstr "Используйте эту модель"
 #. placeholder {0}: invite.usedByEmail
 #. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
+msgstr ""
+
+msgid "Used by {usedBy}"
 msgstr ""
 
 msgid "Verify and add"

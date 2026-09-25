@@ -378,6 +378,21 @@ export default function BotSettingsScreen() {
         <ComputerModePicker value={computerMode} onChange={setComputerMode} />
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={t("Skills")}
+          onPress={() => botId && router.push({ pathname: "/skills", params: { botId } })}
+          style={{
+            marginTop: 20,
+            minHeight: 44,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Text style={{ color: tokens.foreground, fontSize: 15 }}>{t("Skills")}</Text>
+          <Text style={{ color: tokens.mutedForeground, fontSize: 18 }}>›</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
           accessibilityLabel={t("Advanced")}
           accessibilityState={{ expanded: advancedOpen }}
           onPress={() => setAdvancedOpen((open) => !open)}

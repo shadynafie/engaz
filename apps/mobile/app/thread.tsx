@@ -400,11 +400,13 @@ function Thread() {
   }, [inGroup, snap?.activeRuns, snap?.members, snap?.run]);
   const working = inGroup ? workingGroupBots.length > 0 : isWorkingStatus(currentBotStatus);
 
+  // The / picker offers the skills this agent is given; a group offers all of them.
+  const skillsBotId = inGroup ? undefined : botId;
   useEffect(() => {
-    void rpc<AgentSkillCatalogEntry[]>("agentSkills/list")
+    void rpc<AgentSkillCatalogEntry[]>("agentSkills/list", { botId: skillsBotId })
       .then(setAgentSkills)
       .catch(() => setAgentSkills([]));
-  }, []);
+  }, [skillsBotId]);
 
   useEffect(() => {
     setThreadScrollState(scrollBehavior.current.state());

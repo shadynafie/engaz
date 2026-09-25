@@ -1,6 +1,6 @@
 # Engaz development roadmap
 
-Updated: 2026-09-24. This is the delivery plan and status record for Engaz v1. Change a status only when the linked behavior has been checked; a merged PR alone does not prove a user journey works.
+Updated: 2026-09-25. This is the delivery plan and status record for Engaz v1. Change a status only when the linked behavior has been checked; a merged PR alone does not prove a user journey works.
 
 ## Product goal
 
@@ -18,7 +18,7 @@ The existing orchestration, apps, and provider architecture are the foundation. 
 | Data | Postgres and appdata are persisted in Compose volumes; the image installer also supports a host data directory. Source backup and restore instructions exist. | A portable backup and verified restore for the image installer are missing. A configuration directory alone is insufficient. |
 | Ownership | First registration becomes deployment owner; onboarding connects a model and creates a first agent. | First registration wins by design; the installer binds to 127.0.0.1, so only the host can claim. Signup policy after the owner needs an explicit choice. |
 | Plugins | Integrations, MCP, API-based adapters, and agent toggles exist. | Connection tests, clear health, narrow per-agent tool access, and a safe local MCP route need work. Current MCP assignment can grant all tools. |
-| Skills | Shared skill catalog and bot-scoped taught skills exist; agent instructions can be edited under Advanced. | Their relationship and per-agent assignment are unclear to users. |
+| Skills | Each agent's settings list the owner's skills with a switch per agent, plus the skills it was taught; runs receive only the agent's own skills. | Keep it that way as skills gain sources beyond the owner. |
 | UI | A shared monochrome token system and reusable web components exist. | Settings and integrations are separated, and key agent controls are hard to find. |
 | Public website | The four-part homepage and actual UI capture from an isolated scripted run passed browser checks in [PR #27](https://github.com/shadynafie/engaz/pull/27). [PR #28](https://github.com/shadynafie/engaz/pull/28) made free self-hosting and the published-image install command prominent, with a tested copy button, translated copy, and desktop/mobile checks. Cloudflare Pages deployed merge commit `4d472674`; the command and copy action were checked at [engaz.pages.dev](https://engaz.pages.dev/) on 2026-09-25. | The scripted capture does not prove autonomous work or a fresh public installation. |
 | Quality | Main CI, including Web E2E, passed on 2026-09-23 ([run](https://github.com/shadynafie/engaz/actions/runs/35888758429)); the nightly run no longer fails on missing report storage. | Keep it green. |
@@ -27,7 +27,7 @@ This baseline describes source and checks, not the safety of an existing install
 
 ## Order of work
 
-Current status: **2 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 moved to the end, after phase 5); 3 verified; 4–5 planned.** Phase 2 moved ahead of 1.3–1.4 so the first-run experience is right before lifecycle tooling. Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
+Current status: **2 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 moved to the end, after phase 5); 3 verified; 4 verified; 5 planned.** Phase 2 moved ahead of 1.3–1.4 so the first-run experience is right before lifecycle tooling. Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
 
 ### 0. Restore the release gate
 
@@ -70,11 +70,13 @@ Current status: **2 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 mov
 
 ### 4. Make agent skills understandable
 
-1. Define and document the existing shared skill catalog versus bot-scoped taught skills, including ownership, storage, and current execution behavior. Choose one user-facing assignment model without discarding existing data.
-2. Put an agent's skills in its ordinary edit flow. Let the owner create or edit understandable instructions, preview what the agent will receive, attach or detach a skill, and see which agents use it. Keep raw `SKILL.md` editing in Advanced where needed.
-3. Verify an agent follows an assigned skill, an unassigned agent does not receive it, edits propagate as intended, and removal does not corrupt past runs. Keep execution permissions separate from skill text.
+1. Define and document the existing shared skill catalog versus bot-scoped taught skills, including ownership, storage, and current execution behavior. Choose one user-facing assignment model without discarding existing data. **Verified:** a skill is instructions the owner writes once and switches on for each agent that should have it. The owner's skills stay in one catalog, and a link table records which agents receive each one. Runs, the `/` picker, routines, and the agent's own skill tools see only that agent's skills. Taught skills (recorded demonstrations) stay with the agent that learned them and appear in the same list, marked Taught. On upgrade every existing agent keeps the skills it already received, so nothing changes until the owner switches one off. The built-in Interrogate review was removed; it is now an [example skill](skills/interrogate/SKILL.md).
+2. Put an agent's skills in its ordinary edit flow. Let the owner create or edit understandable instructions, preview what the agent will receive, attach or detach a skill, and see which agents use it. Keep raw `SKILL.md` editing in Advanced where needed. **Verified:** agent settings have a Skills section below Plugins, with a switch per skill and New skill. The editor asks for Name, When to use, and Instructions, shows which agents use the skill, and offers Edit SKILL.md for the raw file. A skill written from an agent's settings, or by the agent itself, is given to that agent. The mobile app has the same native Skills screen from Chat settings: switches, write, edit, and delete; SKILL.md editing stays on web and desktop.
+3. Verify an agent follows an assigned skill, an unassigned agent does not receive it, edits propagate as intended, and removal does not corrupt past runs. Keep execution permissions separate from skill text. **Verified:** a Postgres test checks that an assigned agent receives a skill and an unassigned one cannot read it, that switching on and off applies to the next run, that edits reach every agent with the skill, that a duplicated agent keeps its skills, that one account cannot assign across owners, and that deleting a skill removes it from every agent. Past runs keep the instructions they were sent, because a run stores its expanded prompt rather than a link to the skill. A browser test writes a skill for Chief, gives it to a second agent, checks the `/` picker follows the switch, edits it as SKILL.md, switches it off, and deletes it. Skills carry text only; tool access still comes from plugins and approval rules. These checks prove delivery, not how well a model follows the instructions.
 
 **Gate:** the owner can teach a reusable workflow and deliberately give it to one agent using web, desktop, or an explicit safe mobile fallback.
+
+**Gate met:** on the web (and the desktop app, which hosts the same UI) the owner writes a skill for one agent and switches it on or off for others; the browser test covers it. Mobile has its own Skills screen, captured in the Android screenshot run.
 
 ### 5. Polish and release self-hosted v1
 

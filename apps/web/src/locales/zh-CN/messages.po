@@ -133,6 +133,9 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr "什么都做一点"
 
+msgid "A skill with that name already exists."
+msgstr ""
+
 msgid "About groups"
 msgstr ""
 
@@ -1207,11 +1210,17 @@ msgstr ""
 msgid "Earlier message"
 msgstr "更早的消息"
 
+msgid "Edit fields"
+msgstr ""
+
 msgid "Edit first"
 msgstr "先编辑"
 
 msgid "Edit Profile"
 msgstr "编辑资料"
+
+msgid "Edit SKILL.md"
+msgstr ""
 
 msgid "Email"
 msgstr "邮箱"
@@ -1428,6 +1437,9 @@ msgstr "实例 API 密钥"
 msgid "Instruction"
 msgstr "指令"
 
+msgid "Instructions"
+msgstr ""
+
 msgid "Integration domain"
 msgstr ""
 
@@ -1478,9 +1490,6 @@ msgstr "保留记忆"
 
 msgid "key"
 msgstr "密钥"
-
-msgid "Knowledge"
-msgstr "知识"
 
 msgid "Language"
 msgstr "语言"
@@ -1804,9 +1813,6 @@ msgstr "无结果"
 msgid "No runs yet"
 msgstr "还没有运行记录"
 
-msgid "No skills yet"
-msgstr "暂无技能"
-
 msgid "No team conversations yet."
 msgstr ""
 
@@ -1996,9 +2002,6 @@ msgstr "表情回应"
 
 msgid "Read replies aloud"
 msgstr "朗读回复"
-
-msgid "read-only"
-msgstr "只读"
 
 msgid "Reasoning effort"
 msgstr "推理强度"
@@ -2459,6 +2462,9 @@ msgstr "正在切换…"
 msgid "System"
 msgstr "系统"
 
+msgid "Taught"
+msgstr ""
+
 msgid "Teach a task"
 msgstr "示范任务"
 
@@ -2496,6 +2502,9 @@ msgid "Thinking"
 msgstr "思考"
 
 msgid "This agent has no plugins yet."
+msgstr ""
+
+msgid "This agent has no skills yet."
 msgstr ""
 
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
@@ -2639,6 +2648,9 @@ msgstr "使用此模型"
 #. placeholder {0}: invite.usedByEmail
 #. placeholder {0}: users.map((bot) => bot.name).join(", ")
 msgid "Used by {0}"
+msgstr ""
+
+msgid "Used by {usedBy}"
 msgstr ""
 
 msgid "Verify and add"

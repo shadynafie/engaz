@@ -122,6 +122,16 @@ tags:
 - assertVisible: "Server address"
 - takeScreenshot: "14c-mcp-add-server"
 
+- openLink: "engaz:///skills?botId=${ENGAZ_SCREENSHOT_BOT_ID}"
+- extendedWaitUntil:
+    visible: "Daily standup"
+    timeout: 10000
+- assertVisible: "Weekly report"
+- takeScreenshot: "14d-agent-skills"
+- tapOn: "Daily standup"
+- assertVisible: "When to use"
+- takeScreenshot: "14e-agent-skill-editor"
+
 - openLink: "engaz:///thread?botId=${ENGAZ_SCREENSHOT_BOT_ID}&name=Researcher"
 - extendedWaitUntil:
     visible: "The fixture workspace is ready."

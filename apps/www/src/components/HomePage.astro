@@ -20,6 +20,7 @@ const locale: Locale = isLocale(Astro.currentLocale)
 const copy = getHomeCopy(locale);
 const homeHref = localeHomePath(locale);
 const pageUrl = new URL(homeHref, SITE_URL).toString();
+const installCommand = "curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -80,9 +81,9 @@ const structuredData = {
               <h1>{copy.hero.heading}</h1>
               <p>{copy.hero.lead}</p>
               <div class="workbench-actions">
-                <Button href="#product">{copy.hero.getStarted}</Button>
-                <a class="workbench-text-link" href={GITHUB_URL} target="_blank" rel="noreferrer">
-                  {copy.hero.viewOnGithub}<span aria-hidden="true">↗</span>
+                <Button href="#selfhost">{copy.roster.installLabel}</Button>
+                <a class="workbench-text-link" href="#product">
+                  {copy.hero.getStarted}<span aria-hidden="true">↗</span>
                 </a>
               </div>
             </div>
@@ -150,6 +151,19 @@ const structuredData = {
             <h2>{copy.openSource.heading}</h2>
             <p>{copy.openSource.copy}</p>
           </div>
+          <div class="workbench-setup__install" data-reveal>
+            <p>{copy.roster.installInstruction}</p>
+            <div class="workbench-setup__command">
+              <code data-install-command tabindex="0">{installCommand}</code>
+              <button
+                type="button"
+                data-copy-install
+                data-copy-label={copy.roster.copyCommand}
+                data-copied-label={copy.roster.copiedCommand}
+                data-copy-failed={copy.hero.copyFailed}
+              ><span data-copy-status aria-live="polite">{copy.roster.copyCommand}</span></button>
+            </div>
+          </div>
           <ol class="workbench-setup__steps">
             {copy.roster.steps.map((step, index) => (
               <li data-reveal>
@@ -186,6 +200,23 @@ const structuredData = {
 <script>
   const root = document.querySelector(".workbench");
   if (root) {
+    const copyButton = root.querySelector<HTMLButtonElement>("[data-copy-install]");
+    const command = root.querySelector<HTMLElement>("[data-install-command]")?.textContent?.trim();
+    const copyStatus = copyButton?.querySelector<HTMLElement>("[data-copy-status]");
+    let copyReset = 0;
+    copyButton?.addEventListener("click", async () => {
+      if (!command || !copyStatus) return;
+      clearTimeout(copyReset);
+      try {
+        await navigator.clipboard.writeText(command);
+        copyStatus.textContent = copyButton.dataset.copiedLabel ?? "";
+      } catch {
+        copyStatus.textContent = copyButton.dataset.copyFailed ?? "";
+      }
+      copyReset = window.setTimeout(() => {
+        copyStatus.textContent = copyButton.dataset.copyLabel ?? "";
+      }, 2200);
+    });
     const motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const team = root.querySelector<HTMLElement>("[data-team-scroll]");
     const journey = team?.querySelector<HTMLElement>("[data-team-journey]");

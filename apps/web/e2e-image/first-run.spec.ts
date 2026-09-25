@@ -83,7 +83,7 @@ test("a new owner goes from sign-up to a working agent with a plugin", async ({
 
   // A server that is not running is named as such and not saved.
   await page.getByRole("button", { name: "Add server", exact: true }).click();
-  await page.getByLabel("Server address").fill("http://host.docker.internal:9/mcp");
+  await page.getByLabel("Server address").fill("http://host.docker.internal:8098/mcp");
   await page.getByRole("button", { name: "Connect", exact: true }).click();
   await expect(page.getByText(/Couldn't reach the server/)).toBeVisible({ timeout: 60_000 });
   await shot(page, testInfo, "image-05-plugin-unreachable");

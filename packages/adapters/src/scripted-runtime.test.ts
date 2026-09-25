@@ -2,6 +2,18 @@ import type { AgentRuntimeEvent } from "@engaz/adapter-kit";
 import { describe, expect, it } from "vitest";
 import { inferScript, ScriptedAgentRuntime } from "./scripted-runtime.js";
 
+describe("inferScript MCP tools", () => {
+  it("calls the MCP tool named in the prompt", () => {
+    expect(inferScript("please use the mcp tool mcp__treg__notes.write now")).toEqual([
+      {
+        assistant: "using that tool now.",
+        toolCalls: [{ name: "mcp__treg__notes.write", args: { text: "written by Engaz" } }],
+        complete: true,
+      },
+    ]);
+  });
+});
+
 describe("inferScript message_bot", () => {
   const messageBotScript = (confirmName: string, message: string) => [
     {

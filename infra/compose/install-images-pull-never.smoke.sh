@@ -382,6 +382,13 @@ setup_work "$tmp/relative"
 data_install "$tmp/relative" --data-dir=engaz-data
 expect_data_failure "--data-dir must be an absolute path."
 
+setup_work "$tmp/dotenv-path"
+for bad_path in "$tmp/store-\$HOME" "$tmp/store-#comment" "$tmp/store-trailing "; do
+  data_install "$tmp/dotenv-path" "--data-dir=$bad_path"
+  expect_data_failure "dotenv interpolation characters or trailing whitespace"
+  [[ ! -e "$bad_path/.env" ]] || fail "unsafe data path received secrets"
+done
+
 # Removed containers do not make retained named or bind storage a fresh install.
 setup_work "$tmp/retained-volume"
 rm "$tmp/retained-volume/cwd/engaz"

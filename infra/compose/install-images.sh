@@ -213,6 +213,10 @@ prepare_data_dir() {
     chmod 700 "$data_dir"
   fi
   data_dir=$(cd -- "$data_dir" && pwd -P)
+  case "$data_dir" in
+    *:* | *,* | *'$'* | *'#'* | *$'\n'* | *$'\r'* | *[[:space:]])
+      fail "--data-dir cannot contain dotenv interpolation characters or trailing whitespace." ;;
+  esac
   [[ -w "$data_dir" && -x "$data_dir" ]] || fail "$data_dir is not writable by $(id -un)."
 
   if [[ -e "$data_dir/$ENV_FILE" ]]; then

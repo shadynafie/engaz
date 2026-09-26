@@ -69,6 +69,11 @@ test("homepage tells one product story and offers a working install command", as
     for (let index = 0; index < 3; index += 1) {
       await expect(teammates.nth(index)).toHaveCSS("opacity", index < count ? "1" : "0");
     }
+    if (count === 2) {
+      const path = testInfo.outputPath("marketing-team-two-teammates.png");
+      await page.locator("[data-team-stage]").screenshot({ animations: "disabled", path });
+      await testInfo.attach("marketing-team-two-teammates", { contentType: "image/png", path });
+    }
   }
   await captureScreenshot(page, testInfo, "marketing-homepage-desktop");
 });

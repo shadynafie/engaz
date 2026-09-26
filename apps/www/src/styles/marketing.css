@@ -129,11 +129,11 @@
   transform-origin: 20% 65%;
 }
 .workbench-team__teammate--engineer {
-  clip-path: polygon(60% 0, 100% 0, 100% 40%, 87% 40%, 87% 60%, 80% 64%, 60% 64%);
+  clip-path: polygon(60% 0, 100% 0, 100% 40%, 87% 40%, 87% 55%, 84% 60%, 80% 62%, 60% 62%);
   transform-origin: 76% 48%;
 }
 .workbench-team__teammate--accountant {
-  clip-path: polygon(87% 40%, 100% 40%, 100% 100%, 60% 100%, 60% 64%, 80% 64%, 87% 60%);
+  clip-path: polygon(87% 40%, 100% 40%, 100% 100%, 60% 100%, 60% 62%, 80% 62%, 84% 60%, 87% 55%);
   transform-origin: 87% 70%;
 }
 .workbench-team.is-scroll-linked [data-team-step="0"] .workbench-team__teammate,

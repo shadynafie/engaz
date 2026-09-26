@@ -224,7 +224,7 @@ const structuredData = {
     const journey = team?.querySelector<HTMLElement>("[data-team-journey]");
     const teamStage = team?.querySelector<HTMLElement>("[data-team-stage]");
     if (motion && team && journey && teamStage) {
-      const wideScreen = window.matchMedia("(min-width: 721px)");
+      team.classList.add("is-scroll-linked");
       let frame = 0;
       const updateTeam = () => {
         const stickyTop = Number.parseFloat(getComputedStyle(teamStage).top) || 0;
@@ -234,17 +234,11 @@ const structuredData = {
         frame = 0;
       };
       const queueTeamUpdate = () => {
-        if (!wideScreen.matches) return;
         if (!frame) frame = requestAnimationFrame(updateTeam);
-      };
-      const syncTeamMotion = () => {
-        team.classList.toggle("is-scroll-linked", wideScreen.matches);
-        if (wideScreen.matches) queueTeamUpdate();
       };
       window.addEventListener("scroll", queueTeamUpdate, { passive: true });
       window.addEventListener("resize", queueTeamUpdate);
-      wideScreen.addEventListener("change", syncTeamMotion);
-      syncTeamMotion();
+      queueTeamUpdate();
     }
     if (motion && "IntersectionObserver" in window) {
       root.classList.add("workbench--motion");

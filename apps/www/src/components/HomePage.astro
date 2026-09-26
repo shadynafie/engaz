@@ -32,7 +32,7 @@ const TEAM_PORTRAITS = ["chief", "designer", "engineer", "accountant"];
 const teamAgents = copy.team.roles.map((role, index) => ({
   name: role.title,
   color: botColors[index],
-  portrait: `/brand/team-${TEAM_PORTRAITS[index]}.webp`,
+  portrait: `/brand/team-${TEAM_PORTRAITS[index]}-cutout.webp`,
 }));
 
 const structuredData = {
@@ -90,27 +90,26 @@ const structuredData = {
             <span class="stage-hero__ring stage-hero__ring--outer"></span>
             <span class="stage-hero__ring stage-hero__ring--inner"></span>
           </div>
-          <div class="stage-hero__face" data-hero-face>
+
+          <div class="stage-hero__grain"></div>
+        </div>
+          <ul class="stage-hero__orbit" aria-hidden="true">
+            {teamAgents.map((agent, index) => (
+              <li class="stage-hero__agent" style={`--bot: ${agent.color}; --i: ${index}`}>
+                <span class="stage-hero__avatar"><img src={agent.portrait} width="800" height="800" alt="" decoding="async" /></span>
+                <span class="stage-hero__agent-name">{agent.name}</span>
+              </li>
+            ))}
+          </ul>
+
+        <div class="container stage-hero__content">
+          <h1>{copy.hero.heading}</h1>
+          <p class="stage-hero__lead">{copy.hero.lead}</p>
+          <div class="stage-hero__face" data-hero-face aria-hidden="true">
             <img src="/brand/engaz-directional-open.webp" width="1440" height="960" alt="" fetchpriority="high" />
             <img class="stage-hero__blink-half" src="/brand/engaz-directional-half.webp" width="1440" height="960" alt="" />
             <img class="stage-hero__blink-closed" src="/brand/engaz-directional-closed.webp" width="1440" height="960" alt="" />
           </div>
-          <ul class="stage-hero__orbit">
-            {teamAgents.map((agent, index) => (
-              <li class="stage-hero__agent" style={`--bot: ${agent.color}; --i: ${index}`} data-agent>
-                <span class="stage-hero__avatar"><img src={agent.portrait} width="800" height="800" alt="" decoding="async" /></span>
-                <span>{agent.name}</span>
-                <i class="stage-hero__status"><b></b><b></b><b></b></i>
-              </li>
-            ))}
-          </ul>
-          <div class="stage-hero__grain"></div>
-        </div>
-
-        <div class="container stage-hero__content">
-          <p class="stage-hero__pill">{copy.hero.badge} <span aria-hidden="true">·</span> {copy.hero.pill}</p>
-          <h1>{copy.hero.heading}</h1>
-          <p class="stage-hero__lead">{copy.hero.lead}</p>
           <InstallCommand {...copyLabels} class="stage-hero__command" />
         </div>
       </section>
@@ -125,7 +124,6 @@ const structuredData = {
             <div class="workbench-product__screen">
               <img src="/product-workspace.png" width="1360" height="780" alt={copy.selfHost.imageAlt} loading="lazy" />
             </div>
-            <figcaption>{copy.selfHost.example}</figcaption>
           </figure>
         </div>
       </section>
@@ -138,15 +136,13 @@ const structuredData = {
           </div>
         </div>
         <div class="workbench-team__journey" data-team-journey>
-          <div class="workbench-team__stage" data-team-stage>
-            <div class="workbench-team__panel workbench-team__panel--solo">
-              <img src="/brand/engaz-solo-lonely-scene.webp" width="1774" height="887" alt="" loading="lazy" />
-              <p class="workbench-team__scene-label"><span>{copy.team.soloLabel}</span>{copy.team.soloCaption}</p>
-            </div>
-            <div class="workbench-team__panel workbench-team__panel--group">
-              <img src="/brand/engaz-group-scene.webp" width="1448" height="1086" alt="" loading="lazy" />
-              <p class="workbench-team__scene-label"><span>{copy.team.groupLabel}</span>{copy.team.groupCaption}</p>
-            </div>
+          <div class="workbench-team__stage" data-team-stage data-team-step="3" role="img" aria-label={copy.team.copy}>
+            <img class="workbench-team__base" src="/brand/engaz-worktable-solo.webp" width="1672" height="941" alt="" loading="lazy" />
+            {["designer", "engineer", "accountant"].map((role) => (
+              <div class={`workbench-team__teammate workbench-team__teammate--${role}`}>
+                <img src="/brand/engaz-worktable-teammates.png" width="1672" height="941" alt="" loading="lazy" />
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -234,7 +230,7 @@ const structuredData = {
         const stickyTop = Number.parseFloat(getComputedStyle(teamStage).top) || 0;
         const travel = Math.max(1, journey.offsetHeight - teamStage.offsetHeight);
         const progress = Math.min(1, Math.max(0, (stickyTop - journey.getBoundingClientRect().top) / travel));
-        teamStage.style.setProperty("--team-clip", `${(1 - progress) * 103 - 3}%`);
+        teamStage.dataset.teamStep = String(Math.min(3, Math.floor(progress * 4)));
         frame = 0;
       };
       const queueTeamUpdate = () => {
@@ -261,16 +257,6 @@ const structuredData = {
         }
       }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
       reveals.forEach((element) => observer.observe(element));
-
-      const agents = [...root.querySelectorAll<HTMLElement>("[data-agent]")];
-      let turn = 0;
-      window.setInterval(() => {
-        if (document.hidden || !agents.length) return;
-        const agent = agents[turn % agents.length];
-        agent.classList.add("is-done");
-        window.setTimeout(() => agent.classList.remove("is-done"), 2600 + (turn % 3) * 500);
-        turn += 1;
-      }, 1300);
 
       if (hero && window.matchMedia("(pointer: fine)").matches) {
         let frame = 0;

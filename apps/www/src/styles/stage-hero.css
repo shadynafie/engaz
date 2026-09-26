@@ -8,16 +8,21 @@
   --px: 0;
   --py: 0;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --face-width: min(720px, 78vw);
+  --face-width: min(540px, 76vw);
+  --orbit-bottom: 300px;
+  --outer-rx: min(590px, calc(50vw - 52px));
+  --outer-ry: min(210px, 20vw);
+  --inner-rx: min(430px, calc(50vw - 76px));
+  --inner-ry: min(150px, 14vw);
+  --avatar-size: 68px;
   position: relative;
   isolation: isolate;
   overflow: clip;
-  min-height: max(780px, calc(100svh - 89px));
   background: var(--panel);
   color: var(--panel-copy);
 }
 
-/* Scene: floor, glow, rings, face, agents, grain — back to front. */
+/* Scene: floor, glow, rings, agents, grain — back to front. */
 .stage-hero__scene {
   position: absolute;
   z-index: -1;
@@ -56,54 +61,54 @@
 }
 
 .stage-hero__rings {
-  --depth: 22;
-  bottom: calc(var(--face-width) * 0.12);
+  bottom: var(--orbit-bottom);
   left: 50%;
   width: 0;
   height: 0;
+  translate: none;
 }
 .stage-hero__ring {
   position: absolute;
   top: 0;
   left: 0;
+  width: calc(var(--rx) * 2);
+  height: calc(var(--ry) * 2);
   border: 1px solid color-mix(in srgb, var(--panel-copy) 11%, transparent);
   border-radius: 50%;
   transform: translate(-50%, -50%);
 }
-.stage-hero__ring--outer { width: min(1180px, 150vw); height: min(420px, 54vw); }
-.stage-hero__ring--inner { width: min(860px, 112vw); height: min(300px, 40vw); border-style: dashed; }
-/* A comet on each ring: x and y oscillate a quarter-turn apart, tracing the ellipse. */
+.stage-hero__ring--outer { --rx: var(--outer-rx); --ry: var(--outer-ry); }
+.stage-hero__ring--inner { --rx: var(--inner-rx); --ry: var(--inner-ry); border-style: dashed; }
 .stage-hero__ring::after {
   content: "";
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 7px;
-  height: 7px;
-  margin: -3.5px 0 0 -3.5px;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--panel-copy);
-  box-shadow: 0 0 14px 3px color-mix(in srgb, var(--panel-copy) 55%, transparent);
-  animation:
-    stage-orbit-x var(--orbit, 16s) ease-in-out infinite alternate,
-    stage-orbit-y var(--orbit, 16s) ease-in-out calc(var(--orbit, 16s) / -2) infinite alternate;
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--panel-copy) 45%, transparent);
+  offset-path: ellipse(var(--rx) var(--ry) at 50% 50%);
+  offset-anchor: 50% 50%;
+  animation: stage-planet-orbit 24s linear infinite;
 }
-.stage-hero__ring--outer { --orbit: 19s; --rx: min(590px, 75vw); --ry: min(210px, 27vw); }
-.stage-hero__ring--inner { --orbit: 13s; --rx: min(430px, 56vw); --ry: min(150px, 20vw); }
+.stage-hero__ring--inner::after { animation-duration: 18s; animation-delay: -9s; }
 
 .stage-hero__face {
-  --depth: 28;
-  bottom: 0;
-  left: 50%;
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
   width: var(--face-width);
   aspect-ratio: 3 / 2;
-  margin-left: calc(var(--face-width) / -2);
-  margin-bottom: calc(var(--face-width) * -0.14);
+  margin-top: 24px;
   mask-image:
-    linear-gradient(to right, transparent 4%, black 26%, black 80%, transparent 97%),
-    linear-gradient(to bottom, transparent 2%, black 18%);
+    linear-gradient(to right, transparent, black 20%, black 84%, transparent),
+    linear-gradient(to bottom, transparent, black 8%, black 94%, transparent);
   mask-composite: intersect;
-  animation: stage-face-rise 1600ms var(--ease-out) 150ms both;
+  animation:
+    stage-face-rise 1600ms var(--ease-out) 150ms both,
+    stage-face-float 7s ease-in-out 1750ms infinite alternate;
 }
 .stage-hero__face img {
   position: absolute;
@@ -121,6 +126,9 @@
 .stage-hero.is-cheering .stage-hero__glow { animation: stage-flash 1200ms var(--ease-out); }
 
 .stage-hero__orbit {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
   inset: 0;
   margin: 0;
   padding: 0;
@@ -128,88 +136,56 @@
   translate: none;
 }
 .stage-hero__agent {
-  --depth: 40;
-  --scale: 1;
+  --rx: var(--outer-rx);
+  --ry: var(--outer-ry);
   position: absolute;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  border: 1px solid color-mix(in srgb, var(--panel-copy) 13%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--panel-2) 72%, transparent);
-  padding: 6px 14px 6px 6px;
+  gap: 12px;
   color: var(--panel-copy);
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
-  backdrop-filter: blur(12px);
-  translate: calc(var(--px) * var(--depth) * -1px) calc(var(--py) * var(--depth) * -1px);
-  transition: translate 900ms var(--ease-out), border-color 400ms ease, box-shadow 400ms ease;
+  /* Rest on the ring, with a gentle independent float. */
+  offset-path: ellipse(var(--rx) var(--ry) at 50% calc(100% - var(--orbit-bottom)));
+  offset-anchor: 50% calc(var(--avatar-size) / 2);
+  offset-rotate: 0deg;
+  offset-distance: var(--orbit-start);
   animation:
     stage-agent-in 1100ms var(--ease-out) calc(700ms + var(--i) * 140ms) both,
-    stage-float calc(6s + var(--i) * 0.7s) ease-in-out calc(var(--i) * -1.3s) infinite alternate;
+    stage-agent-float 7s ease-in-out calc(var(--i) * -1.7s) infinite alternate;
 }
 .stage-hero__avatar {
-  width: 42px;
-  height: 42px;
+  position: relative;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
   flex: 0 0 auto;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 50%;
   background: var(--primary-foreground);
-  box-shadow: 0 0 0 2px var(--bot);
+  box-shadow: 0 0 0 1px var(--bot), 0 0 22px -5px color-mix(in srgb, var(--bot) 50%, transparent);
+  transition: box-shadow 400ms ease;
 }
-/* Frame the face and its prop; the prop tells the agents apart. */
+/* Centre the head over the circle; capsules and props extend past its edge. */
 .stage-hero__avatar img {
-  display: block;
-  width: 122%;
-  height: 122%;
-  margin: -20% 0 0 -12%;
-}
-/* Depth: near chips are sharp and move most; far chips are soft and drift less. */
-.stage-hero__agent:nth-child(1) { top: 15%; left: 8%; }
-.stage-hero__agent:nth-child(2) { top: 76%; left: 9%; --depth: 20; --scale: 0.88; filter: blur(0.8px); opacity: 0.75; }
-.stage-hero__agent:nth-child(3) { top: 13%; right: 8%; --depth: 24; --scale: 0.9; filter: blur(0.6px); opacity: 0.8; }
-.stage-hero__agent:nth-child(4) { top: 73%; right: 10%; --depth: 56; --scale: 1.06; }
-
-.stage-hero__status {
-  position: relative;
-  display: inline-flex;
-  width: 18px;
-  justify-content: space-between;
-}
-.stage-hero__status b {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--panel-copy) 60%, transparent);
-  animation: stage-typing 1.2s ease-in-out infinite;
-  transition: opacity 250ms ease, scale 250ms ease;
-}
-.stage-hero__status b:nth-child(2) { animation-delay: 150ms; }
-.stage-hero__status b:nth-child(3) { animation-delay: 300ms; }
-.stage-hero__status::after {
-  content: "";
   position: absolute;
-  top: -5px;
-  left: 5px;
-  width: 5px;
-  height: 10px;
-  border: solid var(--bot);
-  border-width: 0 2px 2px 0;
-  opacity: 0;
-  rotate: 45deg;
-  scale: 0.3;
-  transition: opacity 250ms ease, scale 350ms cubic-bezier(0.3, 1.6, 0.5, 1);
+  left: -25%;
+  top: -34%;
+  display: block;
+  max-width: none;
+  width: 150%;
+  height: 150%;
 }
-.stage-hero__agent.is-done,
-.stage-hero.is-cheering .stage-hero__agent {
-  border-color: color-mix(in srgb, var(--bot) 60%, transparent);
-  box-shadow: 0 0 28px -6px var(--bot);
+/* Both rings and avatars use the same ellipse radii and centre. */
+.stage-hero__agent:nth-child(1) { --orbit-start: 58%; }
+.stage-hero__agent:nth-child(2) { --orbit-start: 42%; --rx: var(--inner-rx); --ry: var(--inner-ry); }
+.stage-hero__agent:nth-child(3) { --orbit-start: 92%; }
+.stage-hero__agent:nth-child(4) { --orbit-start: 8%; --rx: var(--inner-rx); --ry: var(--inner-ry); }
+.stage-hero__agent:nth-child(4) .stage-hero__avatar img { left: -16%; }
+.stage-hero.is-cheering .stage-hero__avatar {
+  box-shadow: 0 0 0 1px var(--bot), 0 0 28px -4px var(--bot);
 }
-.stage-hero__agent.is-done .stage-hero__status b,
-.stage-hero.is-cheering .stage-hero__status b { opacity: 0; scale: 0; }
-.stage-hero__agent.is-done .stage-hero__status::after,
-.stage-hero.is-cheering .stage-hero__status::after { opacity: 1; scale: 1; }
 
 .stage-hero__grain {
   inset: 0;
@@ -225,32 +201,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-block: clamp(48px, 7vh, 88px) calc(var(--face-width) * 0.38);
+  padding-block: clamp(40px, 5vh, 64px) 48px;
   text-align: center;
 }
-.stage-hero__content > * { animation: stage-rise 1000ms var(--ease-out) both; }
+.stage-hero__content > :not(.stage-hero__face) { animation: stage-rise 1000ms var(--ease-out) both; }
 .stage-hero__content > :nth-child(2) { animation-delay: 80ms; }
 .stage-hero__content > :nth-child(3) { animation-delay: 160ms; }
 .stage-hero__content > :nth-child(4) { animation-delay: 260ms; }
 
-.stage-hero__pill {
-  margin: 0;
-  border: 1px solid color-mix(in srgb, var(--panel-copy) 16%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--panel-2) 70%, transparent);
-  padding: 7px 14px;
-  color: var(--panel-muted);
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.stage-hero__pill span { padding-inline: 6px; }
-
 .stage-hero h1 {
   max-width: 11ch;
-  margin: 28px 0 0;
+  margin: 0;
   padding-bottom: 0.1em;
   background: linear-gradient(to bottom, var(--panel-copy) 45%, color-mix(in srgb, var(--panel-copy) 62%, transparent));
   background-clip: text;
@@ -271,7 +232,7 @@
 
 .stage-hero__command {
   width: min(100%, 1060px);
-  margin-top: 40px;
+  margin-top: 36px;
 }
 
 /* Install command, shared by the hero and the setup section. */
@@ -279,7 +240,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 20px;
   border: 1px solid var(--panel-line-2);
   border-radius: 14px;
   background: color-mix(in srgb, var(--panel-2) 88%, transparent);
@@ -316,15 +277,14 @@
   font-size: 13px;
   white-space: nowrap;
   scrollbar-width: none;
-  mask-image: linear-gradient(to right, black calc(100% - 28px), transparent);
 }
 .install-command code::-webkit-scrollbar { display: none; }
 .install-command button {
   flex: 0 0 auto;
   min-width: 132px;
-  min-height: 46px;
+  min-height: 48px;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--radius-button);
   background: var(--panel-copy);
   padding: 0 18px;
   color: var(--panel);
@@ -345,14 +305,15 @@
   from { opacity: 0.75; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1.03); }
 }
-@keyframes stage-orbit-x {
-  from { transform: translateX(calc(var(--rx) * -1)); }
-  to { transform: translateX(var(--rx)); }
+@keyframes stage-agent-float {
+  from { transform: translateY(-6px); }
+  to { transform: translateY(6px); }
 }
-@keyframes stage-orbit-y {
-  from { translate: 0 calc(var(--ry) * -1); }
-  to { translate: 0 var(--ry); }
+@keyframes stage-face-float {
+  from { translate: 0 -6px; }
+  to { translate: 0 6px; }
 }
+@keyframes stage-planet-orbit { to { offset-distance: 100%; } }
 @keyframes stage-face-rise {
   from { opacity: 0; transform: translateY(18%); filter: brightness(0.2); }
   to { opacity: 1; transform: none; filter: none; }
@@ -374,14 +335,6 @@
 @keyframes stage-agent-in {
   from { opacity: 0; filter: blur(8px); }
 }
-@keyframes stage-float {
-  from { transform: translateY(-7px) scale(var(--scale)); }
-  to { transform: translateY(7px) scale(var(--scale)); }
-}
-@keyframes stage-typing {
-  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
-  30% { opacity: 1; transform: translateY(-3px); }
-}
 @keyframes stage-rise {
   from { opacity: 0; transform: translateY(22px); filter: blur(6px); }
 }
@@ -394,35 +347,29 @@
     animation-range: exit 0% exit 90%;
   }
   @keyframes stage-exit {
-    to { opacity: 0.25; transform: scale(1.08) translateY(6%); }
+    to { opacity: 0.25; }
   }
 }
 
-@media (max-width: 1180px) {
-  .stage-hero__agent:nth-child(1) { top: 5%; left: 3%; }
-  .stage-hero__agent:nth-child(3) { top: 7%; right: 3%; }
-  .stage-hero__agent:nth-child(2) { top: auto; bottom: 16%; left: 4%; }
-  .stage-hero__agent:nth-child(4) { top: auto; bottom: 20%; right: 4%; }
-}
-
 @media (max-width: 720px) {
-  .stage-hero { --face-width: 118vw; min-height: 0; }
+  .stage-hero {
+    --face-width: 96vw;
+    --avatar-size: 44px;
+    --orbit-bottom: 340px;
+    --outer-rx: calc(50vw - 32px);
+    --inner-rx: var(--outer-rx);
+  }
   .stage-hero__content { padding-top: 44px; }
   .stage-hero h1 { max-width: none; font-size: clamp(42px, 12.4vw, 72px); }
   .stage-hero__lead { font-size: 16px; }
-  .stage-hero__agent { padding: 3px; }
-  .stage-hero__agent span,
-  .stage-hero__status { display: none; }
-  .stage-hero__avatar { width: 40px; height: 40px; }
-  .stage-hero__agent:nth-child(1) { top: auto; bottom: 34vw; left: 5%; }
-  .stage-hero__agent:nth-child(3) { top: auto; bottom: 44vw; right: 7%; }
-  .stage-hero__agent:nth-child(2) { bottom: 12vw; left: 3%; }
-  .stage-hero__agent:nth-child(4) { bottom: 18vw; right: 3%; }
-  .install-command { flex-wrap: wrap; padding: 14px; }
+  .stage-hero__agent { gap: 8px; font-size: 10px; }
+  .stage-hero__orbit { z-index: 2; }
+  .stage-hero__agent-name { text-shadow: 0 1px 3px var(--panel), 0 0 6px var(--panel); }
+  .install-command { flex-wrap: wrap; gap: 16px; padding: 14px; }
   .install-command__prompt { display: none; }
   .install-command code {
     flex-basis: 100%;
-    padding: 0 0 12px;
+    padding: 0;
     white-space: normal;
     overflow-wrap: anywhere;
     mask-image: none;

@@ -1,5 +1,5 @@
 export const SITE_NAME = "Engaz";
-export const SITE_URL = "https://engaz.pages.dev";
+export const SITE_URL = "https://engaz.app";
 export const SITE_DESCRIPTION =
   "Engaz is an open-source, self-hosted workspace for your AI team. Create agents, connect a model, and control their plugin access.";
 

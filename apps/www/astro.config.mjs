@@ -7,7 +7,7 @@ import { resolveWwwPort } from "./www-port.mjs";
 const wwwPort = resolveWwwPort();
 
 export default defineConfig({
-  site: "https://engaz.pages.dev",
+  site: "https://engaz.app",
   output: "static",
   i18n: {
     defaultLocale: "en",

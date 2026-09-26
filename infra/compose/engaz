@@ -422,6 +422,10 @@ def restore(args):
                     "COMPOSE_FILE": f"{BASE}:{OVERLAY}:{PINNED}", "ENGAZ_WEB_PORT": str(args.web_port),
                     "ENGAZ_API_PORT": str(args.api_port)})
         install = Install(target, args.project)
+        expected = {"api": {"type": "bind", "source": str(target / "appdata")},
+                    "postgres": {"type": "bind", "source": str(target / "postgres")}}
+        if install.storage != expected:
+            raise ValueError("Compose interpreted a different restore path. Use a folder without dotenv interpolation characters.")
         for spec in install.config["services"].values():
             try:
                 docker("image", "inspect", spec["image"], stdout=subprocess.DEVNULL)

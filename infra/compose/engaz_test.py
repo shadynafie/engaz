@@ -172,6 +172,8 @@ class RecoveryChecks(unittest.TestCase):
                 engaz.restore(args)
         self.assertFalse(Path(args.to).exists())
         install = self.install()
+        install.storage = {s: {"type": "bind", "source": str(Path(args.to).resolve() / d)}
+                           for s, d in (("api", "appdata"), ("postgres", "postgres"))}
         def helper(*argv, **kwargs):
             if "-df" in argv:
                 raise subprocess.CalledProcessError(1, ["tar"])
@@ -182,6 +184,16 @@ class RecoveryChecks(unittest.TestCase):
                 engaz.restore(args)
             start.assert_not_called()
             self.assertIn(("stop", "-t", "60"), [call.args for call in compose.call_args_list])
+
+    def test_restore_rejects_dotenv_path_redirection_before_database_start(self):
+        args = type("Args", (), {"backup": str(self.backup_fixture()), "to": str(self.root / "$OTHER"),
+                                "project": "fresh", "web_port": 7791, "api_port": 7792})()
+        install = self.install()
+        with patch.object(engaz, "docker", return_value=""), patch.object(engaz, "Install", return_value=install), \
+             patch.object(install, "compose") as compose:
+            with self.assertRaisesRegex(ValueError, "different restore path"):
+                engaz.restore(args)
+            compose.assert_not_called()
 
     def test_shell_cannot_override_storage_or_images_at_first_enrollment(self):
         (self.root / engaz.BASE).write_text('image: ${POSTGRES_IMAGE:-postgres:16}\napp: ${ENGAZ_IMAGE}\n')

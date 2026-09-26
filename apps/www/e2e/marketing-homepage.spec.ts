@@ -2,6 +2,9 @@ import { expect, test } from "@playwright/test";
 import type { Page, TestInfo } from "@playwright/test";
 
 async function captureScreenshot(page: Page, testInfo: TestInfo, name: string) {
+  await expect.poll(() => page.locator("main img").evaluateAll((images) => images.every((image) =>
+    (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0,
+  ))).toBe(true);
   const screenshotPath = testInfo.outputPath(`${name}.png`);
   await page.screenshot({ animations: "disabled", caret: "hide", fullPage: true, path: screenshotPath });
   await testInfo.attach(name, { contentType: "image/png", path: screenshotPath });

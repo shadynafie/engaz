@@ -8,7 +8,7 @@
   --px: 0;
   --py: 0;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --face-width: min(540px, 76vw);
+  --face-width: min(490px, 69vw);
   --orbit-bottom: 300px;
   --outer-rx: min(590px, calc(50vw - 52px));
   --outer-ry: min(210px, 20vw);
@@ -353,7 +353,7 @@
 
 @media (max-width: 720px) {
   .stage-hero {
-    --face-width: 96vw;
+    --face-width: 86vw;
     --avatar-size: 44px;
     --orbit-bottom: 340px;
     --outer-rx: calc(50vw - 32px);

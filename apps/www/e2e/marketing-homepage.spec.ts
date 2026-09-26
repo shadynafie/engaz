@@ -92,13 +92,23 @@ test("translated homepage keeps the same path", async ({ page }, testInfo) => {
 test("narrow and reduced-motion views remain usable", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await expect(page.locator("#team")).not.toHaveClass(/is-scroll-linked/);
+  await expect(page.locator("#team")).toHaveClass(/is-scroll-linked/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  const teammates = page.locator(".workbench-team__teammate");
+  for (const [progress, count] of [[0, 0], [0.35, 1], [0.6, 2], [0.9, 3], [0.35, 1]]) {
+    await scrollTeamTo(page, progress);
+    for (let index = 0; index < 3; index += 1) {
+      await expect(teammates.nth(index)).toHaveCSS("opacity", index < count ? "1" : "0");
+    }
+  }
+  const mobileTeamPath = testInfo.outputPath("marketing-team-mobile-one-teammate.png");
+  await page.locator("[data-team-stage]").screenshot({ animations: "disabled", path: mobileTeamPath });
+  await testInfo.attach("marketing-team-mobile-one-teammate", { contentType: "image/png", path: mobileTeamPath });
   await captureScreenshot(page, testInfo, "marketing-homepage-mobile");
   await page.setViewportSize({ width: 1280, height: 844 });
   await expect(page.locator("#team")).toHaveClass(/is-scroll-linked/);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator("#team")).not.toHaveClass(/is-scroll-linked/);
+  await expect(page.locator("#team")).toHaveClass(/is-scroll-linked/);
 
   await page.setViewportSize({ width: 1280, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });

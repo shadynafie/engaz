@@ -167,22 +167,22 @@
   box-shadow: 0 0 0 1px var(--bot), 0 0 22px -5px color-mix(in srgb, var(--bot) 50%, transparent);
   transition: box-shadow 400ms ease;
 }
-/* Centre the head over the circle; capsules and props extend past its edge. */
+/* Keep the head and capsules inside the circle; only the prop extends out. */
 .stage-hero__avatar img {
   position: absolute;
-  left: -25%;
-  top: -34%;
+  left: -7.5%;
+  top: -7%;
   display: block;
   max-width: none;
-  width: 150%;
-  height: 150%;
+  width: 115%;
+  height: 115%;
 }
 /* Both rings and avatars use the same ellipse radii and centre. */
 .stage-hero__agent:nth-child(1) { --orbit-start: 58%; }
 .stage-hero__agent:nth-child(2) { --orbit-start: 42%; --rx: var(--inner-rx); --ry: var(--inner-ry); }
 .stage-hero__agent:nth-child(3) { --orbit-start: 92%; }
 .stage-hero__agent:nth-child(4) { --orbit-start: 8%; --rx: var(--inner-rx); --ry: var(--inner-ry); }
-.stage-hero__agent:nth-child(4) .stage-hero__avatar img { left: -16%; }
+.stage-hero__agent:nth-child(4) .stage-hero__avatar img { left: 0; }
 .stage-hero.is-cheering .stage-hero__avatar {
   box-shadow: 0 0 0 1px var(--bot), 0 0 28px -4px var(--bot);
 }

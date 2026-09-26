@@ -1,4 +1,7 @@
-import { expect, type Page, type TestInfo, test } from "@playwright/test";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+import type { Page, TestInfo } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 // A new owner's first run on a fresh installation from the published images: sign up, connect
 // a model (after the two mistakes people make most), talk to the first agent, give it a plugin,
@@ -104,4 +107,44 @@ test("a new owner goes from sign-up to a working agent with a plugin", async ({
   // A reload keeps the owner signed in with the conversation in place.
   await page.reload();
   await expect(page.getByText("Hello from the fake model.").first()).toBeVisible();
+});
+
+test("recovery keeps owner sign-in, private agent files and saved credentials", async ({
+  page,
+}, testInfo) => {
+  const installation = process.env.ENGAZ_RECOVERY_INSTALL;
+  test.skip(!installation, "Requires an isolated Docker installation.");
+  test.setTimeout(900_000);
+  if (installation) {
+    // The source remains intact; the restore has its own empty directory and project.
+    execFileSync(
+      "python3",
+      [
+        "-B",
+        "../../infra/compose/image-lifecycle-check.py",
+        "--install-dir",
+        installation,
+        "--rehearse-update",
+        "--target",
+        path.join(path.dirname(installation), `${path.basename(installation)}-recovered`),
+      ],
+      { stdio: "inherit", timeout: 600_000 },
+    );
+    await page.context().clearCookies();
+    await page.goto("/sign-in");
+    await page.getByPlaceholder("Your email address").fill("owner@engaz.test");
+    await page.getByPlaceholder("Password").fill("fake-password-12");
+    await page.getByRole("button", { name: "Continue with email", exact: true }).click();
+    const restoredComposer = page.getByRole("combobox", { name: "Message Chief" });
+    await expect(restoredComposer).toBeVisible({ timeout: 60_000 });
+    const replies = await page.getByText("Hello from the fake model.", { exact: true }).count();
+    await restoredComposer.fill("Say hello after restoring the backup.");
+    await restoredComposer.press("Enter");
+    // The fake refuses requests without the saved key: a new answer proves decryption.
+    await expect(page.getByText("Hello from the fake model.", { exact: true })).toHaveCount(
+      replies + 1,
+      { timeout: 120_000 },
+    );
+    await shot(page, testInfo, "image-07-restored-owner-and-credential");
+  }
 });

@@ -13,6 +13,9 @@ on:
       - "apps/web/e2e-image/**"
       - "apps/web/playwright.image.config.ts"
       - "infra/compose/install-images.sh"
+      - "infra/compose/engaz"
+      - "infra/compose/engaz_test.py"
+      - "infra/compose/image-lifecycle-check.py"
       - "infra/compose/docker-compose.images.yml"
       - "infra/compose/docker-compose.data-dir.yml"
   workflow_dispatch:
@@ -60,7 +63,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           mkdir "$RUNNER_TEMP/engaz"
-          cp infra/compose/install-images.sh infra/compose/docker-compose.images.yml \
+          cp infra/compose/install-images.sh infra/compose/engaz infra/compose/docker-compose.data-dir.yml infra/compose/docker-compose.images.yml \
             infra/compose/.env.images.example "$RUNNER_TEMP/engaz/"
           cd "$RUNNER_TEMP/engaz"
           bash install-images.sh --local
@@ -99,6 +102,8 @@ jobs:
           curl -fsS --retry 10 --retry-delay 1 --retry-all-errors http://127.0.0.1:8099/v1/models
 
       - name: Walk a new owner through first run
+        env:
+          ENGAZ_RECOVERY_INSTALL: ${{ runner.temp }}/engaz
         run: pnpm --filter @engaz/web exec playwright test -c playwright.image.config.ts
 
       - name: Keep first-run screenshots
@@ -169,7 +174,7 @@ jobs:
       - name: Install into a host data folder
         run: |
           mkdir -p "$DATA"
-          cp infra/compose/install-images.sh infra/compose/docker-compose.images.yml \
+          cp infra/compose/install-images.sh infra/compose/engaz infra/compose/docker-compose.images.yml \
             infra/compose/docker-compose.data-dir.yml infra/compose/.env.images.example "$DATA/"
           cd "$DATA"
           bash install-images.sh --local "--data-dir=$DATA"
@@ -273,7 +278,7 @@ jobs:
       - name: Run the installer and answer its questions
         run: |
           mkdir "$RUNNER_TEMP/engaz"
-          cp infra/compose/install-images.sh infra/compose/docker-compose.images.yml \
+          cp infra/compose/install-images.sh infra/compose/engaz infra/compose/docker-compose.data-dir.yml infra/compose/docker-compose.images.yml \
             infra/compose/.env.images.example "$RUNNER_TEMP/engaz/"
           printf 'y\n\n' > "$RUNNER_TEMP/answers"
           cd "$RUNNER_TEMP/engaz"

@@ -55,7 +55,7 @@ services:
 
   data-init:
     image: ${BUSYBOX_IMAGE:-busybox:1}
-    command: ["chown", "-R", "1000:1000", "/data"]
+    command: ["chown", "1000:1000", "/data"]
     restart: "no"
     volumes:
       - ../../data:/data

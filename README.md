@@ -8,13 +8,13 @@ Engaz runs on your own computer or NAS, and you use it in the browser. It does n
 
 ## Install
 
-Engaz needs Docker. On Linux the installer offers to install it; on macOS and Windows, install Docker Desktop first (on Windows, run the command inside WSL). Then run:
+Engaz needs Docker and Python 3.9 or newer (no Python packages to install). On Linux the installer offers to install Docker; on macOS and Windows, install Docker Desktop first (on Windows, run the command inside WSL). Then run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash
 ```
 
-It asks where to keep your data, starts Engaz, and prints the address to open, `http://127.0.0.1:7791`. Run the same command again to update. The [self-hosting guide](./docs/self-host.md#published-images-no-checkout) covers the options, including [keeping data in a folder you choose](./docs/self-host.md#keep-data-in-a-folder-you-choose).
+It asks where to keep your data, starts Engaz, and prints the address to open, `http://127.0.0.1:7791`. It installs the `engaz` command; follow the printed PATH instruction if needed. Use `engaz update` to update. The [self-hosting guide](./docs/self-host.md#published-images-no-checkout) covers the options, including [keeping data in a folder you choose](./docs/self-host.md#keep-data-in-a-folder-you-choose).
 
 ## First run
 
@@ -27,7 +27,7 @@ To reach Engaz away from home, follow [the Cloudflare Tunnel steps](./docs/self-
 
 ## Keep your data
 
-An installation is its database, its app data, and the `.env` file holding its secrets; keep all three. Never run `docker compose down -v` on an installation you care about: it deletes the data. See the [secrets checklist](./docs/self-host-secrets.md). Backup and restore are documented for the [source setup](./docs/self-host.md#backup); a tested backup for the image installation is still to come.
+An installation is its database, its app data, and the `.env` file holding its secrets; keep all three. Never run `docker compose down -v` on an installation you care about: it deletes the data. See the [secrets checklist](./docs/self-host-secrets.md). Use `engaz backup` before changing an installation. The [lifecycle and recovery guide](./docs/self-host.md#manage-an-image-installation) covers start, stop, updates, and restoring into a new empty folder. These commands are implemented in source; Docker recovery checks and real NAS verification remain release gates.
 
 If you connect an external model or service, what you send it follows that provider's terms. See [privacy and data flow](./docs/privacy.md).
 

@@ -122,8 +122,8 @@ instead of this host proxy.
 
 ### Manage an image installation
 
-These commands are implemented in source. Published-image recovery on amd64/arm64 and a real NAS
-rehearsal are still required before phases 1.3–1.4 are verified.
+These commands are implemented in source and [published-image recovery passes on amd64 and arm64](https://github.com/shadynafie/engaz/actions/runs/36273299833).
+A new stable release and a real NAS rehearsal are still required before phases 1.3–1.4 are verified.
 
 ```bash
 engaz status

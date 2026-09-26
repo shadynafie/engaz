@@ -864,6 +864,12 @@ msgstr "Не удалось загрузить серверы MCP."
 msgid "Could not load model settings"
 msgstr "Не удалось загрузить настройки модели."
 
+msgid "Could not load plugins"
+msgstr ""
+
+msgid "Could not load setup"
+msgstr ""
+
 msgid "Could not load skill"
 msgstr "Не удалось загрузить навык"
 
@@ -878,6 +884,9 @@ msgstr "Не удалось загрузить статус обновления
 
 msgid "Could not load voice settings"
 msgstr "Не удалось загрузить голосовые настройки."
+
+msgid "Could not log out. Try again."
+msgstr ""
 
 msgid "Could not open local settings. Start the local server and create its owner account, then try again."
 msgstr "Не удалось открыть локальные настройки. Запустите локальный сервер и создайте учетную запись владельца, затем повторите попытку."
@@ -932,6 +941,9 @@ msgstr "Не удалось сохранить автообзор."
 
 msgid "Could not save group"
 msgstr "Не удалось сохранить группу"
+
+msgid "Could not save MCP server"
+msgstr ""
 
 msgid "Could not save model"
 msgstr "Не удалось сохранить модель"
@@ -1210,6 +1222,9 @@ msgstr ""
 msgid "Earlier message"
 msgstr "Предыдущее сообщение"
 
+msgid "Edit"
+msgstr ""
+
 msgid "Edit fields"
 msgstr ""
 
@@ -1297,6 +1312,9 @@ msgstr "Не удалось остановить"
 msgid "Failed."
 msgstr "Неуспешный."
 
+msgid "Failing"
+msgstr ""
+
 msgid "Failure handling"
 msgstr "Обработка сбоев"
 
@@ -1379,6 +1397,9 @@ msgstr "Название заголовка"
 
 msgid "Header value"
 msgstr "Значение заголовка"
+
+msgid "Headers must be a JSON object of names and values."
+msgstr ""
 
 msgid "Hear a sample"
 msgstr "Прослушать образец"
@@ -1499,6 +1520,12 @@ msgstr "Позже"
 
 msgid "Leave"
 msgstr "Выйти"
+
+msgid "Leave blank to keep saved headers"
+msgstr ""
+
+msgid "Leave blank to keep saved token"
+msgstr ""
 
 msgid "Light"
 msgstr "Светлая"
@@ -1825,6 +1852,9 @@ msgstr "Нет триггера"
 msgid "None yet"
 msgstr "Пока нет"
 
+msgid "Not checked"
+msgstr ""
+
 msgid "Not checked yet"
 msgstr ""
 
@@ -2113,6 +2143,9 @@ msgstr "Открыть заново"
 msgid "Replace API key"
 msgstr "Заменить ключ API"
 
+msgid "Replace headers (JSON)"
+msgstr ""
+
 msgid "Replace key"
 msgstr "Заменить ключ"
 
@@ -2356,6 +2389,9 @@ msgstr ""
 
 msgid "Sign up"
 msgstr "Зарегистрироваться"
+
+msgid "Sign-in needed"
+msgstr ""
 
 msgid "Signing in…"
 msgstr ""

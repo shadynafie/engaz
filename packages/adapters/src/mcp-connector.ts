@@ -26,7 +26,11 @@ import {
   summarizeMcpTools,
 } from "./mcp-check.js";
 import type { McpOAuthBroker, OAuthMaterial } from "./mcp-oauth.js";
-import { McpReauthorizationRequiredError, oauthMaterialSecrets } from "./mcp-oauth.js";
+import {
+  McpReauthorizationRequiredError,
+  oauthMaterialSecrets,
+  StoredMcpOAuthProvider,
+} from "./mcp-oauth.js";
 import { McpSession } from "./mcp-transport.js";
 import {
   type EndpointNetwork,
@@ -144,6 +148,15 @@ export class McpConnector implements ConnectorProvider {
         try {
           const session = await this.sessionFor(assignment.server, context);
           const listed = await session.listTools({ signal: context.signal });
+          if (assignment.pendingToolDiscovery) {
+            await this.pinPendingTools(assignment.server, listed.tools);
+            const current = await this.prisma.botMcpServer.findFirst({
+              where: { id: assignment.id, pendingToolDiscovery: false },
+            });
+            if (!current) return [];
+            assignment.allowAllTools = current.allowAllTools;
+            assignment.allowedTools = current.allowedTools;
+          }
           reportAllowlistDrift(assignment, listed.tools, context);
           await this.recordWorking(assignment.server, listed.tools);
           return listed.tools
@@ -176,7 +189,7 @@ export class McpConnector implements ConnectorProvider {
           const material = this.sessions.get(key)?.material;
           await this.evict(key);
           await this.recordCheck(
-            assignment.server.id,
+            assignment.server,
             mcpCheckFailure(error, material ? oauthMaterialSecrets(material) : []),
           );
           await this.recordDiscoveryFailure(
@@ -240,7 +253,11 @@ export class McpConnector implements ConnectorProvider {
    * Connects afresh, lists the server's tools, and records the outcome as its status.
    * The session is closed afterwards so a check never replaces one a run is using.
    */
-  async check(server: McpServer, context: AdapterContext): Promise<McpCheckResult> {
+  async check(
+    server: McpServer,
+    context: AdapterContext,
+    preview?: { material: OAuthMaterial },
+  ): Promise<McpCheckResult> {
     const checkContext = {
       ...context,
       signal: AbortSignal.any([context.signal, AbortSignal.timeout(MCP_CHECK_TIMEOUT_MS)]),
@@ -248,7 +265,7 @@ export class McpConnector implements ConnectorProvider {
     let connected: { session: McpSession; material: OAuthMaterial } | undefined;
     let result: McpCheckResult;
     try {
-      connected = await this.connectSession(server, checkContext);
+      connected = await this.connectSession(server, checkContext, preview?.material);
       const listed = await connected.session.listTools({ signal: checkContext.signal });
       result = { status: "working", message: null, tools: summarizeMcpTools(listed.tools) };
     } catch (error) {
@@ -256,8 +273,29 @@ export class McpConnector implements ConnectorProvider {
     } finally {
       await connected?.session.close().catch(() => undefined);
     }
-    await this.recordCheck(server.id, result);
+    if (!preview) {
+      if (result.status === "working") await this.pinPendingTools(server, result.tools);
+      await this.recordCheck(server, result);
+    }
     return result;
+  }
+
+  private async pinPendingTools(
+    server: Pick<McpServer, "id" | "revision">,
+    tools: ReadonlyArray<{ name: string }>,
+  ): Promise<void> {
+    await this.prisma.botMcpServer.updateMany({
+      where: {
+        serverId: server.id,
+        server: { revision: server.revision },
+        pendingToolDiscovery: true,
+      },
+      data: {
+        pendingToolDiscovery: false,
+        allowAllTools: false,
+        allowedTools: tools.map((tool) => tool.name),
+      },
+    });
   }
 
   private async recordWorking(
@@ -269,17 +307,20 @@ export class McpConnector implements ConnectorProvider {
       server.checkedAt !== null &&
       Date.now() - server.checkedAt.getTime() < WORKING_RECHECK_MS;
     if (fresh) return;
-    await this.recordCheck(server.id, {
+    await this.recordCheck(server, {
       status: "working",
       message: null,
       tools: summarizeMcpTools(tools),
     });
   }
 
-  private async recordCheck(serverId: string, result: McpCheckResult): Promise<void> {
+  private async recordCheck(
+    server: Pick<McpServer, "id" | "revision">,
+    result: McpCheckResult,
+  ): Promise<void> {
     try {
       await this.prisma.mcpServer.updateMany({
-        where: { id: serverId },
+        where: { id: server.id, revision: server.revision },
         data: {
           checkStatus: result.status,
           checkMessage: result.message,
@@ -290,7 +331,7 @@ export class McpConnector implements ConnectorProvider {
       });
     } catch (error) {
       // The status is advisory; a failed write must not break discovery or a run.
-      getLogger().warn("could not record MCP server check", { serverId, error });
+      getLogger().warn("could not record MCP server check", { serverId: server.id, error });
     }
   }
 
@@ -331,6 +372,7 @@ export class McpConnector implements ConnectorProvider {
     });
     if (
       !assignment ||
+      assignment.pendingToolDiscovery ||
       (!assignment.allowAllTools &&
         !(assignment.allowedTools as unknown[]).includes(call.route.toolName))
     ) {
@@ -406,23 +448,27 @@ export class McpConnector implements ConnectorProvider {
   private async connectSession(
     server: McpServer,
     context: AdapterContext,
+    previewMaterial?: OAuthMaterial,
   ): Promise<{ session: McpSession; material: OAuthMaterial }> {
     const session = new McpSession({ name: `engaz-${server.slug}` });
     // Hoisted so a throw after the secret is decoded can still hand the material out.
     let material: OAuthMaterial | undefined;
     try {
-      const secret = server.secretId
-        ? await this.prisma.secret.findFirst({
-            where: {
-              id: server.secretId,
-              spaceId: context.spaceId,
-              userId: context.userId,
-            },
-          })
-        : null;
-      material = secret
-        ? (JSON.parse(this.secrets.load(secret.ciphertext, secret.id)) as OAuthMaterial)
-        : {};
+      const secret =
+        !previewMaterial && server.secretId
+          ? await this.prisma.secret.findFirst({
+              where: {
+                id: server.secretId,
+                spaceId: context.spaceId,
+                userId: context.userId,
+              },
+            })
+          : null;
+      material =
+        previewMaterial ??
+        (secret
+          ? (JSON.parse(this.secrets.load(secret.ciphertext, secret.id)) as OAuthMaterial)
+          : {});
       const loaded = { material, ...(secret ? { secretId: secret.id } : {}) };
       const args = Array.isArray(server.args) ? server.args.map(String) : [];
       const env = { ...(material.env ?? {}) };
@@ -437,9 +483,13 @@ export class McpConnector implements ConnectorProvider {
         });
       } else {
         if (!server.endpoint) throw new Error("MCP endpoint is required");
-        const authProvider = this.oauth
-          ? await this.oauth.providerFor(server, context, loaded)
-          : undefined;
+        const authProvider = previewMaterial
+          ? material.oauth
+            ? new StoredMcpOAuthProvider(server.id, material, async () => undefined)
+            : undefined
+          : this.oauth
+            ? await this.oauth.providerFor(server, context, loaded)
+            : undefined;
         const staticToken = material.secret
           ? material.secret.startsWith("Bearer ")
             ? material.secret

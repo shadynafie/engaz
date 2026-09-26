@@ -14,9 +14,13 @@ type Row = {
 /** The plugins this agent can use right now, and where to change that. */
 export function AgentPlugins({ botId, onManage }: { botId: string; onManage?: () => void }) {
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setRows(null);
+    setFailed(false);
     void Promise.all([
       rpc.mcp.assignments.list({ botId }),
       rpc.mcp.servers.list(),
@@ -26,12 +30,12 @@ export function AgentPlugins({ botId, onManage }: { botId: string; onManage?: ()
         if (active) setRows(pluginRows(botId, assignments, servers, sources));
       })
       .catch(() => {
-        if (active) setRows([]);
+        if (active) setFailed(true);
       });
     return () => {
       active = false;
     };
-  }, [botId]);
+  }, [botId, attempt]);
 
   return (
     <div data-testid="agent-plugins" className="mt-6 border-t border-border/20 pt-4">
@@ -45,6 +49,21 @@ export function AgentPlugins({ botId, onManage }: { botId: string; onManage?: ()
           </Button>
         ) : null}
       </div>
+      {failed ? (
+        <div className="mt-2">
+          <p role="alert" className="text-[12px] text-destructive">
+            <Trans>Could not load plugins</Trans>
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={() => setAttempt((value) => value + 1)}
+          >
+            <Trans>Try again</Trans>
+          </Button>
+        </div>
+      ) : null}
       {rows && rows.length === 0 ? (
         <p className="mt-1 text-[12px] text-muted-foreground/70">
           <Trans>This agent has no plugins yet.</Trans>
@@ -67,6 +86,17 @@ export function AgentPlugins({ botId, onManage }: { botId: string; onManage?: ()
                 }`}
               />
               <span className="min-w-0 flex-1 truncate">{row.name}</span>
+              <span className="sr-only">
+                {row.status === "working" ? (
+                  <Trans>Working</Trans>
+                ) : row.status === "failing" ? (
+                  <Trans>Failing</Trans>
+                ) : row.status === "sign_in" ? (
+                  <Trans>Sign-in needed</Trans>
+                ) : (
+                  <Trans>Not checked</Trans>
+                )}
+              </span>
               {row.tools ? (
                 <span className="shrink-0 text-[12px] text-muted-foreground">
                   <Plural

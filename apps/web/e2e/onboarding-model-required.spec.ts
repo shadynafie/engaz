@@ -86,21 +86,40 @@ test("onboarding stays on the model step and says why a key was rejected", async
   await expect(page.getByText(message)).toHaveCount(0);
 });
 
-for (const unavailable of ["empty", "failed"] as const) {
-  test(`onboarding cannot continue with a ${unavailable} model catalog`, async ({ page }) => {
+for (const unavailable of ["empty", "failed", "profile"] as const) {
+  test(`onboarding recovers from ${unavailable} setup data without skipping the model`, async ({
+    page,
+  }, testInfo) => {
+    let recovered = false;
+    let botCreates = 0;
+    page.on("request", (request) => {
+      if (request.url().endsWith("/rpc/bots/create")) botCreates += 1;
+    });
     await page.route("**/rpc/me", async (route) => {
+      if (unavailable === "profile" && !recovered) {
+        await route.abort();
+        return;
+      }
       const response = await route.fetch();
       const body = (await response.json()) as { json: Record<string, unknown> };
       await route.fulfill({ response, json: { json: { ...body.json, needsModel: true } } });
     });
-    await page.route("**/rpc/models/list", (route) =>
-      unavailable === "failed" ? route.abort() : route.fulfill({ json: { json: [] } }),
-    );
+    await page.route("**/rpc/models/list", (route) => {
+      if (recovered || unavailable === "profile") return route.continue();
+      return unavailable === "failed" ? route.abort() : route.fulfill({ json: { json: [] } });
+    });
     const stamp = Date.now();
     await signup(page, `catalog-${unavailable}-${stamp}@engaz.test`, "password12", "Model setup");
-    await expect(page.getByRole("heading", { name: "Connect a model" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeDisabled();
+    await expect(page.getByRole("alert")).toHaveText("Could not load setup");
+    expect(botCreates).toBe(0);
     await expect(page.getByRole("heading", { name: "Create your first bot" })).toHaveCount(0);
     await expect(page.getByRole("combobox", { name: "Message Chief" })).toHaveCount(0);
+    await captureScreenshot(page, testInfo, `onboarding-${unavailable}-retry`);
+    recovered = true;
+    await page.getByRole("button", { name: "Try again", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Connect a model" })).toBeVisible();
+    await expect(page.getByLabel("Provider")).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    expect(botCreates).toBe(0);
   });
 }

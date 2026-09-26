@@ -97,7 +97,8 @@ export function OnboardingPage() {
   const navigate = useNavigate();
   const fieldId = useId();
   // Integrations wait until the owner has talked to their first agent.
-  const [step, setStep] = useState<"loading" | "model" | "bot">("loading");
+  const [step, setStep] = useState<"loading" | "error" | "model" | "bot">("loading");
+  const [setupAttempt, setSetupAttempt] = useState(0);
   const [catalog, setCatalog] = useState<ModelCatalogEntry[]>([]);
   const [provider, setProvider] = useState("openrouter");
   const [modelId, setModelId] = useState("");
@@ -135,8 +136,18 @@ export function OnboardingPage() {
   });
 
   useEffect(() => {
-    void Promise.all([rpc.me(), rpc.models.list().catch(() => [])])
-      .then(([me, models]) => {
+    let active = true;
+    async function loadSetup() {
+      try {
+        const me = await rpc.me();
+        if (!active) return;
+        if (!me.needsModel) {
+          setStep("bot");
+          return;
+        }
+        const models = await rpc.models.list();
+        if (!active) return;
+        if (models.length === 0) throw new Error("Empty model catalog");
         setCatalog(models);
         const preferred =
           models.find(
@@ -148,13 +159,19 @@ export function OnboardingPage() {
           setProvider(preferred.provider);
           setModelId(preferred.provider === OPENAI_COMPATIBLE_PROVIDER_ID ? "" : preferred.id);
         }
-        setStep(me.needsModel ? "model" : "bot");
-      })
-      .catch(() => setStep("bot"));
+        setStep("model");
+      } catch {
+        if (!active) return;
+        setError(t`Could not load setup`);
+        setStep("error");
+      }
+    }
+    void loadSetup();
     return () => {
+      active = false;
       modelProbe.invalidate();
     };
-  }, []);
+  }, [setupAttempt]);
 
   const providers = useMemo(() => {
     const seen = new Map<string, ModelCatalogEntry>();
@@ -366,6 +383,23 @@ export function OnboardingPage() {
           <p className="text-muted-foreground">
             <Trans>Loading…</Trans>
           </p>
+        ) : null}
+        {step === "error" ? (
+          <div>
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+            <Button
+              className="mt-4"
+              onClick={() => {
+                setError(null);
+                setStep("loading");
+                setSetupAttempt((attempt) => attempt + 1);
+              }}
+            >
+              <Trans>Try again</Trans>
+            </Button>
+          </div>
         ) : null}
         {step === "model" ? (
           <form onSubmit={(event) => void saveModel(event)}>

@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { allowlistDrift, McpConnector } from "./mcp-connector.js";
-import { type McpOAuthBroker, StoredMcpOAuthProvider } from "./mcp-oauth.js";
+import {
+  type McpOAuthBroker,
+  McpReauthorizationRequiredError,
+  StoredMcpOAuthProvider,
+} from "./mcp-oauth.js";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -888,8 +892,165 @@ describe("MCP server check", () => {
   };
 
   function checkPrisma() {
-    return { mcpServer: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) } };
+    return {
+      mcpServer: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      botMcpServer: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    };
   }
+
+  it("pins pending OAuth-first grants on discovery without changing explicit permissions", async () => {
+    const state = {
+      failNext: false,
+      initializations: 0,
+      tools: [{ name: "search", inputSchema: { type: "object" } }],
+    };
+    let signedIn = false;
+    const fetch = mcpFetch(state);
+    vi.stubGlobal("fetch", (input: string | URL | Request, init?: RequestInit) =>
+      signedIn ? fetch(input, init) : Promise.resolve(new Response(null, { status: 401 })),
+    );
+    const pending = { ...ASSIGNMENT, id: "pending", pendingToolDiscovery: true };
+    const explicit = { ...ASSIGNMENT, id: "explicit", pendingToolDiscovery: false };
+    const empty = { ...ASSIGNMENT, id: "empty", pendingToolDiscovery: false, allowAllTools: false };
+    const rows = [pending, explicit, empty];
+    const prisma = {
+      mcpServer: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      botMcpServer: {
+        updateMany: vi.fn(async ({ where, data }) => {
+          const matches = rows.filter(
+            (row) => row.serverId === where.serverId && row.pendingToolDiscovery,
+          );
+          for (const row of matches) Object.assign(row, data);
+          return { count: matches.length };
+        }),
+        findMany: vi.fn(async () => [pending]),
+        findFirst: vi.fn(async () => pending),
+      },
+    };
+    const connector = new McpConnector(prisma as never, {} as never, { network: TEST_NETWORK }, {
+      providerFor: async () => {
+        if (!signedIn) throw new McpReauthorizationRequiredError(SERVER.id);
+        return undefined;
+      },
+    } as never);
+    expect((await connector.check(SERVER as never, context)).status).toBe("sign_in");
+    expect(pending.pendingToolDiscovery).toBe(true);
+    const call = (toolName: string) => ({
+      tool: `mcp__demo__${toolName}`,
+      args: {},
+      route: { connectorId: "mcp", resourceId: SERVER.id, toolName },
+    });
+    const collect = async (toolName: string) => {
+      const events = [];
+      for await (const event of connector.execute(call(toolName) as never, {
+        ...context,
+        botId: "bot-1",
+      }))
+        events.push(event);
+      return events;
+    };
+    expect(await collect("search")).toMatchObject([{ type: "error" }]);
+    signedIn = true;
+    await connector.check(SERVER as never, context);
+    expect(pending).toMatchObject({
+      pendingToolDiscovery: false,
+      allowAllTools: false,
+      allowedTools: ["search"],
+    });
+    expect(explicit.allowAllTools).toBe(true);
+    expect(empty.allowedTools).toEqual([]);
+    state.tools.push({ name: "delete", inputSchema: { type: "object" } });
+    await connector.check(SERVER as never, context);
+    expect(pending.allowedTools).toEqual(["search"]);
+    expect(await collect("delete")).toMatchObject([{ type: "error" }]);
+    expect(await collect("search")).toMatchObject([{ type: "result" }]);
+    await connector.close();
+  });
+
+  it("pins runtime discovery, and never resurrects a revoked pending assignment", async () => {
+    vi.stubGlobal("fetch", mcpFetch({ failNext: false, initializations: 0 }));
+    let assignment = { ...ASSIGNMENT, id: "pending", pendingToolDiscovery: true };
+    let revoked = false;
+    const prisma = {
+      botMcpServer: {
+        findMany: vi.fn(async () => [assignment]),
+        updateMany: vi.fn(async () => {
+          assignment = {
+            ...assignment,
+            pendingToolDiscovery: false,
+            allowAllTools: false,
+            allowedTools: ["echo"] as never[],
+          };
+          return { count: revoked ? 0 : 1 };
+        }),
+        findFirst: vi.fn(async () => (revoked ? null : assignment)),
+      },
+    };
+    const connector = new McpConnector(prisma as never, {} as never, { network: TEST_NETWORK });
+    expect(
+      (await connector.discoverTools({ ...context, botId: "bot-1" })).map((tool) => tool.name),
+    ).toEqual(["mcp__demo__echo"]);
+    assignment = { ...assignment, pendingToolDiscovery: true };
+    revoked = true;
+    expect(await connector.discoverTools({ ...context, botId: "bot-1" })).toEqual([]);
+    await connector.close();
+  });
+
+  it("previews credentials without reading secrets or recording check/permission/OAuth changes", async () => {
+    const state = { failNext: false, initializations: 0, headers: [] as Record<string, string>[] };
+    vi.stubGlobal("fetch", mcpFetch(state));
+    const prisma = checkPrisma();
+    const connector = new McpConnector(prisma as never, {} as never, { network: TEST_NETWORK });
+    await expect(
+      connector.check({ ...SERVER, secretId: "old-secret" } as never, context, {
+        material: { secret: "replacement", headers: { "X-Api-Key": "preview" } },
+      }),
+    ).resolves.toMatchObject({ status: "working" });
+    expect(state.headers[0]).toMatchObject({
+      authorization: "Bearer replacement",
+      "x-api-key": "preview",
+    });
+    expect(prisma.mcpServer.updateMany).not.toHaveBeenCalled();
+    expect(prisma.botMcpServer.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("does not overwrite the catalog or pin grants after the server revision changes", async () => {
+    vi.stubGlobal("fetch", mcpFetch({ failNext: false, initializations: 0 }));
+    const saved = { revision: 2, tools: [{ name: "new_endpoint_tool" }] };
+    const pending = { pendingToolDiscovery: true, allowedTools: [] as string[] };
+    const prisma = {
+      mcpServer: {
+        updateMany: vi.fn(async ({ where, data }) => {
+          if (where.revision !== saved.revision) return { count: 0 };
+          Object.assign(saved, data);
+          return { count: 1 };
+        }),
+      },
+      botMcpServer: {
+        updateMany: vi.fn(async ({ where, data }) => {
+          if (where.server?.revision !== saved.revision) return { count: 0 };
+          Object.assign(pending, data);
+          return { count: 1 };
+        }),
+      },
+    };
+    const connector = new McpConnector(prisma as never, {} as never, { network: TEST_NETWORK });
+    await connector.check(SERVER as never, context);
+    expect(saved.tools).toEqual([{ name: "new_endpoint_tool" }]);
+    expect(pending).toEqual({ pendingToolDiscovery: true, allowedTools: [] });
+    expect(prisma.mcpServer.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: SERVER.id, revision: SERVER.revision } }),
+    );
+    expect(prisma.botMcpServer.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          serverId: SERVER.id,
+          server: { revision: SERVER.revision },
+          pendingToolDiscovery: true,
+        },
+      }),
+    );
+  });
 
   it("records a working server and the tools it offers", async () => {
     vi.stubGlobal(
@@ -917,7 +1078,7 @@ describe("MCP server check", () => {
       tools: [{ name: "search", description: "Search the web." }, { name: "fetch" }],
     });
     expect(prisma.mcpServer.updateMany).toHaveBeenCalledWith({
-      where: { id: "server-1" },
+      where: { id: "server-1", revision: 1 },
       data: expect.objectContaining({
         checkStatus: "working",
         checkMessage: null,
@@ -953,7 +1114,10 @@ describe("MCP server check", () => {
     vi.stubGlobal("fetch", mcpFetch({ failNext: false, initializations: 0 }));
     const prisma = {
       ...checkPrisma(),
-      botMcpServer: { findMany: vi.fn().mockResolvedValue([ASSIGNMENT]) },
+      botMcpServer: {
+        findMany: vi.fn().mockResolvedValue([ASSIGNMENT]),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
     };
     const connector = new McpConnector(prisma as never, {} as never, { network: TEST_NETWORK });
 

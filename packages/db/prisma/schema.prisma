@@ -1144,18 +1144,19 @@ model McpOAuthSession {
 }
 
 model BotMcpServer {
-  id            String    @id @default(cuid())
-  spaceId       String
-  space         Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  botId         String
-  bot           Bot       @relation(fields: [botId], references: [id], onDelete: Cascade)
-  serverId      String
-  server        McpServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  userId        String
-  allowAllTools Boolean   @default(true)
-  allowedTools  Json      @default("[]")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                   String    @id @default(cuid())
+  spaceId              String
+  space                Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  botId                String
+  bot                  Bot       @relation(fields: [botId], references: [id], onDelete: Cascade)
+  serverId             String
+  server               McpServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  userId               String
+  allowAllTools        Boolean   @default(true)
+  pendingToolDiscovery Boolean   @default(false)
+  allowedTools         Json      @default("[]")
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@unique([botId, serverId])
   @@index([spaceId, userId, botId])

@@ -1,4 +1,4 @@
-import type { Bot, BotMcpServer, McpServer } from "@engaz/contracts";
+import type { Bot, BotMcpServer, McpServer, McpServerConfigInput } from "@engaz/contracts";
 import { deriveMcpSlug, suggestedServerName } from "@engaz/core";
 import {
   Button,
@@ -13,6 +13,7 @@ import {
   FieldLabel,
   Input,
   Switch,
+  Textarea,
 } from "@engaz/ui-web";
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { ChevronRight, X } from "lucide-react";
@@ -40,10 +41,12 @@ function ToolChoices({
   server,
   entry,
   onToggle,
+  disabled,
 }: {
   server: McpServer;
   entry: BotMcpServer;
   onToggle: (tool: string) => void;
+  disabled: boolean;
 }) {
   const descriptions = server.check.toolDescriptions ?? {};
   return (
@@ -55,6 +58,7 @@ function ToolChoices({
             <Checkbox
               className="mt-0.5"
               aria-label={tool}
+              disabled={disabled}
               checked={entry.allowAllTools || entry.allowedTools.includes(tool)}
               onCheckedChange={() => onToggle(tool)}
             />
@@ -89,6 +93,9 @@ export function McpServersOverlay({
   const [servers, setServers] = useState<McpServer[]>([]);
   const [bots, setBots] = useState<Bot[]>([]);
   const [botAssignments, setBotAssignments] = useState<Record<string, BotMcpServer[]>>({});
+  const assignmentUpdates = useRef(new Set<string>());
+  const discoveryUpdate = useRef(false);
+  const [updatingAgents, setUpdatingAgents] = useState<string[]>([]);
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
   const [selectedBotIds, setSelectedBotIds] = useState<string[]>([]);
   const [localCommand, setLocalCommand] = useState(false);
@@ -103,6 +110,11 @@ export function McpServersOverlay({
   const [saving, setSaving] = useState(false);
   const [oauthPending, setOauthPending] = useState<string | null>(null);
   const [checking, setChecking] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEndpoint, setEditEndpoint] = useState("");
+  const [editHeaders, setEditHeaders] = useState("");
+  const [editToken, setEditToken] = useState("");
   const [newToken, setNewToken] = useState("");
   const [findQuery, setFindQuery] = useState("");
   const [found, setFound] = useState<{ name: string; endpoint: string; host: string }[] | null>(
@@ -284,35 +296,116 @@ export function McpServersOverlay({
     }
   }
 
+  async function refreshAssignments() {
+    const assignments = await rpc.mcp.assignments.all();
+    const next: Record<string, BotMcpServer[]> = {};
+    for (const assignment of assignments) {
+      next[assignment.botId] ??= [];
+      next[assignment.botId]!.push(assignment);
+    }
+    setBotAssignments(next);
+  }
+
   async function checkServer(serverId: string) {
+    if (discoveryUpdate.current || assignmentUpdates.current.size > 0) return;
+    discoveryUpdate.current = true;
     setError(null);
     setChecking(serverId);
     try {
       const checked = await rpc.mcp.servers.check({ id: serverId });
       setServers((list) => list.map((server) => (server.id === serverId ? checked : server)));
+      await refreshAssignments().catch(() => undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not check this server`);
     } finally {
+      discoveryUpdate.current = false;
       setChecking(null);
     }
   }
 
   /** Swaps in a new access token, keeping the server's agents and tool choices. */
   async function replaceToken(server: McpServer) {
+    if (discoveryUpdate.current || assignmentUpdates.current.size > 0) return;
+    discoveryUpdate.current = true;
     setError(null);
     setChecking(server.id);
     try {
       const updated = await rpc.mcp.servers.update({ id: server.id, secret: newToken.trim() });
       setServers((list) => list.map((item) => (item.id === server.id ? updated : item)));
       setNewToken("");
+      await refreshAssignments().catch(() => undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not save the access token`);
     } finally {
+      discoveryUpdate.current = false;
       setChecking(null);
     }
   }
 
+  function editServer(server: McpServer) {
+    setEditing(server.id);
+    setEditName(server.name);
+    setEditEndpoint(server.endpoint ?? "");
+    setEditHeaders("");
+    setEditToken("");
+    setError(null);
+  }
+
+  async function saveServer(server: McpServer) {
+    if (
+      server.transport === "stdio" ||
+      discoveryUpdate.current ||
+      assignmentUpdates.current.size > 0
+    )
+      return;
+    discoveryUpdate.current = true;
+    setError(null);
+    setSaving(true);
+    try {
+      const headers: unknown = editHeaders.trim() ? JSON.parse(editHeaders) : undefined;
+      if (
+        headers !== undefined &&
+        (!headers ||
+          typeof headers !== "object" ||
+          Array.isArray(headers) ||
+          Object.values(headers).some((value) => typeof value !== "string"))
+      )
+        throw new Error(t`Headers must be a JSON object of names and values.`);
+      const config: McpServerConfigInput = {
+        slug: server.slug,
+        name: editName.trim(),
+        description: server.description,
+        transport: server.transport,
+        endpoint: editEndpoint.trim(),
+        enabled: server.enabled,
+        ...(headers !== undefined ? { headers: headers as Record<string, string> } : {}),
+        ...(editToken.trim() ? { secret: editToken.trim() } : {}),
+      };
+      const updated = await rpc.mcp.servers.update({ id: server.id, config });
+      setServers((list) => list.map((item) => (item.id === server.id ? updated : item)));
+      setEditing(null);
+      setEditToken("");
+      setEditHeaders("");
+      await refreshAssignments().catch(() => undefined);
+      if (updated.check.status === "sign_in") void connectOAuth(updated);
+    } catch (err) {
+      setError(
+        err instanceof SyntaxError
+          ? t`Headers must be a JSON object of names and values.`
+          : err instanceof Error
+            ? err.message
+            : t`Could not save MCP server`,
+      );
+    } finally {
+      discoveryUpdate.current = false;
+      setSaving(false);
+    }
+  }
+
   async function toggleAssignment(server: McpServer, botId: string) {
+    if (discoveryUpdate.current || assignmentUpdates.current.has(botId)) return;
+    assignmentUpdates.current.add(botId);
+    setUpdatingAgents([...assignmentUpdates.current]);
     setError(null);
     const current = botAssignments[botId] ?? [];
     const assigned = current.some((entry) => entry.serverId === server.id);
@@ -328,6 +421,9 @@ export function McpServersOverlay({
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not update agent access`);
+    } finally {
+      assignmentUpdates.current.delete(botId);
+      setUpdatingAgents([...assignmentUpdates.current]);
     }
   }
 
@@ -336,7 +432,9 @@ export function McpServersOverlay({
     setError(null);
     const current = botAssignments[botId] ?? [];
     const entry = current.find((item) => item.serverId === server.id);
-    if (!entry) return;
+    if (!entry || discoveryUpdate.current || assignmentUpdates.current.has(botId)) return;
+    assignmentUpdates.current.add(botId);
+    setUpdatingAgents([...assignmentUpdates.current]);
     const allowed = entry.allowAllTools ? server.check.tools : entry.allowedTools;
     const nextTools = allowed.includes(tool)
       ? allowed.filter((name) => name !== tool)
@@ -352,6 +450,9 @@ export function McpServersOverlay({
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not update agent access`);
+    } finally {
+      assignmentUpdates.current.delete(botId);
+      setUpdatingAgents([...assignmentUpdates.current]);
     }
   }
 
@@ -655,6 +756,7 @@ export function McpServersOverlay({
                             onClick={() => {
                               setExpanded(open ? null : server.id);
                               setNewToken("");
+                              setEditing(null);
                             }}
                             className="text-start text-[15px] font-medium text-foreground after:absolute after:inset-0 after:rounded-xl hover:after:bg-accent/40"
                           >
@@ -673,7 +775,12 @@ export function McpServersOverlay({
                               type="button"
                               size="sm"
                               className="relative z-10 mt-3"
-                              disabled={oauthPending === server.id}
+                              disabled={
+                                oauthPending === server.id ||
+                                checking !== null ||
+                                saving ||
+                                updatingAgents.length > 0
+                              }
                               onClick={() => void connectOAuth(server)}
                             >
                               {oauthPending === server.id ? (
@@ -694,6 +801,106 @@ export function McpServersOverlay({
                           <p className="truncate text-xs text-muted-foreground">
                             {server.endpoint ?? server.command ?? server.slug}
                           </p>
+                          {editing === server.id ? (
+                            <form
+                              className="space-y-4"
+                              onSubmit={(event) => {
+                                event.preventDefault();
+                                void saveServer(server);
+                              }}
+                            >
+                              <Field>
+                                <FieldLabel htmlFor="mcp-edit-name">
+                                  <Trans>Name</Trans>
+                                </FieldLabel>
+                                <Input
+                                  id="mcp-edit-name"
+                                  value={editName}
+                                  onChange={(event) => setEditName(event.target.value)}
+                                  disabled={saving}
+                                />
+                              </Field>
+                              <Field>
+                                <FieldLabel htmlFor="mcp-edit-endpoint">
+                                  <Trans>Server address</Trans>
+                                </FieldLabel>
+                                <Input
+                                  id="mcp-edit-endpoint"
+                                  value={editEndpoint}
+                                  onChange={(event) => setEditEndpoint(event.target.value)}
+                                  disabled={saving}
+                                />
+                              </Field>
+                              <details>
+                                <summary className="cursor-pointer text-sm text-muted-foreground">
+                                  <Trans>Advanced</Trans>
+                                </summary>
+                                <div className="mt-3 space-y-4">
+                                  <Field>
+                                    <FieldLabel htmlFor="mcp-edit-token">
+                                      <Trans>New access token</Trans>
+                                    </FieldLabel>
+                                    <Input
+                                      id="mcp-edit-token"
+                                      type="password"
+                                      value={editToken}
+                                      onChange={(event) => setEditToken(event.target.value)}
+                                      disabled={saving}
+                                      placeholder={t`Leave blank to keep saved token`}
+                                    />
+                                  </Field>
+                                  <Field>
+                                    <FieldLabel htmlFor="mcp-edit-headers">
+                                      <Trans>Replace headers (JSON)</Trans>
+                                    </FieldLabel>
+                                    <Textarea
+                                      id="mcp-edit-headers"
+                                      value={editHeaders}
+                                      onChange={(event) => setEditHeaders(event.target.value)}
+                                      disabled={saving}
+                                      placeholder={t`Leave blank to keep saved headers`}
+                                    />
+                                    {server.headerKeys.length ? (
+                                      <p className="text-xs text-muted-foreground">
+                                        {server.headerKeys.join(", ")}
+                                      </p>
+                                    ) : null}
+                                  </Field>
+                                </div>
+                              </details>
+                              <div className="flex gap-2">
+                                <Button
+                                  type="submit"
+                                  disabled={
+                                    saving ||
+                                    checking !== null ||
+                                    updatingAgents.length > 0 ||
+                                    !editName.trim() ||
+                                    !editEndpoint.trim()
+                                  }
+                                >
+                                  {saving ? <Trans>Saving…</Trans> : <Trans>Save</Trans>}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  disabled={saving}
+                                  onClick={() => setEditing(null)}
+                                >
+                                  <Trans>Cancel</Trans>
+                                </Button>
+                              </div>
+                            </form>
+                          ) : server.transport !== "stdio" ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => editServer(server)}
+                            >
+                              <Trans>Edit</Trans>
+                            </Button>
+                          ) : null}
                           {bots.length > 0 ? (
                             <ul className="space-y-3" aria-label={t`Agents`}>
                               <li aria-hidden="true" className="text-xs text-muted-foreground">
@@ -708,6 +915,12 @@ export function McpServersOverlay({
                                       <Switch
                                         aria-label={bot.name}
                                         checked={Boolean(entry)}
+                                        disabled={
+                                          checking !== null ||
+                                          saving ||
+                                          oauthPending !== null ||
+                                          updatingAgents.includes(bot.id)
+                                        }
                                         onCheckedChange={() =>
                                           void toggleAssignment(server, bot.id)
                                         }
@@ -717,6 +930,12 @@ export function McpServersOverlay({
                                       <ToolChoices
                                         server={server}
                                         entry={entry}
+                                        disabled={
+                                          checking !== null ||
+                                          saving ||
+                                          oauthPending !== null ||
+                                          updatingAgents.includes(bot.id)
+                                        }
                                         onToggle={(tool) => void toggleTool(server, bot.id, tool)}
                                       />
                                     ) : null}
@@ -725,7 +944,8 @@ export function McpServersOverlay({
                               })}
                             </ul>
                           ) : null}
-                          {server.check.status === "failing" &&
+                          {editing !== server.id &&
+                          server.check.status === "failing" &&
                           server.transport !== "stdio" &&
                           server.oauthStatus === "none" ? (
                             // A rejected token is the usual failure; replacing it keeps everything else.
@@ -740,7 +960,12 @@ export function McpServersOverlay({
                               <Button
                                 type="button"
                                 variant="outline"
-                                disabled={checking === server.id || !newToken.trim()}
+                                disabled={
+                                  checking !== null ||
+                                  saving ||
+                                  updatingAgents.length > 0 ||
+                                  !newToken.trim()
+                                }
                                 onClick={() => void replaceToken(server)}
                               >
                                 <Trans>Save</Trans>
@@ -753,7 +978,7 @@ export function McpServersOverlay({
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                disabled={checking === server.id}
+                                disabled={checking !== null || saving || updatingAgents.length > 0}
                                 onClick={() => void checkServer(server.id)}
                               >
                                 {checking === server.id ? (
@@ -768,7 +993,12 @@ export function McpServersOverlay({
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                disabled={oauthPending === server.id}
+                                disabled={
+                                  oauthPending === server.id ||
+                                  checking !== null ||
+                                  saving ||
+                                  updatingAgents.length > 0
+                                }
                                 onClick={() => void disconnectOAuth(server)}
                               >
                                 <Trans>Sign out</Trans>

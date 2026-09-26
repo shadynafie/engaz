@@ -24,14 +24,12 @@ export type HomeCopy = {
     pill: string;
     heading: string;
     lead: string;
-    getStarted: string;
     viewOnGithub: string;
     setupWithAgent: string;
     copiedForAgent: string;
     copyFailed: string;
   };
   team: {
-    eyebrow: string;
     headingLine1: string;
     headingLine2: string;
     copy: string;
@@ -39,11 +37,9 @@ export type HomeCopy = {
     groupLabel: string;
     soloCaption: string;
     groupCaption: string;
-    example: string;
     roles: Array<{ title: string; focus: string }>;
   };
   selfHost: {
-    eyebrow: string;
     heading: string;
     copy: string;
     imageAlt: string;
@@ -302,14 +298,12 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       pill: "Self-hosted",
       heading: "AI teammates. Real progress.",
       lead: "For solo founders and small businesses: put AI agents to work on the jobs that keep your business moving. Give them tasks, follow progress, and step in when needed.",
-      getStarted: "See the workspace",
       viewOnGithub: "View on GitHub",
       setupWithAgent: "Set up with your agent",
       copiedForAgent: "Copied for your agent",
       copyFailed: "Copy failed. Try again.",
     },
     team: {
-      eyebrow: "The team",
       headingLine1: "One teammate.",
       headingLine2: "Or a whole team.",
       copy: "Work with one agent directly. Bring several into a group conversation when the work calls for more.",
@@ -317,7 +311,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       groupLabel: "Group",
       soloCaption: "One conversation. One agent's own context.",
       groupCaption: "One shared thread. Distinct agents working together.",
-      example: "Illustrative scene · Build your own team",
       roles: [
         { title: "Chief", focus: "Turn a brief into a plan." },
         { title: "Designer", focus: "Shape the experience." },
@@ -326,7 +319,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       ],
     },
     selfHost: {
-      eyebrow: "The product",
       heading: "See the work. Keep control.",
       copy: "Files, conversation, and handoffs stay together. When work needs a sign-in, you take the computer and protected input stays off the thread. Choose each agent's model and plugin access.",
       imageAlt: "Engaz workspace showing Chief attaching a launch plan file, then asking the owner to take over a sign-in.",
@@ -443,14 +435,12 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       pill: "Self-hosted",
       heading: "KI-Teamkollegen. Echter Fortschritt.",
       lead: "Für Solo-Gründer und kleine Unternehmen: Lass KI-Agenten bei der täglichen Arbeit helfen. Gib ihnen Aufgaben, verfolge den Fortschritt und greife bei Bedarf ein.",
-      getStarted: "Arbeitsbereich ansehen",
       viewOnGithub: "Auf GitHub ansehen",
       setupWithAgent: "Mit deinem Agenten einrichten",
       copiedForAgent: "Für deinen Agenten kopiert",
       copyFailed: "Kopieren fehlgeschlagen. Erneut versuchen.",
     },
     team: {
-      eyebrow: "Das Team",
       headingLine1: "Ein Teammitglied.",
       headingLine2: "Oder ein ganzes Team.",
       copy: "Arbeite direkt mit einem Agenten. Wenn eine Aufgabe mehr braucht, hol weitere in ein Gruppengespräch.",
@@ -458,7 +448,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       groupLabel: "Gruppe",
       soloCaption: "Ein Gespräch. Der eigene Kontext eines Agenten.",
       groupCaption: "Ein gemeinsamer Chat. Unterschiedliche Agenten arbeiten zusammen.",
-      example: "Illustrative Szene · Stelle dein eigenes Team zusammen",
       roles: [
         { title: "Koordination", focus: "Aus einer Aufgabe wird ein Plan." },
         { title: "Design", focus: "Gestaltet das Erlebnis." },
@@ -467,7 +456,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       ],
     },
     selfHost: {
-      eyebrow: "Das Produkt",
       heading: "Sieh die Arbeit. Behalte die Kontrolle.",
       copy: "Dateien, Gespräche und Übergaben bleiben zusammen. Wenn eine Anmeldung nötig ist, übernimmst du den Computer; geschützte Eingaben bleiben außerhalb des Chats. Modell und Plugin-Zugriff bestimmst du pro Agent.",
       imageAlt: "Engaz-Arbeitsbereich: Chief hängt einen Startplan an und bittet den Besitzer, eine Anmeldung zu übernehmen.",
@@ -584,14 +572,12 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       pill: "셀프 호스트",
       heading: "AI 팀원. 실제 진전.",
       lead: "1인 창업자와 소규모 기업을 위해: AI 에이전트에게 비즈니스 업무를 맡기고, 진행 상황을 확인하고, 필요할 때 직접 개입하세요.",
-      getStarted: "워크스페이스 보기",
       viewOnGithub: "GitHub에서 보기",
       setupWithAgent: "에이전트로 설정하기",
       copiedForAgent: "에이전트용으로 복사됨",
       copyFailed: "복사 실패. 다시 시도하세요.",
     },
     team: {
-      eyebrow: "팀",
       headingLine1: "팀원 한 명.",
       headingLine2: "또는 팀 전체.",
       copy: "에이전트 한 명과 직접 대화하세요. 더 많은 도움이 필요하면 여러 에이전트를 그룹 대화로 모으세요.",
@@ -599,7 +585,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       groupLabel: "그룹",
       soloCaption: "하나의 대화. 에이전트만의 맥락.",
       groupCaption: "하나의 공유 대화. 서로 다른 에이전트가 함께 일합니다.",
-      example: "예시 장면 · 나만의 팀 구성",
       roles: [
         { title: "총괄", focus: "요청을 계획으로 정리합니다." },
         { title: "디자이너", focus: "경험을 설계합니다." },
@@ -608,7 +593,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       ],
     },
     selfHost: {
-      eyebrow: "제품",
       heading: "작업은 한눈에. 제어는 내 손에.",
       copy: "파일, 대화, 인계가 한곳에 모입니다. 로그인이 필요하면 직접 컴퓨터를 넘겨받으며, 보호된 입력은 대화에 남지 않습니다. 에이전트마다 모델과 플러그인 접근을 정하세요.",
       imageAlt: "Chief가 출시 계획 파일을 첨부하고 소유자에게 로그인 인계를 요청하는 Engaz 워크스페이스.",
@@ -725,14 +709,12 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       pill: "自托管",
       heading: "AI 队友。切实推进工作。",
       lead: "为独立创业者和小企业而建：让 AI 智能体协助处理日常业务，跟进进展，并在需要时亲自介入。",
-      getStarted: "查看工作空间",
       viewOnGithub: "在 GitHub 上查看",
       setupWithAgent: "用你的智能体安装",
       copiedForAgent: "已为你的智能体复制",
       copyFailed: "复制失败。请重试。",
     },
     team: {
-      eyebrow: "团队",
       headingLine1: "一位队友。",
       headingLine2: "或整个团队。",
       copy: "先与一位智能体直接对话。任务需要更多力量时，就让多位智能体加入群组对话。",
@@ -740,7 +722,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       groupLabel: "群组",
       soloCaption: "一段对话。一位智能体自己的上下文。",
       groupCaption: "一个共享对话。不同智能体协同工作。",
-      example: "示意场景 · 组建自己的团队",
       roles: [
         { title: "负责人", focus: "把需求理成计划。" },
         { title: "设计师", focus: "塑造使用体验。" },
@@ -749,7 +730,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       ],
     },
     selfHost: {
-      eyebrow: "产品",
       heading: "看清进展，掌握控制权。",
       copy: "文件、对话和交接都留在一起。需要登录时，由你接管电脑；受保护的输入不会进入对话。每位智能体的模型和插件权限由你决定。",
       imageAlt: "Engaz 工作空间：Chief 附加发布计划文件，然后请所有者接管登录。",

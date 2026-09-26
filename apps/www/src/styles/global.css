@@ -12,6 +12,7 @@
 }
 
 :root {
+  --font-display: "Inter Tight", Geist, ui-sans-serif, system-ui, sans-serif;
   --page: var(--background);
   --surface: var(--card);
   --surface-soft: var(--muted);
@@ -352,8 +353,8 @@ button {
 .privacy-copy h1 {
   margin: 0;
   color: var(--ink);
-  font-family: Aeonik, Geist, ui-sans-serif, system-ui, sans-serif;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
@@ -502,9 +503,9 @@ button {
 .comparison-card h3 {
   margin: 0;
   color: var(--ink);
-  font-family: Aeonik, Geist, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 20px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
@@ -704,9 +705,9 @@ button {
   max-width: 390px;
   margin: 0;
   color: var(--ink);
-  font-family: Aeonik, Geist, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 30px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
@@ -861,7 +862,7 @@ button {
 
 .stat-value {
   color: var(--ink);
-  font-family: Aeonik, Geist, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 30px;
   letter-spacing: -0.02em;
 }

@@ -34,8 +34,9 @@ test("homepage tells one product story and offers a working install command", as
   )).toBe(true);
   await expect(page.locator("#team h2")).toHaveText("One teammate.Or a whole team.");
   await expect(page.locator("#team [data-team-stage]")).not.toHaveAttribute("aria-hidden", "true");
-  await expect(page.locator(".workbench-hero")).toContainText("Free & open source");
-  await expect(page.locator(".workbench-hero")).toContainText("solo founders and small businesses");
+  const hero = page.locator(".stage-hero");
+  await expect(hero).toContainText("Free & open source");
+  await expect(hero).toContainText("solo founders and small businesses");
   await expect(page.locator("#selfhost h2")).toHaveText("Your AI team. Free to self-host.");
   await expect(page.locator("#selfhost")).toContainText("No clone or image build is needed. Run one command in a terminal:");
   await expect(page.locator("#selfhost li h3")).toHaveText(["Install", "Create the owner", "Meet your first agent"]);
@@ -43,15 +44,13 @@ test("homepage tells one product story and offers a working install command", as
   await expect(page.locator("#selfhost")).toContainText("Active development");
   await expect(page.locator("#how-it-works, #why-engaz")).toHaveCount(0);
   const installCommand = "curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash";
-  await expect(page.locator("[data-install-command]")).toHaveText(installCommand);
+  await expect(page.locator("[data-install-command]")).toHaveText([installCommand, installCommand]);
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.getByRole("button", { name: "Copy command" }).click();
-  await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+  await hero.getByRole("button", { name: "Copy command" }).click();
+  await expect(hero.getByRole("button", { name: "Copied" })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(installCommand);
-  await expect(page.getByRole("button", { name: "Copy command" })).toBeVisible();
+  await expect(hero.getByRole("button", { name: "Copy command" })).toBeVisible();
   await expect(page.locator(".site-header").getByRole("link", { name: "Install Engaz" })).toHaveAttribute("href", "/#selfhost");
-  await expect(page.locator(".workbench-hero").getByRole("link", { name: "Install Engaz" })).toHaveAttribute("href", "#selfhost");
-  await expect(page.locator(".workbench-hero").getByRole("link", { name: "See the workspace" })).toHaveAttribute("href", "#product");
   const setupLinks = page.getByRole("link", { name: "Installation guide" });
   await expect(setupLinks).toHaveCount(1);
   for (const link of await setupLinks.all()) {
@@ -65,8 +64,7 @@ test("translated homepage keeps the same path", async ({ page }, testInfo) => {
   await page.goto("/zh/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("AI 队友。切实推进工作。");
   await expect(page.locator("main > section")).toHaveCount(4);
-  await expect(page.locator(".workbench-hero").getByRole("link", { name: "安装 Engaz" })).toHaveAttribute("href", "#selfhost");
-  await expect(page.locator(".workbench-hero").getByRole("link", { name: "查看工作空间" })).toHaveAttribute("href", "#product");
+  await expect(page.locator(".stage-hero [data-install-command]")).toContainText("install-images.sh");
   await expect(page.locator("#selfhost")).toContainText("无需克隆仓库或构建镜像");
   await expect(page.locator("#selfhost li")).toHaveCount(3);
   await captureScreenshot(page, testInfo, "marketing-homepage-zh");

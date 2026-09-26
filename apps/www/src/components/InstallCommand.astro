@@ -1,0 +1,24 @@
+---
+import { INSTALL_COMMAND } from "../site";
+
+type Props = {
+  copyLabel: string;
+  copiedLabel: string;
+  copyFailed: string;
+  class?: string;
+};
+
+const { copyLabel, copiedLabel, copyFailed, class: className } = Astro.props;
+---
+
+<div class:list={["install-command", className]} data-install>
+  <span class="install-command__prompt" aria-hidden="true">$</span>
+  <code data-install-command tabindex="0">{INSTALL_COMMAND}</code>
+  <button
+    type="button"
+    data-copy-install
+    data-copy-label={copyLabel}
+    data-copied-label={copiedLabel}
+    data-copy-failed={copyFailed}
+  ><span data-copy-status aria-live="polite">{copyLabel}</span></button>
+</div>

@@ -7,3 +7,5 @@ export const GITHUB_URL = "https://github.com/shadynafie/engaz";
 export const DOCS_URL = "https://github.com/shadynafie/engaz/blob/main/docs/self-host.md";
 export const SETUP_PROMPT_URL = "https://github.com/shadynafie/engaz/blob/main/SETUP_PROMPT.md";
 export const CHANGELOG_URL = "https://github.com/shadynafie/engaz/releases";
+export const INSTALL_COMMAND =
+  "curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash";

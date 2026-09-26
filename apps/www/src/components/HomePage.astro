@@ -2,6 +2,7 @@
 import Button from "./Button.astro";
 import Footer from "./Footer.astro";
 import Header from "./Header.astro";
+import InstallCommand from "./InstallCommand.astro";
 import { getHomeCopy } from "../i18n/home";
 import {
   DEFAULT_LOCALE,
@@ -11,7 +12,9 @@ import {
 } from "../i18n/locales";
 import type { Locale } from "../i18n/locales";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { botColors } from "@engaz/ui-tokens";
 import "../styles/marketing.css";
+import "../styles/stage-hero.css";
 import { DOCS_URL, GITHUB_URL, SITE_NAME, SITE_URL } from "../site";
 
 const locale: Locale = isLocale(Astro.currentLocale)
@@ -20,7 +23,17 @@ const locale: Locale = isLocale(Astro.currentLocale)
 const copy = getHomeCopy(locale);
 const homeHref = localeHomePath(locale);
 const pageUrl = new URL(homeHref, SITE_URL).toString();
-const installCommand = "curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash";
+const copyLabels = {
+  copyLabel: copy.roster.copyCommand,
+  copiedLabel: copy.roster.copiedCommand,
+  copyFailed: copy.hero.copyFailed,
+};
+const TEAM_PORTRAITS = ["chief", "designer", "engineer", "accountant"];
+const teamAgents = copy.team.roles.map((role, index) => ({
+  name: role.title,
+  color: botColors[index],
+  portrait: `/brand/team-${TEAM_PORTRAITS[index]}.webp`,
+}));
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -69,44 +82,42 @@ const structuredData = {
     </div>
 
     <main id="main">
-      <section class="workbench-hero" data-pointer-stage>
-        <div class="container workbench-hero__inner">
-          <div class="workbench-hero__topline">
-            <span class="workbench-index">01 / ENGAZ</span>
-            <span>{copy.hero.badge} <span aria-hidden="true">·</span> {copy.hero.pill}</span>
+      <section class="stage-hero" data-pointer-stage>
+        <div class="stage-hero__scene" aria-hidden="true">
+          <div class="stage-hero__floor"></div>
+          <div class="stage-hero__glow"></div>
+          <div class="stage-hero__rings">
+            <span class="stage-hero__ring stage-hero__ring--outer"></span>
+            <span class="stage-hero__ring stage-hero__ring--inner"></span>
           </div>
+          <div class="stage-hero__face" data-hero-face>
+            <img src="/brand/engaz-directional-open.webp" width="1440" height="960" alt="" fetchpriority="high" />
+            <img class="stage-hero__blink-half" src="/brand/engaz-directional-half.webp" width="1440" height="960" alt="" />
+            <img class="stage-hero__blink-closed" src="/brand/engaz-directional-closed.webp" width="1440" height="960" alt="" />
+          </div>
+          <ul class="stage-hero__orbit">
+            {teamAgents.map((agent, index) => (
+              <li class="stage-hero__agent" style={`--bot: ${agent.color}; --i: ${index}`} data-agent>
+                <span class="stage-hero__avatar"><img src={agent.portrait} width="800" height="800" alt="" decoding="async" /></span>
+                <span>{agent.name}</span>
+                <i class="stage-hero__status"><b></b><b></b><b></b></i>
+              </li>
+            ))}
+          </ul>
+          <div class="stage-hero__grain"></div>
+        </div>
 
-          <div class="workbench-hero__grid">
-            <div class="workbench-hero__copy">
-              <h1>{copy.hero.heading}</h1>
-              <p>{copy.hero.lead}</p>
-              <div class="workbench-actions">
-                <Button href="#selfhost">{copy.roster.installLabel}</Button>
-                <a class="workbench-text-link" href="#product">
-                  {copy.hero.getStarted}<span aria-hidden="true">↗</span>
-                </a>
-              </div>
-            </div>
-            <div class="workbench-hero__mark" aria-hidden="true">
-              <div class="workbench-hero__portrait">
-                <img src="/brand/engaz-directional-open.webp" width="1440" height="960" alt="" fetchpriority="high" />
-                <img class="workbench-hero__blink-half" src="/brand/engaz-directional-half.webp" width="1440" height="960" alt="" />
-                <img class="workbench-hero__blink-closed" src="/brand/engaz-directional-closed.webp" width="1440" height="960" alt="" />
-              </div>
-            </div>
-          </div>
-
-          <div class="workbench-hero__baseline" aria-hidden="true">
-            <span>ENGAZ</span>
-            <span>↓</span>
-          </div>
+        <div class="container stage-hero__content">
+          <p class="stage-hero__pill">{copy.hero.badge} <span aria-hidden="true">·</span> {copy.hero.pill}</p>
+          <h1>{copy.hero.heading}</h1>
+          <p class="stage-hero__lead">{copy.hero.lead}</p>
+          <InstallCommand {...copyLabels} class="stage-hero__command" />
         </div>
       </section>
 
       <section id="product" class="workbench-product">
         <div class="container">
           <div class="workbench-section-head" data-reveal>
-            <p class="workbench-eyebrow">02 / {copy.selfHost.eyebrow}</p>
             <h2>{copy.selfHost.heading}</h2>
             <p>{copy.selfHost.copy}</p>
           </div>
@@ -122,7 +133,6 @@ const structuredData = {
       <section id="team" class="workbench-team" data-team-scroll>
         <div class="container">
           <div class="workbench-team__intro" data-reveal>
-            <p class="workbench-eyebrow">03 / {copy.team.eyebrow}</p>
             <h2><span>{copy.team.headingLine1}</span><span>{copy.team.headingLine2}</span></h2>
             <p>{copy.team.copy}</p>
           </div>
@@ -139,30 +149,17 @@ const structuredData = {
             </div>
           </div>
         </div>
-        <div class="container workbench-team__footer">
-          <span>{copy.team.example}</span>
-        </div>
       </section>
 
       <section id="selfhost" class="workbench-setup">
         <div class="container">
           <div class="workbench-setup__intro" data-reveal>
-            <p class="workbench-eyebrow">04 / {copy.nav.selfHost}</p>
             <h2>{copy.openSource.heading}</h2>
             <p>{copy.openSource.copy}</p>
           </div>
           <div class="workbench-setup__install" data-reveal>
             <p>{copy.roster.installInstruction}</p>
-            <div class="workbench-setup__command">
-              <code data-install-command tabindex="0">{installCommand}</code>
-              <button
-                type="button"
-                data-copy-install
-                data-copy-label={copy.roster.copyCommand}
-                data-copied-label={copy.roster.copiedCommand}
-                data-copy-failed={copy.hero.copyFailed}
-              ><span data-copy-status aria-live="polite">{copy.roster.copyCommand}</span></button>
-            </div>
+            <InstallCommand {...copyLabels} class="workbench-setup__command" />
           </div>
           <ol class="workbench-setup__steps">
             {copy.roster.steps.map((step, index) => (
@@ -200,23 +197,32 @@ const structuredData = {
 <script>
   const root = document.querySelector(".workbench");
   if (root) {
-    const copyButton = root.querySelector<HTMLButtonElement>("[data-copy-install]");
-    const command = root.querySelector<HTMLElement>("[data-install-command]")?.textContent?.trim();
-    const copyStatus = copyButton?.querySelector<HTMLElement>("[data-copy-status]");
-    let copyReset = 0;
-    copyButton?.addEventListener("click", async () => {
-      if (!command || !copyStatus) return;
-      clearTimeout(copyReset);
-      try {
-        await navigator.clipboard.writeText(command);
-        copyStatus.textContent = copyButton.dataset.copiedLabel ?? "";
-      } catch {
-        copyStatus.textContent = copyButton.dataset.copyFailed ?? "";
-      }
-      copyReset = window.setTimeout(() => {
-        copyStatus.textContent = copyButton.dataset.copyLabel ?? "";
-      }, 2200);
-    });
+    const hero = root.querySelector<HTMLElement>("[data-pointer-stage]");
+    let cheer = 0;
+    for (const copyButton of root.querySelectorAll<HTMLButtonElement>("[data-copy-install]")) {
+      const install = copyButton.closest<HTMLElement>("[data-install]");
+      const command = install?.querySelector<HTMLElement>("[data-install-command]")?.textContent?.trim();
+      const copyStatus = copyButton.querySelector<HTMLElement>("[data-copy-status]");
+      let copyReset = 0;
+      copyButton.addEventListener("click", async () => {
+        if (!command || !copyStatus) return;
+        clearTimeout(copyReset);
+        try {
+          await navigator.clipboard.writeText(command);
+          copyStatus.textContent = copyButton.dataset.copiedLabel ?? "";
+          install?.classList.add("is-copied");
+          clearTimeout(cheer);
+          hero?.classList.add("is-cheering");
+          cheer = window.setTimeout(() => hero?.classList.remove("is-cheering"), 1400);
+        } catch {
+          copyStatus.textContent = copyButton.dataset.copyFailed ?? "";
+        }
+        copyReset = window.setTimeout(() => {
+          copyStatus.textContent = copyButton.dataset.copyLabel ?? "";
+          install?.classList.remove("is-copied");
+        }, 2200);
+      });
+    }
     const motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const team = root.querySelector<HTMLElement>("[data-team-scroll]");
     const journey = team?.querySelector<HTMLElement>("[data-team-journey]");
@@ -256,25 +262,32 @@ const structuredData = {
       }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
       reveals.forEach((element) => observer.observe(element));
 
-      if (window.matchMedia("(pointer: fine)").matches) {
-        const stage = root.querySelector<HTMLElement>("[data-pointer-stage]");
+      const agents = [...root.querySelectorAll<HTMLElement>("[data-agent]")];
+      let turn = 0;
+      window.setInterval(() => {
+        if (document.hidden || !agents.length) return;
+        const agent = agents[turn % agents.length];
+        agent.classList.add("is-done");
+        window.setTimeout(() => agent.classList.remove("is-done"), 2600 + (turn % 3) * 500);
+        turn += 1;
+      }, 1300);
+
+      if (hero && window.matchMedia("(pointer: fine)").matches) {
         let frame = 0;
-        stage?.addEventListener("pointermove", (event) => {
+        hero.addEventListener("pointermove", (event) => {
           if (frame) return;
           frame = requestAnimationFrame(() => {
-            const bounds = stage.getBoundingClientRect();
-            const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-            const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-            stage.style.setProperty("--pointer-x", String(x * 12) + "px");
-            stage.style.setProperty("--pointer-y", String(y * 12) + "px");
+            const bounds = hero.getBoundingClientRect();
+            hero.style.setProperty("--px", ((event.clientX - bounds.left) / bounds.width - 0.5).toFixed(3));
+            hero.style.setProperty("--py", ((event.clientY - bounds.top) / bounds.height - 0.5).toFixed(3));
             frame = 0;
           });
         }, { passive: true });
-        stage?.addEventListener("pointerleave", () => {
+        hero.addEventListener("pointerleave", () => {
           cancelAnimationFrame(frame);
           frame = 0;
-          stage.style.setProperty("--pointer-x", "0px");
-          stage.style.setProperty("--pointer-y", "0px");
+          hero.style.setProperty("--px", "0");
+          hero.style.setProperty("--py", "0");
         });
       }
     }

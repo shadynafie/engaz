@@ -864,6 +864,12 @@ msgstr "MCP 서버 목록을 불러오지 못했습니다."
 msgid "Could not load model settings"
 msgstr "AI 모델 설정을 불러오지 못했습니다."
 
+msgid "Could not load plugins"
+msgstr ""
+
+msgid "Could not load setup"
+msgstr ""
+
 msgid "Could not load skill"
 msgstr "스킬을 불러오지 못했습니다"
 
@@ -878,6 +884,9 @@ msgstr "업데이트 상태를 불러올 수 없습니다"
 
 msgid "Could not load voice settings"
 msgstr "음성 설정을 불러오지 못했습니다."
+
+msgid "Could not log out. Try again."
+msgstr ""
 
 msgid "Could not open local settings. Start the local server and create its owner account, then try again."
 msgstr ""
@@ -932,6 +941,9 @@ msgstr "자동 검토를 저장할 수 없습니다"
 
 msgid "Could not save group"
 msgstr "그룹을 저장하지 못했습니다."
+
+msgid "Could not save MCP server"
+msgstr ""
 
 msgid "Could not save model"
 msgstr "AI 모델을 저장하지 못했습니다."
@@ -1210,6 +1222,9 @@ msgstr ""
 msgid "Earlier message"
 msgstr "이전 메시지"
 
+msgid "Edit"
+msgstr ""
+
 msgid "Edit fields"
 msgstr ""
 
@@ -1297,6 +1312,9 @@ msgstr "작업을 중지하지 못했습니다."
 msgid "Failed."
 msgstr "실패했습니다."
 
+msgid "Failing"
+msgstr ""
+
 msgid "Failure handling"
 msgstr "실패했을 때 처리"
 
@@ -1379,6 +1397,9 @@ msgstr "헤더 이름"
 
 msgid "Header value"
 msgstr "헤더 값"
+
+msgid "Headers must be a JSON object of names and values."
+msgstr ""
 
 msgid "Hear a sample"
 msgstr "샘플 듣기"
@@ -1499,6 +1520,12 @@ msgstr ""
 
 msgid "Leave"
 msgstr "나가기"
+
+msgid "Leave blank to keep saved headers"
+msgstr ""
+
+msgid "Leave blank to keep saved token"
+msgstr ""
 
 msgid "Light"
 msgstr "라이트"
@@ -1825,6 +1852,9 @@ msgstr "트리거 없음"
 msgid "None yet"
 msgstr "아직 없음"
 
+msgid "Not checked"
+msgstr ""
+
 msgid "Not checked yet"
 msgstr ""
 
@@ -2113,6 +2143,9 @@ msgstr "다시 열기"
 msgid "Replace API key"
 msgstr "API 키 교체"
 
+msgid "Replace headers (JSON)"
+msgstr ""
+
 msgid "Replace key"
 msgstr "키 교체"
 
@@ -2356,6 +2389,9 @@ msgstr ""
 
 msgid "Sign up"
 msgstr "가입하기"
+
+msgid "Sign-in needed"
+msgstr ""
 
 msgid "Signing in…"
 msgstr ""

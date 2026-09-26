@@ -864,6 +864,12 @@ msgstr "MCP-Server konnten nicht geladen werden"
 msgid "Could not load model settings"
 msgstr "Modelleinstellungen konnten nicht geladen werden"
 
+msgid "Could not load plugins"
+msgstr ""
+
+msgid "Could not load setup"
+msgstr ""
+
 msgid "Could not load skill"
 msgstr "Skill konnte nicht geladen werden"
 
@@ -878,6 +884,9 @@ msgstr ""
 
 msgid "Could not load voice settings"
 msgstr "Stimmeinstellungen konnten nicht geladen werden"
+
+msgid "Could not log out. Try again."
+msgstr ""
 
 msgid "Could not open local settings. Start the local server and create its owner account, then try again."
 msgstr ""
@@ -932,6 +941,9 @@ msgstr ""
 
 msgid "Could not save group"
 msgstr "Gruppe konnte nicht gespeichert werden"
+
+msgid "Could not save MCP server"
+msgstr ""
 
 msgid "Could not save model"
 msgstr "Modell konnte nicht gespeichert werden"
@@ -1210,6 +1222,9 @@ msgstr ""
 msgid "Earlier message"
 msgstr "Frühere Nachricht"
 
+msgid "Edit"
+msgstr ""
+
 msgid "Edit fields"
 msgstr ""
 
@@ -1297,6 +1312,9 @@ msgstr "Stoppen fehlgeschlagen"
 msgid "Failed."
 msgstr "Fehlgeschlagen."
 
+msgid "Failing"
+msgstr ""
+
 msgid "Failure handling"
 msgstr "Fehlerbehandlung"
 
@@ -1379,6 +1397,9 @@ msgstr "Header-Name"
 
 msgid "Header value"
 msgstr "Header-Wert"
+
+msgid "Headers must be a JSON object of names and values."
+msgstr ""
 
 msgid "Hear a sample"
 msgstr "Beispiel anhören"
@@ -1498,6 +1519,12 @@ msgid "Later"
 msgstr ""
 
 msgid "Leave"
+msgstr ""
+
+msgid "Leave blank to keep saved headers"
+msgstr ""
+
+msgid "Leave blank to keep saved token"
 msgstr ""
 
 msgid "Light"
@@ -1825,6 +1852,9 @@ msgstr ""
 msgid "None yet"
 msgstr "Noch keine"
 
+msgid "Not checked"
+msgstr ""
+
 msgid "Not checked yet"
 msgstr ""
 
@@ -2113,6 +2143,9 @@ msgstr "Erneut öffnen"
 msgid "Replace API key"
 msgstr "API-Schlüssel ersetzen"
 
+msgid "Replace headers (JSON)"
+msgstr ""
+
 msgid "Replace key"
 msgstr "Schlüssel ersetzen"
 
@@ -2356,6 +2389,9 @@ msgstr ""
 
 msgid "Sign up"
 msgstr "Registrieren"
+
+msgid "Sign-in needed"
+msgstr ""
 
 msgid "Signing in…"
 msgstr ""

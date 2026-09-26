@@ -75,6 +75,9 @@ test("logout protects bot deep links and sign-in restores the session", async ({
   await expect(page.getByRole("heading", { name: "Sign in to Engaz" })).toBeVisible();
   await page.goto("/");
   await expect(page.locator('[data-engaz-surface="welcome"]')).toBeVisible();
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Sign in to Engaz" })).toBeVisible();
+  await page.goto("/");
   await expect(page.getByText(/Your team of always-on agents/)).toBeVisible();
   await page.getByRole("button", { name: /Sign up/ }).click();
   await expect(page).toHaveURL(/\/sign-up$/);
@@ -138,6 +141,69 @@ test("logout protects bot deep links and sign-in restores the session", async ({
   await expect(composer).toHaveValue("");
   // Scope to the transcript: the sidebar activity row can echo the same text.
   await expect(page.getByTestId("transcript").getByText(message, { exact: true })).toBeVisible();
+});
+
+test("failed logout keeps the session and can be retried", async ({ page }, testInfo) => {
+  const userName = "Logout Recovery";
+  await signup(page, `logout-retry-${Date.now()}@engaz.test`, "password12", userName);
+  await completeOnboarding(page);
+  const botPath = new URL(page.url()).pathname;
+  let fail = true;
+  await page.route("**/api/auth/sign-out", (route) =>
+    fail
+      ? route.fulfill({ status: 500, json: { message: "Temporary sign-out failure" } })
+      : route.continue(),
+  );
+  await page.getByRole("button", { name: new RegExp(userName, "i") }).click();
+  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await expect(page.getByRole("alert")).toHaveText("Could not log out. Try again.");
+  expect(new URL(page.url()).pathname).toBe(botPath);
+  await expect(page.getByRole("combobox", { name: "Message Chief" })).toBeVisible();
+  const session = await page.request.get("/api/auth/get-session");
+  expect((await session.json()).user.name).toBe(userName);
+  await captureScreenshot(page, testInfo, "logout-retry");
+  fail = false;
+  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Sign in to Engaz" })).toBeVisible();
+  await page.goto("/");
+  await expect(page.locator('[data-engaz-surface="welcome"]')).toBeVisible();
+});
+
+test("agent plugins show a load failure and retry with accessible health", async ({
+  page,
+}, testInfo) => {
+  await signup(page, `plugins-retry-${Date.now()}@engaz.test`, "password12", "Plugin Recovery");
+  await completeOnboarding(page);
+  let fail = true;
+  await page.route("**/rpc/mcp/assignments/list", (route) =>
+    fail ? route.abort() : route.fulfill({ json: { json: [] } }),
+  );
+  await page.route("**/rpc/mcp/servers/list", (route) => route.fulfill({ json: { json: [] } }));
+  await page.route("**/rpc/capabilities/list", (route) =>
+    route.fulfill({
+      json: {
+        json: [
+          {
+            id: "plugin-retry",
+            kind: "api",
+            name: "Recovery plugin",
+            agentIds: null,
+            check: { status: "failing" },
+          },
+        ],
+      },
+    }),
+  );
+  await page.getByTestId("bot-settings-trigger").click();
+  const plugins = page.getByTestId("agent-plugins");
+  await expect(plugins.getByRole("alert")).toHaveText("Could not load plugins");
+  await expect(plugins.getByText("This agent has no plugins yet.")).toHaveCount(0);
+  await captureScreenshot(page, testInfo, "agent-plugins-retry");
+  fail = false;
+  await plugins.getByRole("button", { name: "Try again" }).click();
+  await expect(plugins.getByRole("alert")).toHaveCount(0);
+  await expect(plugins.getByRole("listitem")).toContainText("Recovery plugin");
+  await expect(plugins.getByRole("listitem")).toContainText("Failing");
 });
 
 test("changes and recovers an email password", async ({ page }, testInfo) => {

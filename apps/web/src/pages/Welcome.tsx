@@ -1,6 +1,6 @@
 import { EngazMark } from "@engaz/ui-web";
 import { Trans } from "@lingui/react/macro";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { WindowChrome } from "./WindowChrome";
 
 export function WelcomePage() {
@@ -29,6 +29,9 @@ export function WelcomePage() {
         >
           <Trans>Sign up</Trans>&nbsp;&nbsp;→
         </button>
+        <Link to="/sign-in" className="font-medium text-foreground">
+          <Trans>Sign in</Trans>
+        </Link>
       </div>
     </div>
   );

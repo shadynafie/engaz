@@ -72,6 +72,8 @@ export function AgentSkills({
   }, [botId, publish, t]);
 
   async function toggle(skill: AgentSkillCatalogEntry, assigned: boolean) {
+    if (busy) return;
+    setBusy(true);
     setError(null);
     const previous = skills;
     const botIds = assigned ? [...skill.botIds, botId] : skill.botIds.filter((id) => id !== botId);
@@ -81,6 +83,8 @@ export function AgentSkills({
     } catch {
       if (previous) publish(previous);
       setError(t`Could not save skill`);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -255,6 +259,7 @@ export function AgentSkills({
               </button>
               <Switch
                 aria-label={skill.name}
+                disabled={busy}
                 checked={skill.botIds.includes(botId)}
                 onCheckedChange={(checked) => void toggle(skill, checked)}
               />

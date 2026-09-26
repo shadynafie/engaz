@@ -864,6 +864,12 @@ msgstr "无法加载 MCP 服务器"
 msgid "Could not load model settings"
 msgstr "无法加载模型设置"
 
+msgid "Could not load plugins"
+msgstr ""
+
+msgid "Could not load setup"
+msgstr ""
+
 msgid "Could not load skill"
 msgstr "无法加载技能"
 
@@ -878,6 +884,9 @@ msgstr "无法加载更新状态"
 
 msgid "Could not load voice settings"
 msgstr "无法加载语音设置"
+
+msgid "Could not log out. Try again."
+msgstr ""
 
 msgid "Could not open local settings. Start the local server and create its owner account, then try again."
 msgstr ""
@@ -932,6 +941,9 @@ msgstr "无法保存自动审核"
 
 msgid "Could not save group"
 msgstr "无法保存群组"
+
+msgid "Could not save MCP server"
+msgstr ""
 
 msgid "Could not save model"
 msgstr "无法保存模型"
@@ -1210,6 +1222,9 @@ msgstr ""
 msgid "Earlier message"
 msgstr "更早的消息"
 
+msgid "Edit"
+msgstr ""
+
 msgid "Edit fields"
 msgstr ""
 
@@ -1297,6 +1312,9 @@ msgstr "停止失败"
 msgid "Failed."
 msgstr "失败。"
 
+msgid "Failing"
+msgstr ""
+
 msgid "Failure handling"
 msgstr "失败处理"
 
@@ -1379,6 +1397,9 @@ msgstr "请求头名称"
 
 msgid "Header value"
 msgstr "请求头值"
+
+msgid "Headers must be a JSON object of names and values."
+msgstr ""
 
 msgid "Hear a sample"
 msgstr "试听"
@@ -1499,6 +1520,12 @@ msgstr ""
 
 msgid "Leave"
 msgstr "退出"
+
+msgid "Leave blank to keep saved headers"
+msgstr ""
+
+msgid "Leave blank to keep saved token"
+msgstr ""
 
 msgid "Light"
 msgstr "浅色"
@@ -1825,6 +1852,9 @@ msgstr "无触发器"
 msgid "None yet"
 msgstr "暂无"
 
+msgid "Not checked"
+msgstr ""
+
 msgid "Not checked yet"
 msgstr ""
 
@@ -2113,6 +2143,9 @@ msgstr "重新打开"
 msgid "Replace API key"
 msgstr "替换 API 密钥"
 
+msgid "Replace headers (JSON)"
+msgstr ""
+
 msgid "Replace key"
 msgstr "替换密钥"
 
@@ -2356,6 +2389,9 @@ msgstr ""
 
 msgid "Sign up"
 msgstr "注册"
+
+msgid "Sign-in needed"
+msgstr ""
 
 msgid "Signing in…"
 msgstr ""

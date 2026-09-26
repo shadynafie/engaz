@@ -68,7 +68,32 @@ test("the owner writes a skill for one agent and gives it to another", async ({
   await captureScreenshot(page, testInfo, "agent-skill-raw");
   await writerSkills.getByRole("button", { name: "Edit fields", exact: true }).click();
   await expect(writerSkills.getByLabel("Instructions", { exact: true })).toHaveValue(/List risks/);
+  // Saving closes the editor before the refreshed assignment list arrives.
+  // Keep that old snapshot in flight so it cannot overwrite a newer switch change.
+  let refreshStarted!: () => void;
+  const started = new Promise<void>((resolve) => {
+    refreshStarted = resolve;
+  });
+  let releaseRefresh!: () => void;
+  const released = new Promise<void>((resolve) => {
+    releaseRefresh = resolve;
+  });
+  await page.route("**/rpc/agentSkills/list", async (route) => {
+    const response = await route.fetch();
+    refreshStarted();
+    await released;
+    await route.fulfill({ response });
+  });
   await writerSkills.getByRole("button", { name: "Save", exact: true }).click();
+  await started;
+  await expect(writerSwitch).toBeDisabled();
+  // A click dispatched before the refresh settles must leave the assignment alone.
+  await writerSwitch.dispatchEvent("click");
+  await expect(writerSwitch).toBeChecked();
+  await captureScreenshot(page, testInfo, "agent-skill-save-pending");
+  releaseRefresh();
+  await expect(writerSwitch).toBeEnabled();
+  await page.unroute("**/rpc/agentSkills/list");
 
   // Switching it off takes it away from Writer only.
   await writerSwitch.click();

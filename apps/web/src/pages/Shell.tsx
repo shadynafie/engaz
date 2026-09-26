@@ -157,6 +157,15 @@ import {
   requestBrowserNotificationPermission,
   shouldNotifyBrowser,
 } from "../lib/browser-notifications";
+import type { ChatSendAttempt, ComposerDraft } from "../lib/composer-draft";
+import {
+  clearChatDrafts,
+  emptyComposerDraft,
+  readChatSendAttempt,
+  readComposerDraft,
+  saveChatSendAttempt,
+  saveComposerDraft,
+} from "../lib/composer-draft";
 import {
   embeddableScreenUrl,
   loadComputerScreen,
@@ -360,9 +369,41 @@ export function ShellPage() {
   const [snapshot, setSnapshot] = useState<ThreadSnapshot | null>(null);
   const snapshotRef = useRef<ThreadSnapshot | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
-  const [replyTarget, setReplyTarget] = useState<ThreadMessage | null>(null);
-  const [replyQuote, setReplyQuote] = useState<string | null>(null);
+  const pendingAttachmentsRef = useRef(pendingAttachments);
+  pendingAttachmentsRef.current = pendingAttachments;
   const [sending, setSending] = useState(false);
+  const [composerDrafts, setComposerDrafts] = useState(new Map<string, ComposerDraft>());
+  useLayoutEffect(() => {
+    for (const [key, draft] of composerDrafts) saveComposerDraft(key, draft);
+  }, [composerDrafts]);
+  const composerDraftKey = `engaz:chat-draft:${userId}:${groupId ? `group:${groupId}` : `bot:${botId}`}`;
+  const initialComposerDraft = useMemo(
+    () => readComposerDraft(composerDraftKey),
+    [composerDraftKey],
+  );
+  const currentComposerDraft = composerDrafts.get(composerDraftKey) ?? initialComposerDraft;
+  const replyTarget = currentComposerDraft.reply?.target ?? null;
+  const replyQuote = currentComposerDraft.reply?.quote ?? null;
+  const setReply = useCallback(
+    (target: ThreadMessage | null, quote: string | null) => {
+      setComposerDrafts((current) =>
+        new Map(current).set(composerDraftKey, {
+          ...(current.get(composerDraftKey) ?? initialComposerDraft),
+          reply: target ? { target, quote } : null,
+        }),
+      );
+    },
+    [composerDraftKey, initialComposerDraft],
+  );
+  const chatMounted = useRef(true);
+  useEffect(() => {
+    chatMounted.current = true;
+    return () => {
+      chatMounted.current = false;
+      revokePendingAttachmentPreviews(pendingAttachmentsRef.current);
+    };
+  }, []);
+  const sendAttempts = useRef(new Map<string, ChatSendAttempt>());
   const [sendError, setSendError] = useState<string | null>(null);
   const [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -454,6 +495,8 @@ export function ShellPage() {
   const [dismissedRunErrorIds, setDismissedRunErrorIds] =
     useState<ReadonlySet<string>>(readSeenRunErrorIds);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [logoutPending, setLogoutPending] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const mobileSidebarSwipeRef = useRef<{ startX: number; startY: number } | null>(null);
   const [draggedBotId, setDraggedBotId] = useState<string | null>(null);
@@ -1664,15 +1707,11 @@ export function ShellPage() {
     : snapshot?.botId === active?.id
       ? snapshot
       : null;
-  const activeReplyTarget =
-    replyTarget && activeSnapshot?.messages.some((message) => message.id === replyTarget.id)
-      ? replyTarget
-      : null;
+  const activeReplyTarget = replyTarget;
   const activeReplyQuote = activeReplyTarget ? replyQuote : null;
   const clearReply = useCallback(() => {
-    setReplyTarget(null);
-    setReplyQuote(null);
-  }, []);
+    setReply(null, null);
+  }, [setReply]);
   const currentRuns = activeThreadRuns(activeSnapshot);
   const answerableAskMessageId = latestAnswerableAskMessageId(activeSnapshot);
   const workingRuns = currentRuns.filter((run) =>
@@ -1955,10 +1994,10 @@ export function ShellPage() {
     setPendingAttachments((current) => current.filter((item) => item.id !== attachment.id));
   }, []);
   const sendMessage = useCallback(
-    async (text: string, mentions: ComposerMention[] = []) => {
+    async (text: string, mentions: ComposerMention[] = [], submitted?: ComposerDraft) => {
       const initialBotTarget = activeBotId.current;
       const initialGroupTarget = activeGroupId.current;
-      if ((!initialBotTarget && !initialGroupTarget) || sending) return;
+      if ((!initialBotTarget && !initialGroupTarget) || sending) return false;
       const originThreadKey = initialGroupTarget ?? initialBotTarget;
       const attachments = attachmentsForThread(pendingAttachments, originThreadKey);
       const plan = resolveComposerSendPlan({
@@ -1966,7 +2005,7 @@ export function ShellPage() {
         mentions,
         hasAttachments: attachments.length > 0,
       });
-      if (plan.isNoOp) return;
+      if (plan.isNoOp) return false;
       const reroutedToGroup = Boolean(
         plan.rerouteGroupId && plan.rerouteGroupId !== initialGroupTarget,
       );
@@ -1980,6 +2019,38 @@ export function ShellPage() {
         if (permissionRequest) void permissionRequest.then(flushPendingBrowserNotifications);
       }
       const trimmed = plan.trimmed;
+      const originDraftKey = composerDraftKey;
+      const submittedReply = currentComposerDraft.reply;
+      const acceptDraft = () => {
+        if (!chatMounted.current) return;
+        setComposerDrafts((current) => {
+          const draft = current.get(originDraftKey) ?? submitted ?? initialComposerDraft;
+          if (submitted && draft === submitted)
+            return new Map(current).set(originDraftKey, emptyComposerDraft());
+          if (draft.reply && draft.reply === submittedReply)
+            return new Map(current).set(originDraftKey, { ...draft, reply: null });
+          return current;
+        });
+      };
+      const rememberAttempt = (key: string, value: ChatSendAttempt | null) => {
+        if (chatMounted.current) saveChatSendAttempt(key, value);
+      };
+      const attemptKey = `engaz:chat-send:${userId}:${originThreadKey}`;
+      const signature = JSON.stringify({
+        text,
+        mentions,
+        groupTarget,
+        botTarget,
+        attachments: attachments.map(({ id }) => id),
+        reply: activeReplyTarget?.id,
+        quote: activeReplyQuote,
+      });
+      let attempt = sendAttempts.current.get(attemptKey) ?? readChatSendAttempt(attemptKey);
+      if (!attempt || attempt.signature !== signature) {
+        attempt = { signature, nonce: newClientNonce(), artifacts: new Map() };
+      }
+      sendAttempts.current.set(attemptKey, attempt);
+      rememberAttempt(attemptKey, attempt);
       setSending(true);
       setSendError(null);
       const dropDelayedSetup = () => {
@@ -1990,7 +2061,7 @@ export function ShellPage() {
       };
       try {
         if (plan.shouldRunRoutines) {
-          const sendNonce = newClientNonce();
+          const sendNonce = attempt.nonce;
           await Promise.all(
             plan.routineIds.map((routineId) =>
               rpc.routines.testRun({
@@ -2002,25 +2073,32 @@ export function ShellPage() {
         }
         if (!plan.shouldSend) {
           dropDelayedSetup();
-          clearReply();
+          acceptDraft();
           revokePendingAttachmentPreviews(attachments);
           setPendingAttachments((current) =>
-            current.filter((attachment) => attachment.threadKey !== originThreadKey),
+            current.filter((attachment) => !attachments.includes(attachment)),
           );
           setAttachmentNotice(null);
+          sendAttempts.current.delete(attemptKey);
+          rememberAttempt(attemptKey, null);
           if (reroutedToGroup && groupTarget) {
             navigate(`/app/g/${groupTarget}`);
-            return;
+            return true;
           }
           if (groupTarget && activeGroupId.current === groupTarget) {
-            await refreshGroupThreadRef.current(groupTarget);
+            void refreshGroupThreadRef.current(groupTarget).catch(() => undefined);
           } else if (botTarget && activeBotId.current === botTarget) {
-            await refreshThreadRef.current(botTarget);
+            void refreshThreadRef.current(botTarget).catch(() => undefined);
           }
-          return;
+          return true;
         }
         const artifactIds: string[] = [];
         for (const pending of attachments) {
+          const uploaded = attempt.artifacts.get(pending.id);
+          if (uploaded) {
+            artifactIds.push(uploaded);
+            continue;
+          }
           const mimeType = inferAttachmentMimeType(pending.file.name, pending.file.type);
           if (!mimeType) {
             throw new Error(t`Unsupported file type: ${pending.file.name}`);
@@ -2031,9 +2109,11 @@ export function ShellPage() {
               ? { groupId: groupTarget, name: pending.file.name, mimeType, contentBase64 }
               : { botId: botTarget!, name: pending.file.name, mimeType, contentBase64 },
           );
+          attempt.artifacts.set(pending.id, artifact.id);
+          rememberAttempt(attemptKey, attempt);
           artifactIds.push(artifact.id);
         }
-        const clientNonce = newClientNonce();
+        const clientNonce = attempt.nonce;
         if (groupTarget) {
           await rpc.threads.send({
             groupId: groupTarget,
@@ -2068,30 +2148,30 @@ export function ShellPage() {
             );
           }
         }
+        sendAttempts.current.delete(attemptKey);
+        rememberAttempt(attemptKey, null);
         dropDelayedSetup();
-        clearReply();
+        acceptDraft();
         revokePendingAttachmentPreviews(attachments);
         setPendingAttachments((current) =>
-          current.filter((attachment) => attachment.threadKey !== originThreadKey),
+          current.filter((attachment) => !attachments.includes(attachment)),
         );
         // Refresh sidebar status even when a bot→group reroute navigates away below.
         void refreshBots().catch(() => undefined);
         if (reroutedToGroup && groupTarget) {
           navigate(`/app/g/${groupTarget}`);
-          return;
+          return true;
         }
         if (groupTarget && activeGroupId.current === groupTarget) setAttachmentNotice(null);
         if (botTarget && activeBotId.current === botTarget) setAttachmentNotice(null);
-        if (groupTarget) await refreshGroupThreadRef.current(groupTarget);
-        else if (botTarget) await refreshThreadRef.current(botTarget);
+        if (groupTarget) void refreshGroupThreadRef.current(groupTarget).catch(() => undefined);
+        else if (botTarget) void refreshThreadRef.current(botTarget).catch(() => undefined);
+        return true;
       } catch (error) {
-        if (reroutedToGroup && groupTarget) {
-          setSendError(error instanceof Error ? error.message : t`Failed to send message`);
-        } else if (groupTarget && activeGroupId.current === groupTarget) {
-          setSendError(error instanceof Error ? error.message : t`Failed to send message`);
-        } else if (botTarget && activeBotId.current === botTarget) {
+        if ((activeGroupId.current ?? activeBotId.current) === originThreadKey) {
           setSendError(error instanceof Error ? error.message : t`Failed to send message`);
         }
+        throw error;
       } finally {
         setSending(false);
       }
@@ -2099,12 +2179,15 @@ export function ShellPage() {
     [
       activeReplyTarget?.id,
       activeReplyQuote,
-      clearReply,
+      composerDraftKey,
+      currentComposerDraft.reply,
+      initialComposerDraft,
       flushPendingBrowserNotifications,
       navigate,
       pendingAttachments,
       sending,
       t,
+      userId,
     ],
   );
   const followUpMessage = useCallback(async (text: string) => {
@@ -2432,16 +2515,9 @@ export function ShellPage() {
   }, [active?.id]);
 
   useEffect(() => {
-    const threadKey = inGroup ? groupId : active?.id;
-    setPendingAttachments((current) => {
-      const stale = current.filter((attachment) => attachment.threadKey !== threadKey);
-      revokePendingAttachmentPreviews(stale);
-      return attachmentsForThread(current, threadKey);
-    });
-    clearReply();
     setAttachmentNotice(null);
     setSendError(null);
-  }, [active?.id, clearReply, groupId, inGroup]);
+  }, [active?.id, groupId, inGroup]);
 
   useEffect(() => {
     if (!computerOpen) return;
@@ -3162,16 +3238,32 @@ export function ShellPage() {
               <Button
                 variant="ghost"
                 className="w-full justify-start font-normal"
-                onClick={() =>
-                  void authClient.signOut().then(() => {
+                disabled={logoutPending}
+                onClick={async () => {
+                  setLogoutPending(true);
+                  setLogoutError(null);
+                  try {
+                    const result = await authClient.signOut();
+                    if (result.error) throw new Error(result.error.message);
+                    chatMounted.current = false;
+                    if (userId) clearChatDrafts(userId);
                     clearSpaceSelection();
                     navigate("/");
-                  })
-                }
+                  } catch {
+                    setLogoutError(t`Could not log out. Try again.`);
+                  } finally {
+                    setLogoutPending(false);
+                  }
+                }}
               >
                 <LogOut className="text-muted-foreground" strokeWidth={1.75} />
                 <Trans>Log out</Trans>
               </Button>
+              {logoutError ? (
+                <p role="alert" className="px-3 py-2 text-sm text-destructive">
+                  {logoutError}
+                </p>
+              ) : null}
             </PopoverContent>
           ) : null}
         </Popover>
@@ -3320,12 +3412,10 @@ export function ShellPage() {
             onOpenBot={openBot}
             onAnswer={answerMessage}
             onReply={(message) => {
-              setReplyTarget(message);
-              setReplyQuote(null);
+              setReply(message, null);
             }}
             onQuote={(message, quote) => {
-              setReplyTarget(message);
-              setReplyQuote(quote);
+              setReply(message, quote);
             }}
             onReact={reactToMessage}
             onJumpToMessage={jumpToReplyMessage}
@@ -3351,6 +3441,9 @@ export function ShellPage() {
         {active || activeGroup ? (
           <Composer
             key={inGroup ? `group:${groupId}` : `bot:${active?.id}`}
+            draftKey={composerDraftKey}
+            drafts={composerDrafts}
+            setDrafts={setComposerDrafts}
             activeName={inGroup ? (activeGroup?.name ?? activeSnapshot?.groupName) : active?.name}
             running={composerRunning}
             disabled={Boolean(recordingSkill)}
@@ -4836,6 +4929,9 @@ const QuoteSelectionButton = memo(function QuoteSelectionButton({
 });
 
 const Composer = memo(function Composer({
+  draftKey,
+  drafts,
+  setDrafts,
   activeName,
   running,
   disabled,
@@ -4862,6 +4958,9 @@ const Composer = memo(function Composer({
   onSlashOpen,
   onSlashAction,
 }: {
+  draftKey: string;
+  drafts: Map<string, ComposerDraft>;
+  setDrafts: (update: (drafts: Map<string, ComposerDraft>) => Map<string, ComposerDraft>) => void;
   activeName?: string;
   running: boolean;
   disabled?: boolean;
@@ -4876,7 +4975,7 @@ const Composer = memo(function Composer({
   fileInputRef: RefObject<HTMLInputElement | null>;
   onAttachmentPick: (files: FileList | null) => void | Promise<void>;
   onRemoveAttachment: (attachment: PendingAttachment) => void;
-  onSend: (text: string, mentions?: ComposerMention[]) => Promise<void>;
+  onSend: (text: string, mentions?: ComposerMention[], draft?: ComposerDraft) => Promise<boolean>;
   onStop: () => Promise<void>;
   onVoice?: () => void;
   replyTarget?: ThreadMessage | null;
@@ -4889,12 +4988,17 @@ const Composer = memo(function Composer({
   onSlashAction?: (action: SlashActionId) => void;
 }) {
   const { t } = useLingui();
-  const [draft, setDraft] = useState("");
+  const initialDraft = useMemo(() => readComposerDraft(draftKey), [draftKey]);
+  const composerDraft = drafts.get(draftKey) ?? initialDraft;
+  const { text: draft, skill: selectedSkill, mentions: selectedMentions } = composerDraft;
+  function setComposerDraft(update: (draft: ComposerDraft) => ComposerDraft) {
+    setDrafts((current) =>
+      new Map(current).set(draftKey, update(current.get(draftKey) ?? initialDraft)),
+    );
+  }
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionHighlightIndex, setMentionHighlightIndex] = useState(0);
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
-  const [selectedSkill, setSelectedSkill] = useState<AgentSkillCatalogEntry | null>(null);
-  const [selectedMentions, setSelectedMentions] = useState<ComposerMention[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const runErrorRef = useRef<HTMLDivElement>(null);
   const presentedRunErrorIdRef = useRef<string | null>(null);
@@ -4967,7 +5071,7 @@ const Composer = memo(function Composer({
   }, [draft]);
 
   function updateDraft(value: string) {
-    setDraft(value);
+    setComposerDraft((current) => ({ ...current, text: value }));
     const mentionMatch = /(?:^|\s)@([\w-]*)$/.exec(value);
     setMentionQuery(mentionMatch ? (mentionMatch[1] ?? "") : null);
     // `/` only at the start of the draft so forced skills expand (`Use skill:` / `/Name` prefix).
@@ -4982,35 +5086,37 @@ const Composer = memo(function Composer({
   }
 
   function insertMention(mention: ComposerMention) {
-    setDraft((current) => current.replace(/@([\w-]*)$/, ""));
+    setComposerDraft((current) => ({
+      ...current,
+      text: current.text.replace(/@([\w-]*)$/, ""),
+      mentions: current.mentions.some(
+        (selected) => mentionChipKey(selected) === mentionChipKey(mention),
+      )
+        ? current.mentions
+        : [...current.mentions, mention],
+    }));
     setMentionQuery(null);
     setMentionHighlightIndex(0);
-    setSelectedMentions((current) =>
-      current.some((selected) => mentionChipKey(selected) === mentionChipKey(mention))
-        ? current
-        : [...current, mention],
-    );
     focusComposer();
   }
 
   function insertSkill(skill: AgentSkillCatalogEntry) {
-    setSelectedSkill(skill);
-    setDraft("");
+    setComposerDraft((current) => ({ ...current, skill, text: "" }));
     setSlashQuery(null);
   }
 
   function runSlashAction(action: SlashActionId) {
-    setDraft("");
+    setComposerDraft((current) => ({ ...current, text: "" }));
     setSlashQuery(null);
     onSlashAction?.(action);
   }
 
   function removeLastChip() {
     if (selectedMentions.length > 0) {
-      setSelectedMentions((current) => current.slice(0, -1));
+      setComposerDraft((current) => ({ ...current, mentions: current.mentions.slice(0, -1) }));
       return;
     }
-    if (selectedSkill) setSelectedSkill(null);
+    if (selectedSkill) setComposerDraft((current) => ({ ...current, skill: null }));
   }
 
   const mentionOptions = useMemo(() => {
@@ -5060,17 +5166,18 @@ const Composer = memo(function Composer({
     mentionQuery === null &&
     (slashSkillOptions.length > 0 || slashActionOptions.length > 0);
 
-  function send() {
+  async function send() {
     if (!canSend || sending || disabled) return;
+    const submitted = composerDraft;
     const text = serializeComposerPrompt(draft, selectedSkill, selectedMentions);
-    setDraft("");
-    setMentionQuery(null);
-    setMentionHighlightIndex(0);
-    setSlashQuery(null);
-    setSelectedSkill(null);
-    const mentions = selectedMentions;
-    setSelectedMentions([]);
-    void onSend(text, mentions);
+    try {
+      if (!(await onSend(text, selectedMentions, submitted))) return;
+      setMentionQuery(null);
+      setMentionHighlightIndex(0);
+      setSlashQuery(null);
+    } catch {
+      // Shell reports the failure; leave the draft available for retry.
+    }
   }
 
   function handleDragEnter(event: DragEvent<HTMLFieldSetElement>) {
@@ -5349,7 +5456,7 @@ const Composer = memo(function Composer({
               <button
                 type="button"
                 aria-label={t`Remove skill ${selectedSkill.name}`}
-                onClick={() => setSelectedSkill(null)}
+                onClick={() => setComposerDraft((current) => ({ ...current, skill: null }))}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <X size={12} strokeWidth={2} />
@@ -5371,11 +5478,12 @@ const Composer = memo(function Composer({
                 type="button"
                 aria-label={t`Remove mention ${mention.name}`}
                 onClick={() =>
-                  setSelectedMentions((current) =>
-                    current.filter(
+                  setComposerDraft((current) => ({
+                    ...current,
+                    mentions: current.mentions.filter(
                       (selected) => mentionChipKey(selected) !== mentionChipKey(mention),
                     ),
-                  )
+                  }))
                 }
                 className="text-muted-foreground hover:text-foreground"
               >

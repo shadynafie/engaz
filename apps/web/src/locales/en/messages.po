@@ -864,6 +864,12 @@ msgstr "Could not load MCP servers"
 msgid "Could not load model settings"
 msgstr "Could not load model settings"
 
+msgid "Could not load plugins"
+msgstr "Could not load plugins"
+
+msgid "Could not load setup"
+msgstr "Could not load setup"
+
 msgid "Could not load skill"
 msgstr "Could not load skill"
 
@@ -878,6 +884,9 @@ msgstr "Could not load update status"
 
 msgid "Could not load voice settings"
 msgstr "Could not load voice settings"
+
+msgid "Could not log out. Try again."
+msgstr "Could not log out. Try again."
 
 msgid "Could not open local settings. Start the local server and create its owner account, then try again."
 msgstr "Could not open local settings. Start the local server and create its owner account, then try again."
@@ -932,6 +941,9 @@ msgstr "Could not save Auto Review"
 
 msgid "Could not save group"
 msgstr "Could not save group"
+
+msgid "Could not save MCP server"
+msgstr "Could not save MCP server"
 
 msgid "Could not save model"
 msgstr "Could not save model"
@@ -1210,6 +1222,9 @@ msgstr "Each link lets one person create an account. Links expire after 7 days."
 msgid "Earlier message"
 msgstr "Earlier message"
 
+msgid "Edit"
+msgstr "Edit"
+
 msgid "Edit fields"
 msgstr "Edit fields"
 
@@ -1297,6 +1312,9 @@ msgstr "Failed to stop"
 msgid "Failed."
 msgstr "Failed."
 
+msgid "Failing"
+msgstr "Failing"
+
 msgid "Failure handling"
 msgstr "Failure handling"
 
@@ -1379,6 +1397,9 @@ msgstr "Header name"
 
 msgid "Header value"
 msgstr "Header value"
+
+msgid "Headers must be a JSON object of names and values."
+msgstr "Headers must be a JSON object of names and values."
 
 msgid "Hear a sample"
 msgstr "Hear a sample"
@@ -1499,6 +1520,12 @@ msgstr "Later"
 
 msgid "Leave"
 msgstr "Leave"
+
+msgid "Leave blank to keep saved headers"
+msgstr "Leave blank to keep saved headers"
+
+msgid "Leave blank to keep saved token"
+msgstr "Leave blank to keep saved token"
 
 msgid "Light"
 msgstr "Light"
@@ -1825,6 +1852,9 @@ msgstr "No trigger"
 msgid "None yet"
 msgstr "None yet"
 
+msgid "Not checked"
+msgstr "Not checked"
+
 msgid "Not checked yet"
 msgstr "Not checked yet"
 
@@ -2113,6 +2143,9 @@ msgstr "Reopen"
 msgid "Replace API key"
 msgstr "Replace API key"
 
+msgid "Replace headers (JSON)"
+msgstr "Replace headers (JSON)"
+
 msgid "Replace key"
 msgstr "Replace key"
 
@@ -2356,6 +2389,9 @@ msgstr "Sign out"
 
 msgid "Sign up"
 msgstr "Sign up"
+
+msgid "Sign-in needed"
+msgstr "Sign-in needed"
 
 msgid "Signing in…"
 msgstr "Signing in…"

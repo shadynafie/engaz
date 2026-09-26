@@ -1127,6 +1127,7 @@ export function createRouter(deps: RouterDeps) {
               botId: duplicate.id,
               serverId: assignment.serverId,
               allowAllTools: assignment.allowAllTools,
+              pendingToolDiscovery: assignment.pendingToolDiscovery,
               allowedTools: assignment.allowedTools as Prisma.InputJsonValue,
             })),
           });
@@ -3098,7 +3099,7 @@ export function createRouter(deps: RouterDeps) {
                   ? Object.fromEntries(Object.keys(input.env).map((key) => [key, true]))
                   : {}) as Prisma.InputJsonValue,
                 headers: ("headers" in input
-                  ? Object.fromEntries(Object.keys(input.headers).map((key) => [key, true]))
+                  ? Object.fromEntries(Object.keys(input.headers ?? {}).map((key) => [key, true]))
                   : {}) as Prisma.InputJsonValue,
                 secretId: stored?.id,
                 enabled: input.enabled,
@@ -3132,82 +3133,109 @@ export function createRouter(deps: RouterDeps) {
         update: authed.mcp.servers.update.handler(async ({ context, input }) => {
           const current = await deps.prisma.mcpServer.findFirst({
             where: { id: input.id, spaceId: context.actor.spaceId, userId: context.actor.userId },
-            select: { endpoint: true },
           });
           if (!current) throw new IsolationError();
-          const endpoint =
+          const existingSecret = current.secretId
+            ? await deps.prisma.secret.findFirst({
+                where: {
+                  id: current.secretId,
+                  spaceId: context.actor.spaceId,
+                  userId: context.actor.userId,
+                },
+              })
+            : null;
+          let existingMaterial: Record<string, unknown> = {};
+          if (existingSecret) {
+            try {
+              const value = JSON.parse(
+                deps.secrets.load(existingSecret.ciphertext, existingSecret.id),
+              );
+              if (value && typeof value === "object" && !Array.isArray(value))
+                existingMaterial = value;
+            } catch {
+              /* New credentials can repair malformed stored material. */
+            }
+          }
+          if (!("config" in input) && current.transport === "stdio") {
+            throw new ORPCError("BAD_REQUEST", { message: "A remote MCP server is required" });
+          }
+          const config =
             "config" in input
-              ? "endpoint" in input.config
-                ? input.config.endpoint
-                : null
-              : current.endpoint;
+              ? input.config
+              : {
+                  slug: current.slug,
+                  name: current.name,
+                  description: current.description,
+                  enabled: current.enabled,
+                  transport: current.transport as "streamable_http" | "sse",
+                  endpoint: current.endpoint!,
+                  secret: input.secret,
+                };
+          const endpoint = "endpoint" in config ? config.endpoint : null;
           const localNetwork = await mcpEndpointIsLocal(endpoint, context.actor);
+          const update = buildMcpUpdateMaterial(existingMaterial, config, {
+            clearOAuth: current.endpoint !== endpoint,
+          });
+          const material = structuredClone(
+            update.action === "store" ? update.material : existingMaterial,
+          );
+          const beforeCheck = JSON.stringify(material);
+          const candidate = {
+            ...current,
+            slug: config.slug,
+            name: config.name,
+            description: config.description,
+            transport: config.transport,
+            endpoint,
+            localNetwork,
+            command: "command" in config ? config.command : null,
+            args: "args" in config ? config.args : [],
+            env:
+              "env" in config
+                ? Object.fromEntries(Object.keys(config.env).map((key) => [key, true]))
+                : current.env,
+            headers:
+              "headers" in config && config.headers !== undefined
+                ? Object.fromEntries(Object.keys(config.headers).map((key) => [key, true]))
+                : current.headers,
+            enabled: config.enabled,
+          };
+          // Check with in-memory credentials: a failed edit must leave the saved connection intact.
+          const checked = await deps.checkMcpServer(
+            candidate,
+            connectionContext(context.actor, "mcp.update", context.signal),
+            {
+              material,
+            },
+          );
+          if (checked.status === "failing") {
+            throw new ORPCError("BAD_REQUEST", {
+              message: checked.message ?? "Couldn't connect to this MCP server",
+            });
+          }
           const row = await deps.prisma.$transaction(async (tx) => {
-            // Share the OAuth broker's per-server lock so a stale authorization
-            // snapshot cannot overwrite a simultaneous credential edit.
             await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('mcp-oauth-material'), hashtext(${input.id}))`;
             const existing = await tx.mcpServer.findFirst({
               where: {
-                id: input.id,
+                id: current.id,
                 spaceId: context.actor.spaceId,
                 userId: context.actor.userId,
               },
             });
             if (!existing) throw new IsolationError();
-            const existingSecret = existing.secretId
-              ? await tx.secret.findFirst({
-                  where: {
-                    id: existing.secretId,
-                    spaceId: context.actor.spaceId,
-                    userId: context.actor.userId,
-                  },
-                })
-              : null;
-            let existingMaterial: Record<string, unknown> = {};
-            if (existingSecret) {
-              try {
-                const value = JSON.parse(
-                  deps.secrets.load(existingSecret.ciphertext, existingSecret.id),
-                );
-                if (value && typeof value === "object" && !Array.isArray(value))
-                  existingMaterial = value as Record<string, unknown>;
-              } catch {
-                /* Existing malformed secrets are replaced only when new credentials are supplied. */
-              }
-            }
-            const config =
-              "config" in input
-                ? input.config
-                : {
-                    slug: existing.slug,
-                    name: existing.name,
-                    description: existing.description,
-                    enabled: existing.enabled,
-                    transport: existing.transport as "streamable_http" | "sse",
-                    endpoint: existing.endpoint!,
-                    headers: (existingMaterial.headers ?? {}) as Record<string, string>,
-                    secret: input.secret,
-                  };
-            if (!("config" in input) && existing.transport === "stdio") {
-              throw new ORPCError("BAD_REQUEST", { message: "A remote MCP server is required" });
-            }
-            const nextEndpoint = "endpoint" in config ? config.endpoint : null;
-            // The network was decided for this endpoint; a concurrent edit changed it.
-            if (nextEndpoint !== endpoint) {
+            if (existing.revision !== current.revision || existing.secretId !== current.secretId) {
               throw new ORPCError("CONFLICT", { message: "This server changed. Try again." });
             }
-            const update = buildMcpUpdateMaterial(existingMaterial, config, {
-              clearOAuth: existing.endpoint !== nextEndpoint,
-            });
+            const storeMaterial =
+              update.action === "store" || JSON.stringify(material) !== beforeCheck;
             const stored =
-              update.action === "store" && Object.keys(update.material).length > 0
+              storeMaterial && Object.keys(material).length > 0
                 ? await deps.secrets.put(
-                    JSON.stringify(update.material),
+                    JSON.stringify(material),
                     computerContext(context.actor, "mcp", "mcp.update"),
                   )
                 : null;
-            const clearing = update.action === "store" && Object.keys(update.material).length === 0;
-            if (stored) {
+            if (stored)
               await tx.secret.create({
                 data: {
                   id: stored.id,
@@ -3217,39 +3245,32 @@ export function createRouter(deps: RouterDeps) {
                   ciphertext: stored.ciphertext,
                 },
               });
-            }
             const updated = await tx.mcpServer.update({
               where: { id: existing.id },
               data: {
-                slug: config.slug,
-                name: config.name,
-                description: config.description,
-                transport: config.transport,
-                endpoint: nextEndpoint,
+                slug: candidate.slug,
+                name: candidate.name,
+                description: candidate.description,
+                transport: candidate.transport,
+                endpoint,
                 localNetwork,
-                command: "command" in config ? config.command : null,
-                args: ("args" in config ? config.args : []) as Prisma.InputJsonValue,
-                env: ("env" in config
-                  ? Object.fromEntries(Object.keys(config.env).map((key) => [key, true]))
-                  : {}) as Prisma.InputJsonValue,
-                headers: ("headers" in config
-                  ? Object.fromEntries(Object.keys(config.headers).map((key) => [key, true]))
-                  : {}) as Prisma.InputJsonValue,
-                enabled: config.enabled,
+                command: candidate.command,
+                args: candidate.args as Prisma.InputJsonValue,
+                env: candidate.env as Prisma.InputJsonValue,
+                headers: candidate.headers as Prisma.InputJsonValue,
+                enabled: candidate.enabled,
                 revision: { increment: 1 },
-                ...(stored ? { secretId: stored.id } : clearing ? { secretId: null } : {}),
+                checkStatus: checked.status,
+                checkMessage: checked.message,
+                checkedAt: new Date(),
+                // A different endpoint must not inherit the old endpoint's tool catalog.
+                ...(checked.status === "working" || current.endpoint !== endpoint
+                  ? { tools: checked.tools }
+                  : {}),
+                ...(stored ? { secretId: stored.id } : storeMaterial ? { secretId: null } : {}),
               },
             });
-            if (stored) {
-              if (existing.secretId)
-                await tx.secret.deleteMany({
-                  where: {
-                    id: existing.secretId,
-                    spaceId: context.actor.spaceId,
-                    userId: context.actor.userId,
-                  },
-                });
-            } else if (clearing && existing.secretId) {
+            if (storeMaterial && existing.secretId)
               await tx.secret.deleteMany({
                 where: {
                   id: existing.secretId,
@@ -3257,10 +3278,18 @@ export function createRouter(deps: RouterDeps) {
                   userId: context.actor.userId,
                 },
               });
-            }
+            if (checked.status === "working")
+              await tx.botMcpServer.updateMany({
+                where: { serverId: current.id, pendingToolDiscovery: true },
+                data: {
+                  pendingToolDiscovery: false,
+                  allowAllTools: false,
+                  allowedTools: checked.tools.map((tool) => tool.name),
+                },
+              });
             return updated;
           });
-          return checkedMcpServer(row, context.actor, context.signal);
+          return mcpServerDto(row, await mcpOAuth.statusFor(row, context.actor));
         }),
         check: authed.mcp.servers.check.handler(async ({ context, input }) => {
           const row = await deps.prisma.mcpServer.findFirst({
@@ -3333,7 +3362,7 @@ export function createRouter(deps: RouterDeps) {
                   userId: context.actor.userId,
                   enabled: true,
                 },
-                select: { id: true, tools: true },
+                select: { id: true, tools: true, checkStatus: true },
               }),
             ]);
             if (!bot || !server) throw new IsolationError();
@@ -3344,7 +3373,7 @@ export function createRouter(deps: RouterDeps) {
                 userId: context.actor.userId,
                 botId: bot.id,
                 serverId: server.id,
-                ...initialToolAccess(server.tools),
+                ...initialToolAccess(server.tools, server.checkStatus === "working"),
               },
               update: {},
             });
@@ -3368,7 +3397,14 @@ export function createRouter(deps: RouterDeps) {
                 spaceId: context.actor.spaceId,
                 userId: context.actor.userId,
               },
-              select: { id: true },
+              select: { id: true, tools: true, checkStatus: true },
+            });
+            const previous = await tx.botMcpServer.findMany({
+              where: {
+                botId: bot.id,
+                spaceId: context.actor.spaceId,
+                userId: context.actor.userId,
+              },
             });
             if (servers.length !== input.assignments.length) throw new IsolationError();
             await tx.botMcpServer.deleteMany({
@@ -3386,6 +3422,13 @@ export function createRouter(deps: RouterDeps) {
                   botId: bot.id,
                   serverId: assignment.serverId,
                   allowAllTools: assignment.allowAllTools,
+                  pendingToolDiscovery:
+                    assignment.allowAllTools &&
+                    (previous.find((item) => item.serverId === assignment.serverId)
+                      ?.pendingToolDiscovery ??
+                      (!previous.some((item) => item.serverId === assignment.serverId) &&
+                        servers.find((server) => server.id === assignment.serverId)?.checkStatus !==
+                          "working")),
                   allowedTools: assignment.allowedTools as Prisma.InputJsonValue,
                 })),
               });
@@ -5312,20 +5355,24 @@ function signupInviteDto(row: {
 /**
  * A new assignment grants the tools the server offers now, so tools it adds later do not
  * reach the agent unasked. Until the server has been reached once there is no list to
- * pin, so the agent gets whatever it offers.
+ * pin, so access stays pending until the first successful discovery.
  */
 /** Check failures that another connection type would not fix. */
 const MCP_NOT_A_TRANSPORT_FAILURE =
   /couldn't reach|access token|refused access|https:\/\/|points where|isn't allowed|turned off/i;
 
-export function initialToolAccess(tools: unknown): {
+export function initialToolAccess(
+  tools: unknown,
+  checked = false,
+): {
   allowAllTools: boolean;
   allowedTools: string[];
+  pendingToolDiscovery: boolean;
 } {
   const known = storedMcpTools(tools).map((tool) => tool.name);
-  return known.length > 0
-    ? { allowAllTools: false, allowedTools: known }
-    : { allowAllTools: true, allowedTools: [] };
+  return known.length > 0 || checked
+    ? { allowAllTools: false, allowedTools: known, pendingToolDiscovery: false }
+    : { allowAllTools: true, allowedTools: [], pendingToolDiscovery: true };
 }
 
 function capabilityInstallDto(row: {

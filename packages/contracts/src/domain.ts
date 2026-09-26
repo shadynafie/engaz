@@ -662,13 +662,13 @@ export const McpServerConfigInput = z.discriminatedUnion("transport", [
   McpServerBaseInput.extend({
     transport: z.literal("streamable_http"),
     endpoint: McpRemoteEndpointSchema,
-    headers: McpHeadersSchema.default({}),
+    headers: McpHeadersSchema.optional(),
     secret: z.string().max(16384).optional(),
   }),
   McpServerBaseInput.extend({
     transport: z.literal("sse"),
     endpoint: McpRemoteEndpointSchema,
-    headers: McpHeadersSchema.default({}),
+    headers: McpHeadersSchema.optional(),
     secret: z.string().max(16384).optional(),
   }),
   McpServerBaseInput.extend({

@@ -236,6 +236,9 @@ export function PluginsOverlay({
     setCatalogError(null);
     const key = itemKey(item);
     setPending(key);
+    // Reserve the window during the click so slow requests do not lose popup permission.
+    const popup = item.noAuth ? null : window.open("about:blank", "engaz-plugin-connect");
+    if (popup) popup.opener = null;
     try {
       const existing = activeAccounts(connections, item).filter(
         (row) => row.status === "connected",
@@ -245,8 +248,15 @@ export function PluginsOverlay({
         provider: item.slug,
         displayName: nextAccountLabel(item.name, existing.length),
       });
-      if (started.authorizationUrl)
-        window.open(started.authorizationUrl, "engaz-plugin-connect", "noopener,noreferrer");
+      if (started.authorizationUrl) {
+        if (!popup) {
+          window.location.assign(started.authorizationUrl);
+          return;
+        }
+        popup.location.replace(started.authorizationUrl);
+      } else {
+        popup?.close();
+      }
       if (item.noAuth && !started.authorizationUrl) {
         if (controller.signal.aborted) return;
         setItemConnected(item, true);
@@ -276,6 +286,7 @@ export function PluginsOverlay({
       );
       await refresh().catch(() => undefined);
     } catch (err) {
+      popup?.close();
       if (controller.signal.aborted) return;
       setCatalogError(err instanceof Error ? err.message : t`Could not connect`);
     } finally {

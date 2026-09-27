@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import type { Page, TestInfo } from "@playwright/test";
 
+// The Desktop Chrome device reports Windows; the install box follows the visitor's system.
+test.use({ userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36" });
+
 async function captureScreenshot(page: Page, testInfo: TestInfo, name: string) {
   await page.locator(".stage-hero img").evaluateAll((images) => Promise.all(images.map((image) => (image as HTMLImageElement).decode())));
   const screenshotPath = testInfo.outputPath(`${name}.png`);
@@ -45,18 +48,27 @@ test("homepage tells one product story and offers a working install command", as
   })).toBe(true);
   await expect(hero).toContainText("solo founders and small businesses");
   await expect(page.locator("#selfhost h2")).toHaveText("Your AI team. Free to self-host.");
-  await expect(page.locator("#selfhost")).toContainText("No clone or image build is needed. Run one command in a terminal:");
+  await expect(page.locator("#selfhost")).toContainText("Run one command in a terminal. On Windows, use PowerShell.");
   await expect(page.locator("#selfhost li h3")).toHaveText(["Install", "Create the owner", "Meet your first agent"]);
-  await expect(page.locator("#selfhost")).toContainText("Requires Docker Engine 26+");
+  await expect(page.locator("#selfhost")).toContainText("It sets up Docker if needed");
   await expect(page.locator("#selfhost")).toContainText("Active development");
   await expect(page.locator("#how-it-works, #why-engaz")).toHaveCount(0);
-  const installCommand = "curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash";
+  const installCommand = "curl -fsSL https://engaz.app/install.sh | bash";
   await expect(page.locator("[data-install-command]")).toHaveText([installCommand, installCommand]);
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await hero.getByRole("button", { name: "Copy command" }).click();
   await expect(hero.getByRole("button", { name: "Copied" })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(installCommand);
   await expect(hero.getByRole("button", { name: "Copy command" })).toBeVisible();
+  const windowsCommand = "irm https://engaz.app/install.ps1 | iex";
+  await hero.getByRole("button", { name: "Windows" }).click();
+  await expect(page.locator("[data-install-command]")).toHaveText([windowsCommand, windowsCommand]);
+  await expect(page.locator("#selfhost").getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "true");
+  await hero.getByRole("button", { name: "Copy command" }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(windowsCommand);
+  await hero.getByRole("button", { name: "Linux" }).click();
+  await expect(page.locator("[data-install-command]")).toHaveText([installCommand, installCommand]);
+  await expect(hero.getByRole("button", { name: "Mac" })).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator(".site-header__cta").getByRole("link", { name: "View on GitHub" })).toHaveAttribute("href", "https://github.com/shadynafie/engaz");
   const setupLinks = page.getByRole("link", { name: "Installation guide" });
   await expect(setupLinks).toHaveCount(1);
@@ -79,14 +91,14 @@ test("homepage tells one product story and offers a working install command", as
   await captureScreenshot(page, testInfo, "marketing-homepage-desktop");
 });
 
-test("translated homepage keeps the same path", async ({ page }, testInfo) => {
-  await page.goto("/zh/");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("AI 队友。切实推进工作。");
-  await expect(page.locator("main > section")).toHaveCount(4);
-  await expect(page.locator(".stage-hero [data-install-command]")).toContainText("install-images.sh");
-  await expect(page.locator("#selfhost")).toContainText("无需克隆仓库或构建镜像");
-  await expect(page.locator("#selfhost li")).toHaveCount(3);
-  await captureScreenshot(page, testInfo, "marketing-homepage-zh");
+test.describe("on Windows", () => {
+  test.use({ userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36" });
+
+  test("visitors start on the Windows command", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator(".stage-hero [data-install-command]")).toHaveText("irm https://engaz.app/install.ps1 | iex");
+    await expect(page.locator(".stage-hero").getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "true");
+  });
 });
 
 test("narrow and reduced-motion views remain usable", async ({ page }, testInfo) => {

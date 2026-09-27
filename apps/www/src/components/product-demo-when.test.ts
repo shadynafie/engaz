@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { demoText } from "../i18n/demo";
 import {
   defaultTrigger,
-  describeTrigger,
   displayRoutineWhen,
   parseWhen,
   resolveRoutineWhen,
@@ -34,42 +32,11 @@ describe("resolveRoutineWhen", () => {
 });
 
 describe("displayRoutineWhen", () => {
-  const zh = (source: string, values?: Record<string, string | number>) =>
-    demoText("zh", source, values);
-
-  it("keeps direct Chinese labels for opaque seeded schedules", () => {
-    expect(displayRoutineWhen("Tue + Thu", zh)).toBe("周二和周四");
-    expect(displayRoutineWhen("Last Friday", zh)).toBe("每月最后一个周五");
-  });
-
-  it("keeps opaque English schedules instead of collapsing them to daily 9:00 AM", () => {
+  it("keeps opaque schedules instead of collapsing them to daily 9:00 AM", () => {
     const identity = (source: string) => source;
     expect(displayRoutineWhen("Tue + Thu", identity)).toBe("Tue + Thu");
     expect(displayRoutineWhen("Last Friday", identity)).toBe("Last Friday");
     expect(displayRoutineWhen("Cron 0 9 * * 5", identity)).toBe("Cron 0 9 * * 5");
-  });
-
-  it("localizes generated whenLabel schedules via describeTrigger components", () => {
-    const stored = whenLabel([defaultTrigger()]);
-    expect(stored).toBe("Every day at 9:00 AM");
-    expect(displayRoutineWhen(stored, zh)).toBe(
-      [
-        demoText("zh", "Every day"),
-        demoText("zh", "at {time}", { time: demoText("zh", "9:00 AM") }),
-      ]
-        .filter(Boolean)
-        .join(" "),
-    );
-  });
-});
-
-describe("describeTrigger", () => {
-  it("localizes the time token for timed schedules", () => {
-    const zh = (source: string, values?: Record<string, string | number>) =>
-      demoText("zh", source, values);
-    const { detail } = describeTrigger(defaultTrigger(), zh);
-    expect(detail).toContain(demoText("zh", "9:00 AM"));
-    expect(detail).not.toContain("9:00 AM");
   });
 });
 

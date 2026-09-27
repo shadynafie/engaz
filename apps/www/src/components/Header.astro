@@ -1,37 +1,21 @@
 ---
-import { getHomeCopy } from "../i18n/home";
-import type { HomeCopy } from "../i18n/home";
-import {
-  DEFAULT_LOCALE,
-  localeHashPath,
-  localeHomePath,
-} from "../i18n/locales";
-import type { Locale } from "../i18n/locales";
+import { HOME_COPY } from "../home-copy";
 import { DOCS_URL, GITHUB_URL } from "../site";
 import Button from "./Button.astro";
 import Logo from "./Logo.astro";
 
-type Props = {
-  locale?: Locale;
-  copy?: HomeCopy["nav"];
-  homeHref?: string;
-};
-
-const locale = Astro.props.locale ?? DEFAULT_LOCALE;
-const copy = Astro.props.copy ?? getHomeCopy(locale).nav;
-const homeHref = Astro.props.homeHref ?? localeHomePath(locale);
+const copy = HOME_COPY.nav;
 
 const NAV_LINKS = [
-  { href: localeHashPath(locale, "product"), label: copy.product },
-  { href: localeHashPath(locale, "team"), label: copy.bots },
-  { href: localeHashPath(locale, "selfhost"), label: copy.selfHost },
+  { href: "/#product", label: copy.product },
+  { href: "/#team", label: copy.bots },
+  { href: "/#selfhost", label: copy.selfHost },
 ];
-
 ---
 
 <header class="site-header">
   <div class="site-header__left">
-    <Logo href={homeHref} label={copy.home} />
+    <Logo href="/" label={copy.home} />
     <nav class="site-nav" aria-label={copy.primary}>
       {
         NAV_LINKS.map((link) => (

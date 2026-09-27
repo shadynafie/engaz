@@ -138,8 +138,7 @@ class Install:
         for service in required:
             state = states.get(service, {})
             health = state.get("Health", {}).get("Status")
-            if state.get("OOMKilled") or state.get("Error") or (
-                    not state.get("Running") and state.get("ExitCode", 0) not in (0, 143)):
+            if state.get("OOMKilled") or state.get("Error"):
                 problems.append(f"{names[service]}: stopped unexpectedly")
                 failed = True
             elif state.get("Restarting") or (state.get("Running") and health == "unhealthy"):

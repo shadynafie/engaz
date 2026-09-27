@@ -27,11 +27,12 @@ This baseline describes source and checks, not the safety of an existing install
 
 ## Order of work
 
-Installer usability follow-up (publication pending): commands no longer consume a
+Installer usability follow-up: commands no longer consume a
 piped installer's remaining instructions. Docker detection confirms readiness, and
 `engaz status` summarizes availability, browser address, release, and files;
 `--verbose` retains container diagnostics. Offline regression checks cover the
 piped completion instructions and running, starting, stopped, and failed states.
+The public fresh-installation journey still needs representative host verification.
 
 Current status: **2 verified; 1 in progress (1.1 and 1.2 verified; 1.3–1.4 verified on Linux; NAS gate pending); 3 verified; 4 verified; 5 in progress (web only; 5.1 and 5.2 verified, 5.3 in progress).** The remaining phase 1 acceptance check is an isolated representative NAS installation and recovery rehearsal. UI/UX and functionality can proceed with separate ownership. Each numbered task should be a small reviewable PR with the stated proof. Finish a phase gate before calling that phase shipped. Parallel design, security, and data reviews can run while implementation proceeds; keep file ownership distinct.
 

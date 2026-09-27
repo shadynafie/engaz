@@ -107,7 +107,7 @@ assert sys.stdin.read() == 'final setup instructions'
         for state in states.values():
             state["Running"] = False
         for service in ("web", "worker", "supervisor"):
-            states[service]["ExitCode"] = 143
+            states[service]["ExitCode"] = 1 if service in ("web", "worker") else 143
             states[service]["Health"] = {"Status": "unhealthy"}
         states["postgres"]["Health"]["Status"] = "unhealthy"
         self.assertIn("Engaz is stopped.\nRun engaz start", output())
@@ -121,7 +121,10 @@ assert sys.stdin.read() == 'final setup instructions'
         states["data-init"]["Running"] = False
         states["postgres"]["Running"] = False
         states["postgres"]["ExitCode"] = 1
+        self.assertIn("Engaz is stopped.", output())
+        states["postgres"]["OOMKilled"] = True
         self.assertIn("Database: stopped unexpectedly", output())
+        states["postgres"].pop("OOMKilled")
         states["postgres"]["ExitCode"] = 0
         states["data-init"]["ExitCode"] = 1
         self.assertIn("Initial setup: failed", output())

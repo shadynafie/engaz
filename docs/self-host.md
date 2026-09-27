@@ -35,6 +35,8 @@ Compose bot homes mount only their own subdirectory of the application data. Wit
 
 CI installs the published images anonymously with the commands below and waits for a healthy stack on amd64 and arm64 Linux after every main publish. Linux update and recovery are verified below; real NAS and desktop hosts remain unverified.
 
+[PR #39 candidate-image checks](https://github.com/shadynafie/engaz/actions/runs/36303880453) pass fresh LAN installation, protected owner setup, localhost sign-in, and backup/restore on amd64 and arm64 Linux. [Source checks](https://github.com/shadynafie/engaz/actions/runs/36303880543) also pass. This evidence covers the PR candidate; representative NAS and desktop-host acceptance remain pending.
+
 No clone or image build is needed. Run one command in a terminal:
 
 ```bash

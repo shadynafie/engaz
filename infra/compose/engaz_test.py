@@ -106,6 +106,10 @@ assert sys.stdin.read() == 'final setup instructions'
         self.assertIn("Workspace: not running", output())
         for state in states.values():
             state["Running"] = False
+        for service in ("web", "worker", "supervisor"):
+            states[service]["ExitCode"] = 143
+            states[service]["Health"] = {"Status": "unhealthy"}
+        states["postgres"]["Health"]["Status"] = "unhealthy"
         self.assertIn("Engaz is stopped.\nRun engaz start", output())
         states["postgres"]["Running"] = True
         self.assertIn("Engaz needs attention.", output())

@@ -142,7 +142,7 @@ class Install:
                     not state.get("Running") and state.get("ExitCode", 0) not in (0, 143)):
                 problems.append(f"{names[service]}: stopped unexpectedly")
                 failed = True
-            elif state.get("Restarting") or health == "unhealthy":
+            elif state.get("Restarting") or (state.get("Running") and health == "unhealthy"):
                 problems.append(f"{names[service]}: needs attention")
                 failed = True
             elif not state.get("Running"):

@@ -141,7 +141,7 @@ for command_name in curl openssl; do
 done
 
 python_ready() {
-  python3 -c 'import sys; sys.exit(sys.version_info < (3, 9))' >/dev/null 2>&1
+  python3 -c 'import sys; sys.exit(sys.version_info < (3, 9))' </dev/null >/dev/null 2>&1
 }
 
 # A new Mac has only a python3 placeholder until Apple's Command Line Tools are installed.
@@ -164,7 +164,7 @@ fi
 
 # Docker Desktop and its Mac alternatives provide Docker only while their app runs.
 docker_ready() {
-  command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1
+  command -v docker >/dev/null 2>&1 && docker info </dev/null >/dev/null 2>&1
 }
 
 # Docker Desktop for Mac puts its command-line tools on PATH only for new terminals.
@@ -205,7 +205,7 @@ start_docker_app() {
       elif command -v colima >/dev/null 2>&1; then
         app=Colima
         say "🐳" "Starting Colima."
-        colima start >&2 || return 1
+        colima start </dev/null >&2 || return 1
       else
         return 1
       fi
@@ -237,12 +237,12 @@ install_docker_desktop_mac() {
     || fail "Docker is required. Install Docker Desktop from https://docs.docker.com/desktop/setup/install/mac-install/, open it once, then run this command again."
   say "⬇️ " "Downloading Docker Desktop."
   temporary_file=$(mktemp "${TMPDIR:-/tmp}/engaz-docker.XXXXXX")
-  curl -fL --proto '=https' --progress-bar "$url" -o "$temporary_file" \
+  curl -fL --proto '=https' --progress-bar "$url" -o "$temporary_file" </dev/null \
     || fail "could not download Docker Desktop."
   mount_point=$(mktemp -d "${TMPDIR:-/tmp}/engaz-docker-mount.XXXXXX")
   hdiutil attach -nobrowse -readonly -quiet -mountpoint "$mount_point" "$temporary_file" \
     || fail "could not open the Docker Desktop download."
-  say "🔑" "Enter your Mac password to install Docker Desktop."
+  say "🔑" "Installing Docker Desktop. Enter your Mac password."
   if ! sudo "$mount_point/Docker.app/Contents/MacOS/install" --accept-license --user="$(id -un)" <&3; then
     hdiutil detach -quiet "$mount_point" || true
     fail "Docker Desktop installation failed."
@@ -271,19 +271,20 @@ install_docker() {
       [[ "$interactive" == true ]] || fail "Docker is required. Run the command above, then run this installer again."
       confirm "Install Docker now?" \
         || fail "Docker is required. Run the command above, then run this installer again."
+      say "🐳" "Installing Docker."
       if [[ "$install_command" == "sudo pacman "* ]]; then
         # pacman asks its own questions; answer them from the terminal, not the piped script.
         sudo pacman -Syu --needed docker docker-compose <&3 || fail "Docker installation failed."
       else
         temporary_file=$(mktemp)
-        curl -fsSL --proto '=https' https://get.docker.com -o "$temporary_file" \
+        curl -fsSL --proto '=https' https://get.docker.com -o "$temporary_file" </dev/null \
           || fail "could not download Docker's install script."
-        sudo sh "$temporary_file" || fail "Docker installation failed."
+        sudo sh "$temporary_file" </dev/null || fail "Docker installation failed."
         rm -f -- "$temporary_file"
         temporary_file=""
       fi
       if command -v systemctl >/dev/null 2>&1; then
-        sudo systemctl enable --now docker >/dev/null 2>&1 || true
+        sudo systemctl enable --now docker </dev/null >/dev/null 2>&1 || true
       fi
       ;;
     macos)
@@ -305,7 +306,7 @@ install_docker() {
 # root-equivalent, so use sudo for this run rather than changing group membership.
 use_docker() {
   local sudo_args=(-n)
-  docker info >/dev/null 2>&1 && return 0
+  docker info </dev/null >/dev/null 2>&1 && return 0
   if [[ "$platform" == macos || "$platform" == wsl ]]; then
     start_docker_app && return 0
     if [[ "$platform" == wsl && -f "$WINDOWS_DOCKER_DESKTOP" ]]; then
@@ -315,7 +316,7 @@ use_docker() {
   fi
   if [[ "$platform" == linux ]] && command -v sudo >/dev/null 2>&1; then
     [[ "$interactive" == true ]] && sudo_args=()
-    if sudo ${sudo_args[@]+"${sudo_args[@]}"} docker info >/dev/null 2>&1; then
+    if sudo ${sudo_args[@]+"${sudo_args[@]}"} docker info </dev/null >/dev/null 2>&1; then
       echo "Using sudo for Docker. To use Docker without sudo later: sudo usermod -aG docker $(id -un)"
       docker() { sudo docker "$@"; }
       export ENGAZ_DOCKER_SUDO=1
@@ -334,8 +335,11 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 if [[ "$prepare_only" != true ]]; then
   use_docker
+  say "✅" "Docker is installed and running."
+else
+  say "✅" "Docker is installed."
 fi
-docker compose version >/dev/null 2>&1 \
+docker compose version </dev/null >/dev/null 2>&1 \
   || fail "the Docker Compose plugin is required. Install Docker Desktop, or the docker-compose-plugin package from Docker's repository."
 
 # Some vendor Compose builds advertise JSON but emit YAML. Check the capabilities
@@ -357,7 +361,7 @@ fi
 # The data-dir Compose file uses !override and !reset, added in Compose 2.24.
 compose_supports_data_dir() {
   local version major minor
-  version=$(docker compose version --short 2>/dev/null || true)
+  version=$(docker compose version --short </dev/null 2>/dev/null || true)
   version="${version#v}"
   major="${version%%.*}"
   minor="${version#*.}"
@@ -519,7 +523,7 @@ try:
     sys.exit(1)
 except (ValueError, KeyError, StopIteration, OSError, subprocess.CalledProcessError):
     sys.exit(2)
-' "${compose_args[@]}"; then
+' "${compose_args[@]}" </dev/null; then
     return 0
   else
     code=$?
@@ -540,9 +544,9 @@ if [[ "$prepare_only" != true && -f "$ENV_FILE" ]] \
   [[ "$pull_never" != true ]] || fail "use engaz start to start an existing installation with local images; updates require a published release."
   step "🔄" "Engaz is already installed in $PWD. Updating it to the latest release; a backup is made first."
   if [[ -n "$RELEASE_VERSION" ]]; then
-    exec python3 "$PWD/engaz" --dir "$PWD" update "$RELEASE_VERSION"
+    exec python3 "$PWD/engaz" --dir "$PWD" update "$RELEASE_VERSION" </dev/null
   fi
-  exec python3 "$PWD/engaz" --dir "$PWD" update
+  exec python3 "$PWD/engaz" --dir "$PWD" update </dev/null
 fi
 
 # Optional proxy knobs from an existing .env (operators often set them there for
@@ -648,14 +652,14 @@ curl_download() {
   local attempt
   local max_attempts=3
 
-  if curl --help all 2>/dev/null | grep -q -- '--retry-all-errors'; then
-    curl -fsSL --proto-redir =https --retry 3 --retry-delay 2 --retry-all-errors "$url" -o "$out"
+  if curl --help all </dev/null 2>/dev/null | grep -q -- '--retry-all-errors'; then
+    curl -fsSL --proto-redir =https --retry 3 --retry-delay 2 --retry-all-errors "$url" -o "$out" </dev/null
     return $?
   fi
 
   attempt=1
   while [[ "$attempt" -le "$max_attempts" ]]; do
-    if curl -fsSL --proto-redir =https "$url" -o "$out"; then
+    if curl -fsSL --proto-redir =https "$url" -o "$out" </dev/null; then
       return 0
     fi
     if [[ "$attempt" -eq "$max_attempts" ]]; then
@@ -928,7 +932,7 @@ check_image_space() {
   local root available_kb
   [[ "$pull_never" != true ]] || return 0
   [[ -z "$(docker image ls -q 'ghcr.io/shadynafie/engaz/app' 2>/dev/null)" ]] || return 0
-  root=$(docker info --format '{{.DockerRootDir}}' 2>/dev/null) || return 0
+  root=$(docker info --format '{{.DockerRootDir}}' </dev/null 2>/dev/null) || return 0
   # Docker Desktop keeps its storage inside its own VM, which it sizes itself.
   [[ -n "$root" && -d "$root" ]] || return 0
   available_kb=$(df -Pk "$root" 2>/dev/null | awk 'NR == 2 { print $4 }')
@@ -941,7 +945,7 @@ check_image_space() {
 # Limits are not reservations, but a small Docker Desktop VM stops agents mid-task.
 check_docker_memory() {
   local bytes
-  bytes=$(docker info --format '{{.MemTotal}}' 2>/dev/null) || return 0
+  bytes=$(docker info --format '{{.MemTotal}}' </dev/null 2>/dev/null) || return 0
   [[ "$bytes" =~ ^[0-9]+$ ]] || return 0
   if ((bytes < 3500 * 1024 * 1024)); then
     say "⚠️ " "Docker has less than 4 GB of memory, so agents may run slowly or stop. In Docker Desktop, raise it under Settings > Resources."
@@ -956,7 +960,7 @@ if [[ "$pull_never" == true ]]; then
   echo "Skipping image pull (--pull-never / --offline); images must already be on this Docker host."
 else
   step "⬇️ " "Downloading Engaz. The first download takes a few minutes."
-  if ! docker compose "${compose_args[@]}" pull; then
+  if ! docker compose "${compose_args[@]}" pull </dev/null; then
     fail "could not pull images. Shell HTTP_PROXY often does not reach the Docker daemon. Configure daemon proxy/registry-mirrors, set image env vars to a reachable registry, or preload images then compose up with --pull never."
   fi
 fi
@@ -966,7 +970,7 @@ url="http://127.0.0.1:$(env_value ENGAZ_WEB_PORT 7791)"
 url_answers() {
   local attempt
   for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
-    curl -fsS --noproxy '*' --max-time 5 -o /dev/null "$url/" 2>/dev/null && return 0
+    curl -fsS --noproxy '*' --max-time 5 -o /dev/null "$url/" </dev/null 2>/dev/null && return 0
     sleep 1
   done
   return 1
@@ -982,12 +986,12 @@ open_browser() {
 }
 
 step "🚀" "Starting Engaz. This can take a couple of minutes."
-python3 "$PWD/engaz" --dir "$PWD" start
+python3 "$PWD/engaz" --dir "$PWD" start </dev/null
 canonical_url=$(env_value WEB_ORIGIN "$url")
 local_url="http://localhost:$(env_value ENGAZ_WEB_PORT 7791)"
 ready=false
 url_answers && ready=true
-python3 "$PWD/engaz" --dir "$PWD" status
+python3 "$PWD/engaz" --dir "$PWD" status </dev/null
 
 # The link comes last so it is what the reader sees.
 echo

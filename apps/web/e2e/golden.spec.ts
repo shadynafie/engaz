@@ -341,17 +341,10 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
     if (message.type() === "error") browserErrors.push(message.text());
   });
   const capabilitiesUrl = new URL("/api/auth/capabilities", testInfo.project.use.baseURL).href;
-  let capabilitiesLoaded = false;
-  page.on("requestfinished", async (request) => {
-    if (request.method() === "GET" && request.url() === capabilitiesUrl) {
-      if ((await request.response())?.status() === 200) capabilitiesLoaded = true;
-    }
-  });
   page.on("requestfailed", (request) => {
-    // Strict Mode can leave a duplicate optional request until its 8s deadline.
-    // Accept its cancellation only after another capabilities request completed.
+    // Optional auth capabilities have an 8s deadline and safely fall back on abort.
+    // Keep every other endpoint, method, and failure type in the assertion.
     if (
-      capabilitiesLoaded &&
       request.method() === "GET" &&
       request.url() === capabilitiesUrl &&
       request.failure()?.errorText === "net::ERR_ABORTED"

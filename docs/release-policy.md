@@ -29,9 +29,9 @@ Use `vMAJOR.MINOR.PATCH`, starting from the latest published version:
 - **Major:** breaking changes after v1.0. Release **v1.0.0** only when the v1
   acceptance gates in `roadmap.md` are met.
 
-Reset lower components when increasing a higher one. Documentation-only commits
-do not require a product release. The monorepo package versions are not the
-installation's release authority; the published GitHub release is.
+Reset lower components when increasing a higher one. Documentation-only and
+test-only commits do not require a product release. The monorepo package versions
+are not the installation's release authority; the published GitHub release is.
 
 Never move or reuse a released Git tag, replace published installer assets, or
 rebuild a released version. Corrections get a new patch version. Source-addressed

@@ -340,7 +340,17 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
   page.on("console", (message) => {
     if (message.type() === "error") browserErrors.push(message.text());
   });
+  const capabilitiesUrl = new URL("/api/auth/capabilities", testInfo.project.use.baseURL).href;
   page.on("requestfailed", (request) => {
+    // Optional auth capabilities have an 8s deadline and safely fall back on abort.
+    // Keep every other endpoint, method, and failure type in the assertion.
+    if (
+      request.method() === "GET" &&
+      request.url() === capabilitiesUrl &&
+      request.failure()?.errorText === "net::ERR_ABORTED"
+    ) {
+      return;
+    }
     failedRequests.push(
       `${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
     );

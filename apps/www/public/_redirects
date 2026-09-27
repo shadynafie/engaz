@@ -1,6 +1,6 @@
-# Short install commands. The scripts stay in the repository, so main is always what runs.
-/install.sh https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh 302
-/install.ps1 https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install.ps1 302
+# Fresh installs and engaz update select the same published stable GitHub release.
+/install.sh https://github.com/shadynafie/engaz/releases/latest/download/install-images.sh 302
+/install.ps1 https://github.com/shadynafie/engaz/releases/latest/download/install.ps1 302
 
 # The site is English only; earlier translated pages go home.
 /de / 301

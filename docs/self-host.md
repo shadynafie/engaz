@@ -48,16 +48,18 @@ The installer:
    Windows, install Docker Desktop first (on Windows, run the command inside WSL).
 2. Asks where to keep data. Press Enter for Docker's own storage, or type a folder path; see
    [Keep data in a folder you choose](#keep-data-in-a-folder-you-choose).
-3. Downloads `docker-compose.images.yml` and `.env.images.example` into `~/engaz` (or the data
+3. Downloads Compose files, `.env.images.example`, and the `engaz` command into `~/engaz` (or the data
    folder), creates `.env` with random secrets, pulls the images, and waits until Engaz is healthy.
+   It links the command into `~/.local/bin`; follow the printed PATH instruction if needed.
 4. Prints the address to open, `http://127.0.0.1:7791`, where the first account completes setup.
 
-Run the same command again to update. It finds the existing installation, keeps its `.env`, and
-refuses to create a second installation on the same Docker host. Without a keyboard (for example,
+Use `engaz update` for subsequent updates. Rerunning the installer hands an existing installation
+to that command before replacing any files; an older installation without the command fails with
+enrollment instructions instead of updating unsafely. Without a keyboard (for example,
 in automation), it asks nothing: it uses Docker storage unless `--data-dir` is given, and stops if
 Docker is missing. Flags go after `bash -s --`, for example `| bash -s -- --data-dir=/volume1/engaz`.
 
-Requires the Compose plugin, curl, and OpenSSL; Docker Engine 26+ (API 1.45+) is needed for bot home
+Requires Python 3.9 or newer (standard library only), the Compose plugin, curl, and OpenSSL; Docker Engine 26+ (API 1.45+) is needed for bot home
 volume subpaths. If Docker was just installed, the installer uses `sudo` for Docker commands during
 that run instead of changing group membership. For
 the installer secret list, non-reuse rules, and recovery, see
@@ -78,12 +80,12 @@ Typing the same path at the installer's data question does the same. The folder 
 2.24 or newer, the web and API ports are free, the folder is writable, and it has at least 10 GB
 free. It then writes `.env` (mode 600), `postgres/`, and `appdata/` there, and records
 `ENGAZ_DATA_DIR` and `COMPOSE_FILE` in `.env`, so `docker compose` commands work from that folder.
-Back up the whole folder: the database and agent files are unreadable without the original `.env`
-secrets.
+Use `engaz backup` to capture a consistent database and agent files with the original `.env`
+secrets; copying a running Postgres directory is not a portable recovery backup.
 
 The installer refuses a folder that holds other files, and refuses when this Docker host already
 has an Engaz installation in named volumes. Moving an existing installation into a folder needs a
-migration procedure that does not exist yet. Container images still live in Docker's own storage.
+[backup/restore migration](#move-an-installation-or-change-its-storage). Container images still live in Docker's own storage.
 
 `SANDBOX_PROVIDER` defaults to `docker`. The images Compose file runs a sandbox supervisor
 (from the app image, on the internal network only) and pulls `ghcr.io/shadynafie/engaz/computer`.
@@ -118,6 +120,129 @@ the local Docker computer. For in-stack Caddy plus remote E2B computers, use the
 [production Compose](#public-single-vm-deployment) path and `infra/compose/Caddyfile.prod`
 instead of this host proxy.
 
+### Manage an image installation
+
+These commands are implemented in source and [published-image recovery passes on amd64 and arm64](https://github.com/shadynafie/engaz/actions/runs/36273299833).
+A new stable release and a real NAS rehearsal are still required before phases 1.3–1.4 are verified.
+
+```bash
+engaz status
+engaz stop
+engaz start
+engaz update
+```
+
+The command follows its installed symlink to the original installation folder. For an explicit
+installation use `engaz --dir /absolute/path/to/installation status`. `stop` stops services and
+that installation's local bot computers without deleting data; `start` uses already downloaded
+images and waits for healthy services. Do not run `docker compose down -v`. The first command
+records `.engaz-install.json`, including the Compose project and storage paths; changing these or
+moving the folder is refused rather than switching to empty storage. `ENGAZ_BIN_DIR` can select
+another absolute command directory during installation; an existing unrelated command is never
+replaced.
+
+`engaz update` resolves the newest stable Git tag (`vX.Y.Z`), downloads its exact source
+commit's Compose files and CLI, and pulls the app and computer images for that full commit before
+downtime. To select a reviewed release explicitly, use `engaz update vX.Y.Z`. Keep your original
+`.env`; do not regenerate its encryption keys. Release tags already exist, including `v0.1.6`;
+that does not prove any given release includes or has passed these new recovery checks.
+
+The update makes a recovery backup, stops application services and bot computers, and starts the
+new stack; API startup runs database migrations. A failure after migration leaves application
+services stopped and prints the backup location. Recover by restoring that backup into a new
+folder. Running an older image against a database that has already migrated is not a database
+rollback.
+
+#### Back up an image installation
+
+```bash
+engaz backup
+# Or choose a new backup directory:
+engaz backup /absolute/path/to/backups/before-update
+```
+
+Backups default to a unique directory under the installation's `backups/`. Plan downtime: the
+command stops web, API, worker, supervisor, and associated local Docker bot computers while it
+captures Postgres and appdata, then resumes services that were running. Postgres must be running.
+Finish external jobs before backup; this cannot pause computers hosted by a remote provider.
+
+Each backup contains `database.dump`, `appdata.tar`, the original `.env`, Compose files, image
+pins, and a checksum manifest. Image pins keep restore on the captured versions; the images must
+remain in the local Docker cache or available from their registry. The backup directory is mode
+700 and files mode 600, but **it is unencrypted** and contains account data and credentials. Keep
+an encrypted copy off the host, retain its encryption key separately, and never commit a backup.
+Restore only backups you trust: checksums detect corruption, not a malicious replacement.
+
+The restore target must support Unix file ownership and permissions. Restore compares the extracted
+appdata against the archive with numeric owners before starting application services. macOS shared
+folders, including Colima virtiofs mounts, can silently ignore ownership changes and fail this check;
+use native Linux storage for recovery instead of accepting altered metadata.
+
+#### Restore an image installation
+
+Use a separate clean Docker host, a new empty absolute host folder, and a Compose project name
+with no existing Docker resources. The host must have no Engaz computer containers (including
+stopped ones) or `engaz-computer-*` networks. Computer names use the agent IDs from the database;
+a restored database on the original Docker host could otherwise adopt its original computer and
+home directory. Restore refuses this runtime conflict before writing the target. Choose unused
+ports. Stop all existing Engaz application services on the target Docker host and run only one
+restore at a time; the CLI checks for a running API, worker, or supervisor before restore and again
+before startup. Install the same Docker/Python prerequisites on the recovery host, copy the trusted backup
+and the reviewed `engaz` executable there; the backup includes its matching data-dir template. No new owner account or fresh installation is needed.
+
+```bash
+/absolute/path/to/recovery-tools/engaz restore /absolute/path/to/backups/before-update \
+  --to /absolute/path/to/engaz-recovery --project engaz-recovery \
+  --web-port 8791 --api-port 8792
+/absolute/path/to/engaz-recovery/engaz status
+```
+
+Restore validates the checksums and archive paths, keeps the original encryption secrets, writes
+Postgres and appdata into the new folder, and starts the captured image versions. The source
+installation and backup are unchanged; concurrent original and restored computers on one Docker
+host are not supported. If restore fails, its target services stop; inspect that
+isolated target before retrying into another empty folder.
+
+Open `http://127.0.0.1:8791` and verify owner sign-in, an existing agent file, and a saved connection
+that must decrypt its credential. For a local rehearsal, set the target's `BETTER_AUTH_URL`,
+`WEB_ORIGIN`, and `API_URL` to `http://127.0.0.1:8791` before browser verification, then run its
+`engaz stop` and `engaz start`. Restore preserves the original URL settings. For a replacement public installation, verify locally first, then
+point the existing HTTPS proxy to the target web port. Use the target's own `engaz` executable
+until you deliberately repoint the command symlink to it.
+
+#### Move an installation or change its storage
+
+Moving folders, changing a Compose project name, or converting named volumes to host folders uses
+the same backup/restore procedure. The default is a restore on a separate clean Docker host into
+a new empty folder and new project; restore always uses explicit host storage. For a same-host
+migration, take a backup, stop the source installation, and deliberately remove only its backed-up,
+ephemeral computer containers and `engaz-computer-*` networks after checking their ownership.
+Keep the original database, appdata, `.env`, and application images; the CLI never removes computer
+runtimes automatically. Until those runtimes are absent, restore refuses to proceed. Verify sign-in,
+agent files, and decrypted credentials before switching access. Keep the
+old folder, original `.env`, volumes, and images until recovery is accepted. If verification
+fails, stop the restored target and return access to the preserved original installation; for a
+same-host migration, dispose only the target's ephemeral computer runtimes before restarting the
+source, so source agents recreate their computers against their original homes.
+
+For an older published-image installation without `engaz`, download the CLI and data-dir template
+from a reviewed commit into its original folder, keeping its existing `.env` and Compose files:
+
+```bash
+cd /absolute/path/to/original-installation
+ENGAZ_COMMIT=replace-with-reviewed-full-commit
+curl -fsSL "https://raw.githubusercontent.com/shadynafie/engaz/$ENGAZ_COMMIT/infra/compose/engaz" -o engaz
+if [ ! -f docker-compose.data-dir.yml ]; then
+  curl -fsSL "https://raw.githubusercontent.com/shadynafie/engaz/$ENGAZ_COMMIT/infra/compose/docker-compose.data-dir.yml" -o docker-compose.data-dir.yml
+fi
+chmod +x engaz
+./engaz status
+./engaz backup
+```
+
+`status` checks configured mounts against existing containers before enrollment. If it refuses a mismatch, retain
+the original files and investigate instead of editing the recorded identity.
+
 ### Reach Engaz away from home (Cloudflare Tunnel)
 
 A [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
@@ -136,8 +261,8 @@ certificate; Engaz keeps listening only on `127.0.0.1:7791`.
      cloudflare/cloudflared:latest tunnel --no-autoupdate run --token <your-tunnel-token>
    ```
 
-4. In the Engaz folder's `.env`, set the address everywhere Engaz needs it, then run the install
-   command again. It keeps `.env` and restarts Engaz with the new settings.
+4. In the Engaz folder's `.env`, set the address everywhere Engaz needs it, then run `engaz start`
+   to recreate services with the new settings.
 
    ```env
    BETTER_AUTH_URL=https://engaz.example.com
@@ -376,6 +501,8 @@ For provider configuration and health checks, see the [provider setup guide](./s
 
 ## Backup
 
+For published-image installations, use [engaz backup](#back-up-an-image-installation). The script below is for source development.
+
 ```bash
 ./scripts/backup.sh
 ```
@@ -489,6 +616,8 @@ then run `systemctl daemon-reload`.
 
 ## Restore
 
+For published-image installations, use [engaz restore](#restore-an-image-installation).
+
 For backups created by `scripts/backup.sh`, use an empty `engaz` database in the development
 Compose stack, with application services stopped. The SQL import runs in one transaction and
 stops on the first error, including conflicts with existing tables. Files are restored and
@@ -500,6 +629,8 @@ production snapshot's custom-format `engaz.dump` or `appdata.tgz`.
 ```
 
 ## Upgrade
+
+For the no-checkout image installation, use [engaz update](#manage-an-image-installation). The commands below apply to the separate production Compose/source layout.
 
 A Compose deployment on a published release tag upgrades by moving that tag:
 
@@ -520,8 +651,8 @@ GIT_SHA=$(git rev-parse HEAD) docker compose --env-file .env -f infra/compose/do
 
 `up --wait` does not report success until the new API is healthy and the worker and web containers
 are running. The API's start command runs `prisma migrate deploy` before it serves, so migration
-failure keeps health red. A failed CLI recreate does not auto-roll back; recover with the previous
-`ENGAZ_IMAGE_TAG` (or rebuild `local`) and `up -d --wait --pull never`.
+failure keeps health red. A failed recreate does not reverse database migrations. Restore a
+consistent backup before returning to an older image unless its schema compatibility has been verified.
 
 The updater sidecar has its own image and tag so an update never recreates the process performing
 it. Move it deliberately by setting `ENGAZ_UPDATER_IMAGE_TAG` to the full `sha-<commit>` tag, then
@@ -650,7 +781,8 @@ Updates and rollbacks run one at a time. A failed pull leaves running services a
 pin and attempts to redeploy the cached previous image. A failed fork build also restores the
 pre-update branch and commit (including when checkout succeeded but merge did not) so a later
 manual `--build` cannot deploy the rejected or unintended revision. Database migrations are not
-reversed. The sidecar never recreates itself, never touches Postgres or Caddy, and never runs
+reversed. A sidecar image rollback is not a database rollback; use a consistent backup if the old image
+cannot use the migrated schema. The sidecar never recreates itself, never touches Postgres or Caddy, and never runs
 migrations — that ordering belongs to the API start command.
 
 Only `https://` and `ssh://` git remotes are accepted. Merges are fast-forward only. A dirty or

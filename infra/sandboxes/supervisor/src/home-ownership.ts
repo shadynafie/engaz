@@ -36,7 +36,7 @@ async function assertFdBeneathRoot(handle: FileHandle, rootPath: string): Promis
 
 function writabilityError(target: string, root: string, uid: number, gid: number): Error {
   return new Error(
-    `computer home entry ${target} is not writable by uid ${uid}; run sudo chown -R ${uid}:${gid} ${JSON.stringify(root)} or use Compose data-init`,
+    `computer home entry ${target} is not writable by uid ${uid}; run sudo chown -R ${uid}:${gid} ${JSON.stringify(root)}`,
   );
 }
 

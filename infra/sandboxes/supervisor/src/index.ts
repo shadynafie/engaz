@@ -173,7 +173,7 @@ app.post("/computers", async (c) => {
       const hostGid = process.getgid?.();
       // The API normally creates the home. A non-root standalone supervisor may
       // do so as the same user, but a root supervisor must never create or chown
-      // user-controlled paths at runtime; Compose data-init handles legacy data.
+      // user-controlled paths at runtime; legacy ownership needs an explicit repair.
       if (hostUid !== 0) await mkdir(serviceHomePath, { recursive: true });
       const storage = computerHomeStorage(serviceHomePath, dataDir, runtimeInfo);
       if (storage.homeVolume) {

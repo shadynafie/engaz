@@ -33,6 +33,36 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  release-tags:
+    name: Verify ${{ matrix.version }} image tags
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ["1.2.3", "1.2.3-rc.1"]
+    steps:
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ghcr.io/example/engaz/app
+          flavor: latest=false
+          tags: |
+            type=semver,prefix=v,pattern={{version}},value=${{ matrix.version }}
+            type=semver,prefix=v,pattern={{major}}.{{minor}},value=${{ matrix.version }}
+            type=raw,value=latest,enable=${{ !contains(matrix.version, '-') }}
+      - name: Check stable and prerelease tags
+        env:
+          VERSION: ${{ matrix.version }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          grep -Fqx "ghcr.io/example/engaz/app:v$VERSION" <<< "$TAGS"
+          if [[ "$VERSION" == *-* ]]; then
+            [[ "$(wc -l <<< "$TAGS")" -eq 1 ]]
+          else
+            grep -Fqx 'ghcr.io/example/engaz/app:v1.2' <<< "$TAGS"
+            grep -Fqx 'ghcr.io/example/engaz/app:latest' <<< "$TAGS"
+          fi
+
   installer-smoke:
     name: Compose installer smokes
     if: github.event_name == 'pull_request'
@@ -92,6 +122,7 @@ jobs:
   build:
     name: Build ${{ matrix.name }} ${{ matrix.arch }}
     if: github.event_name != 'pull_request'
+    needs: release-tags
     # Each architecture builds natively on its own runner and pushes by digest only.
     # No QEMU: GitHub hosts native arm64 runners, and emulated arm64 took hours for the
     # desktop-sized computer image. See docs/self-host.md (Published images and tags).
@@ -203,9 +234,12 @@ jobs:
         with:
           # A fork can publish only to its own namespace; no credential can redirect this value.
           images: ghcr.io/${{ github.repository }}/${{ matrix.name }}
+          # Keep the stable-only policy below authoritative instead of implicit semver promotion.
+          flavor: latest=false
           tags: |
-            type=semver,pattern=v{{version}}
-            type=semver,pattern=v{{major}}.{{minor}}
+            # A separate prefix also survives metadata-action's prerelease pattern handling.
+            type=semver,prefix=v,pattern={{version}}
+            type=semver,prefix=v,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
             type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
             # Stable releases only: a hyphen marks a prerelease (v1.0.0-rc.1) that must not move latest.

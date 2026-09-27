@@ -60,7 +60,12 @@ case "${1:-}" in
     fi
     exit 0
     ;;
-  volume) printf '%s\n' "${STUB_DOCKER_VOLUMES-}"; exit 0 ;;
+  volume)
+    if [[ "${2:-}" == inspect ]]; then
+      [[ "${STUB_EXISTING_VOLUME-}" == "${3:-}" ]]
+      exit $?
+    fi
+    printf '%s\n' "${STUB_EXISTING_VOLUME-${STUB_DOCKER_VOLUMES-}}"; exit 0 ;;
   *) echo "STUB: unexpected docker $*" >&2; exit 1 ;;
 esac
 
@@ -105,6 +110,20 @@ case "$verb" in
     fi
     ;;
   config)
+    if [[ " $* " == *" --format json "* ]]; then
+      if [[ "${STUB_EXPECT_ENV_CLEAN-}" == 1 ]]; then
+        [[ -z "${ENGAZ_DATA_DIR+x}" && -z "${COMPOSE_PROJECT_NAME+x}" && -z "${POSTGRES_PASSWORD+x}" ]] \
+          || { echo 'STUB: ambient Compose override survived' >&2; exit 1; }
+      fi
+      if [[ -n "${STUB_COMPOSE_JSON-}" ]]; then
+        printf '%s\n' "$STUB_COMPOSE_JSON"
+      else
+        cat <<'JSON'
+{"services":{"api":{"volumes":[{"type":"volume","source":"appdata","target":"/data"}]},"postgres":{"volumes":[{"type":"volume","source":"pgdata","target":"/var/lib/postgresql/data"}]}},"volumes":{"appdata":{"name":"engaz_appdata"},"pgdata":{"name":"engaz_pgdata"}}}
+JSON
+      fi
+      exit 0
+    fi
     cat <<'EOF'
 POSTGRES_PASSWORD=test-postgres
 BETTER_AUTH_SECRET=test-auth-secret
@@ -145,7 +164,11 @@ for a in "$@"; do
   prev="$a"
 done
 if [[ -n "$out" ]]; then
-  printf 'stub-download\n' > "$out"
+  if [[ "$*" == *"/engaz "* ]]; then
+    cp "${STUB_ENGAZ_SOURCE:?}" "$out"
+  else
+    printf 'stub-download\n' > "$out"
+  fi
   exit 0
 fi
 exit 1
@@ -162,7 +185,17 @@ setup_work() {
   local work="$1"
   mkdir -p "$work/cwd"
   write_stubs "$work/bin"
+  cat > "$work/engaz-stub" <<'STUB'
+#!/usr/bin/env python3
+import pathlib, sys
+root = pathlib.Path(sys.argv[sys.argv.index("--dir") + 1])
+command = sys.argv[-1]
+(root / ".engaz-install.json").write_text('{"test": true}\n')
+print("ENGAZ_COMMAND=" + command)
+STUB
+  cp "$work/engaz-stub" "$work/cwd/engaz"
   : > "$work/cwd/docker-compose.images.yml"
+  : > "$work/cwd/docker-compose.data-dir.yml"
   : > "$work/cwd/.env.images.example"
   cat > "$work/cwd/.env" <<'EOF'
 POSTGRES_PASSWORD=test-postgres
@@ -180,7 +213,8 @@ run_install() {
   shift
   (
     export STUB_DOCKER_LOG="$work/docker.log"
-    export STUB_CURL_LOG="$work/curl.log"
+    export STUB_CURL_LOG="$work/curl.log" STUB_ENGAZ_SOURCE="$work/engaz-stub"
+    export ENGAZ_BIN_DIR="$work/commands"
     export PATH="$work/bin:$PATH"
     export ENGAZ_NONINTERACTIVE="${ENGAZ_NONINTERACTIVE-1}"
     cd "$work/cwd"
@@ -215,6 +249,37 @@ if grep -v -F -e 'http://127.0.0.1:' "$tmp/offline/curl.log" | grep -q .; then
 fi
 has_compose_pull "$tmp/offline" && fail "--offline should not run compose pull"
 has_up_pull_never "$tmp/offline" || fail "--offline should pass --pull never to compose up: $(cat "$tmp/offline/docker.log")"
+[[ -x "$tmp/offline/cwd/engaz" ]] || fail "installer must make engaz executable"
+[[ "$(readlink "$tmp/offline/commands/engaz")" == "$(cd "$tmp/offline/cwd" && pwd)/engaz" ]] \
+  || fail "installer must link the installed command"
+[[ "$offline_out" == *'Add Engaz to your PATH:'* ]] || fail "installer must explain PATH setup"
+set +e
+prepare_out="$(run_install "$tmp/offline" --prepare-only --offline 2>&1)"
+prepare_code=$?
+set -e
+[[ "$prepare_code" -ne 0 && "$prepare_out" == *'already enrolled'* ]] \
+  || fail "prepare-only must not rewrite an enrolled installation"
+
+# Command placement is explicit and must not replace another program.
+setup_work "$tmp/command-conflict"
+mkdir -p "$tmp/command-conflict/commands"
+printf 'foreign-command\n' > "$tmp/command-conflict/commands/engaz"
+set +e
+conflict_out="$(run_install "$tmp/command-conflict" --offline 2>&1)"
+conflict_code=$?
+set -e
+[[ "$conflict_code" -ne 0 && "$conflict_out" == *'already exists'* ]] || fail "existing command must be refused"
+[[ "$(cat "$tmp/command-conflict/commands/engaz")" == foreign-command ]] || fail "installer replaced another command"
+
+setup_work "$tmp/python-version"
+printf '#!/usr/bin/env bash\nexit 1\n' > "$tmp/python-version/bin/python3"
+chmod +x "$tmp/python-version/bin/python3"
+set +e
+python_out="$(run_install "$tmp/python-version" --offline 2>&1)"
+python_code=$?
+set -e
+[[ "$python_code" -ne 0 && "$python_out" == *'Python 3.9 or newer is required'* ]] \
+  || fail "unsupported Python needs an actionable error"
 
 # --pull-never is accepted and skips pull (may still download Compose files).
 setup_work "$tmp/pull-never"
@@ -278,6 +343,8 @@ expect_data_failure() {
 }
 
 setup_work "$tmp/data"
+mkdir -p "$tmp/data/store"
+cp "$tmp/data/engaz-stub" "$tmp/data/store/engaz"
 data_install "$tmp/data" "--data-dir=$tmp/data/store/"
 [[ "$data_code" -eq 0 ]] || fail "--data-dir exited $data_code: $data_out"
 store="$(cd "$tmp/data/store" && pwd -P)"
@@ -292,14 +359,14 @@ grep -F -e 'up -d' "$tmp/data/docker.log" | grep -F -e '-f docker-compose.data-d
 
 data_install "$tmp/data" "--data-dir=$store"
 [[ "$data_code" -eq 0 ]] || fail "--data-dir rerun exited $data_code: $data_out"
-[[ "$data_out" == *"Keeping existing .env."* ]] || fail "--data-dir rerun should keep .env"
+[[ "$data_out" == *"ENGAZ_COMMAND=update"* ]] || fail "--data-dir rerun should use engaz update"
 
 # Rerunning from inside the folder without the flag must not fall back to named volumes.
 : > "$tmp/data/docker.log"
 set +e
 data_out="$(
   export STUB_DOCKER_LOG="$tmp/data/docker.log" STUB_CURL_LOG="$tmp/data/curl.log"
-  export PATH="$tmp/data/bin:$PATH"
+  export PATH="$tmp/data/bin:$PATH" ENGAZ_BIN_DIR="$tmp/data/commands" STUB_ENGAZ_SOURCE="$tmp/data/engaz-stub"
   export ENGAZ_NONINTERACTIVE=1
   cd "$store" && bash "$src" 2>&1
 )"
@@ -307,12 +374,41 @@ data_code=$?
 set -e
 [[ "$data_code" -eq 0 ]] || fail "rerun inside the data folder exited $data_code: $data_out"
 [[ "$data_out" == *"Keeping Engaz data in $store"* ]] || fail "rerun inside the folder lost the data dir: $data_out"
-grep -F -e 'up -d' "$tmp/data/docker.log" | grep -F -e '-f docker-compose.data-dir.yml' >/dev/null \
-  || fail "rerun inside the folder should keep the data-dir Compose file"
+[[ "$data_out" == *"ENGAZ_COMMAND=update"* ]] || fail "rerun inside the folder should use engaz update"
+grep -q 'VERB=up' "$tmp/data/docker.log" && fail "rerun must not directly start Compose"
+[[ "$(cat "$store/docker-compose.images.yml")" == stub-download ]] || fail "update handoff changed Compose files"
 
 setup_work "$tmp/relative"
 data_install "$tmp/relative" --data-dir=engaz-data
 expect_data_failure "--data-dir must be an absolute path."
+
+setup_work "$tmp/dotenv-path"
+for bad_path in "$tmp/store-\$HOME" "$tmp/store-#comment" "$tmp/store-trailing "; do
+  data_install "$tmp/dotenv-path" "--data-dir=$bad_path"
+  expect_data_failure "dotenv interpolation characters or trailing whitespace"
+  [[ ! -e "$bad_path/.env" ]] || fail "unsafe data path received secrets"
+done
+
+# Removed containers do not make retained named or bind storage a fresh install.
+setup_work "$tmp/retained-volume"
+rm "$tmp/retained-volume/cwd/engaz"
+export STUB_EXISTING_VOLUME=custom_pgdata
+export STUB_COMPOSE_JSON='{"services":{"api":{"volumes":[{"type":"volume","source":"appdata","target":"/data"}]},"postgres":{"volumes":[{"type":"volume","source":"pgdata","target":"/var/lib/postgresql/data"}]}},"volumes":{"appdata":{"name":"custom_appdata"},"pgdata":{"name":"custom_pgdata"}}}'
+export STUB_EXPECT_ENV_CLEAN=1 ENGAZ_DATA_DIR=/wrong/path COMPOSE_PROJECT_NAME=wrong POSTGRES_PASSWORD=ambient
+data_install "$tmp/retained-volume" --offline
+expect_data_failure "existing installation without the engaz command"
+[[ ! -s "$tmp/retained-volume/curl.log" ]] || fail "retained volume refusal must precede downloads"
+unset STUB_EXISTING_VOLUME STUB_COMPOSE_JSON STUB_EXPECT_ENV_CLEAN ENGAZ_DATA_DIR COMPOSE_PROJECT_NAME POSTGRES_PASSWORD
+
+setup_work "$tmp/retained-bind"
+rm "$tmp/retained-bind/cwd/engaz"
+mkdir -p "$tmp/retained-bind/home" "$tmp/retained-bind/database"
+printf 'agent-file\n' > "$tmp/retained-bind/home/retained"
+export STUB_COMPOSE_JSON="$(python3 -c 'import json,sys; print(json.dumps({"services":{"api":{"volumes":[{"type":"bind","source":sys.argv[1],"target":"/data"}]},"postgres":{"volumes":[{"type":"bind","source":sys.argv[2],"target":"/var/lib/postgresql/data"}]}}}))' "$tmp/retained-bind/home" "$tmp/retained-bind/database")"
+data_install "$tmp/retained-bind" --prepare-only --offline
+expect_data_failure "has existing data or containers"
+[[ ! -s "$tmp/retained-bind/curl.log" ]] || fail "retained bind refusal must precede downloads"
+unset STUB_COMPOSE_JSON
 
 setup_work "$tmp/foreign"
 mkdir -p "$tmp/foreign/store" && : > "$tmp/foreign/store/notes.txt"
@@ -399,12 +495,22 @@ grep -qxF "ENGAZ_DATA_DIR=$ask_store" "$ask_store/.env" || fail "typed ~/ folder
 setup_work "$tmp/update"
 mkdir -p "$tmp/update/installed"
 cp "$tmp/update/cwd/.env" "$tmp/update/installed/.env"
+cp "$tmp/update/engaz-stub" "$tmp/update/installed/engaz"
 rm "$tmp/update/cwd/.env"
 export STUB_DOCKER_PROJECT_DIR="$tmp/update/installed"
 data_install "$tmp/update"
 [[ "$data_code" -eq 0 ]] || fail "update from another folder exited $data_code: $data_out"
 [[ "$data_out" == *"Updating the Engaz installation in $tmp/update/installed"* ]] || fail "update did not find the installation: $data_out"
 [[ ! -e "$tmp/update/cwd/.env" ]] || fail "update must not create a second .env"
+[[ "$data_out" == *"ENGAZ_COMMAND=update"* ]] || fail "existing installation must use engaz update"
+[[ ! -e "$tmp/update/installed/docker-compose.images.yml" ]] || fail "handoff must not download Compose"
+rm "$tmp/update/installed/engaz"
+data_install "$tmp/update"
+expect_data_failure "existing installation without the engaz command"
+[[ ! -e "$tmp/update/installed/docker-compose.images.yml" ]] || fail "legacy refusal must preserve Compose"
+data_install "$tmp/update" --prepare-only
+expect_data_failure "has existing data or containers"
+[[ ! -e "$tmp/update/installed/docker-compose.images.yml" ]] || fail "legacy prepare refusal must preserve Compose"
 data_install "$tmp/update" "--data-dir=$tmp/update/other"
 expect_data_failure "Engaz is already installed in $tmp/update/installed"
 rm "$tmp/update/installed/.env"
@@ -420,6 +526,7 @@ set +e
 piped_out="$(
   export STUB_DOCKER_LOG="$tmp/piped/docker.log" STUB_CURL_LOG="$tmp/piped/curl.log"
   export PATH="$tmp/piped/bin:$PATH" HOME="$tmp/piped/home" ENGAZ_NONINTERACTIVE=1
+  export ENGAZ_BIN_DIR="$tmp/piped/commands" STUB_ENGAZ_SOURCE="$tmp/piped/engaz-stub"
   cd "$tmp/piped/cwd" && bash < "$src" 2>&1
 )"
 piped_code=$?

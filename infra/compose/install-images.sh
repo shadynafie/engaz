@@ -74,6 +74,10 @@ fail() {
 for command_name in curl openssl; do
   command -v "$command_name" >/dev/null 2>&1 || fail "'$command_name' is required."
 done
+command -v python3 >/dev/null 2>&1 \
+  || fail "Python 3.9 or newer is required. Install your operating system's python3 package, then run this command again."
+python3 -c 'import sys; sys.exit(sys.version_info < (3, 9))' \
+  || fail "Python 3.9 or newer is required. Install your operating system's python3 package, then run this command again."
 
 # Questions read the keyboard even when this script arrives through `curl ... | bash`.
 # ENGAZ_TTY lets the installer smokes answer them from a file.
@@ -144,6 +148,7 @@ use_docker() {
     if sudo ${sudo_args[@]+"${sudo_args[@]}"} docker info >/dev/null 2>&1; then
       echo "Using sudo for Docker. To use Docker without sudo later: sudo usermod -aG docker $(id -un)"
       docker() { sudo docker "$@"; }
+      export ENGAZ_DOCKER_SUDO=1
       return 0
     fi
     fail "cannot reach the Docker daemon. Start it with: sudo systemctl start docker"
@@ -175,9 +180,15 @@ compose_supports_data_dir() {
 
 # Compose labels every container with the folder it was started from.
 existing_install_dir() {
-  [[ "$prepare_only" != true ]] || return 0
+  local directory
+  directory=$(docker ps -a --filter "label=com.docker.compose.project.working_dir=$PWD" \
+    --format '{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | awk 'NF' | head -n 1) || true
+  if [[ -n "$directory" ]]; then
+    printf '%s\n' "$directory"
+    return 0
+  fi
   docker ps -a --filter label=com.docker.compose.project=engaz \
-    --format '{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | awk 'NF' | head -n 1
+    --format '{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | awk 'NF' | head -n 1 || true
 }
 
 # Everything that must survive (Postgres data, app/agent data, and .env secrets)
@@ -202,6 +213,10 @@ prepare_data_dir() {
     chmod 700 "$data_dir"
   fi
   data_dir=$(cd -- "$data_dir" && pwd -P)
+  case "$data_dir" in
+    *:* | *,* | *'$'* | *'#'* | *$'\n'* | *$'\r'* | *[[:space:]])
+      fail "--data-dir cannot contain dotenv interpolation characters or trailing whitespace." ;;
+  esac
   [[ -w "$data_dir" && -x "$data_dir" ]] || fail "$data_dir is not writable by $(id -un)."
 
   if [[ -e "$data_dir/$ENV_FILE" ]]; then
@@ -212,7 +227,7 @@ prepare_data_dir() {
       [[ -e "$entry" || -L "$entry" ]] || continue
       name="${entry##*/}"
       case "$name" in
-        install-images.sh | "$COMPOSE_FILE" | "$DATA_DIR_COMPOSE_FILE" | "$ENV_EXAMPLE") ;;
+        install-images.sh | engaz | "$COMPOSE_FILE" | "$DATA_DIR_COMPOSE_FILE" | "$ENV_EXAMPLE") ;;
         *) fail "$data_dir is not empty. Choose an empty folder for a new installation." ;;
       esac
     done
@@ -276,6 +291,61 @@ fi
 compose_args=(--env-file "$ENV_FILE" -f "$COMPOSE_FILE")
 if [[ -n "$data_dir" ]]; then
   compose_args+=(-f "$DATA_DIR_COMPOSE_FILE")
+fi
+
+# Containers may have been removed while their data survives. Inspect the old
+# Compose definition before downloading replacements; never execute dotenv text.
+existing_storage() {
+  local code
+  [[ -f "$ENV_FILE" && -f "$COMPOSE_FILE" ]] || return 1
+  if python3 -c '
+import json, os, pathlib, re, subprocess, sys
+try:
+    env = os.environ.copy()
+    for line in pathlib.Path(".env").read_text().splitlines():
+        match = re.match(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=", line)
+        if match:
+            env.pop(match[1], None)
+    for name in ("COMPOSE_FILE", "COMPOSE_PROJECT_NAME", "COMPOSE_PROFILES", "COMPOSE_PATH_SEPARATOR", "ENGAZ_DATA_DIR"):
+        env.pop(name, None)
+    docker = ["sudo", "docker"] if os.environ.get("ENGAZ_DOCKER_SUDO") == "1" else ["docker"]
+    config = json.loads(subprocess.run([*docker, "compose", *sys.argv[1:], "config", "--format", "json"], env=env,
+                                      stdout=subprocess.PIPE, check=True, text=True).stdout)
+    volumes = subprocess.run([*docker, "volume", "ls", "--format", "{{.Name}}"], stdout=subprocess.PIPE,
+                             check=True, text=True).stdout.splitlines()
+    for service, target in (("api", "/data"), ("postgres", "/var/lib/postgresql/data")):
+        mount = next(m for m in config["services"][service]["volumes"] if m["target"] == target)
+        if mount["type"] == "volume":
+            name = config["volumes"][mount["source"]]["name"]
+            if name in volumes:
+                sys.exit(0)
+        elif mount["type"] == "bind":
+            path = pathlib.Path(mount["source"])
+            if path.exists() and next(path.iterdir(), None) is not None:
+                sys.exit(0)
+    sys.exit(1)
+except (ValueError, KeyError, StopIteration, OSError, subprocess.CalledProcessError):
+    sys.exit(2)
+' "${compose_args[@]}"; then
+    return 0
+  else
+    code=$?
+    [[ "$code" == 1 ]] || fail "could not inspect existing storage. Keep the original files and enroll with engaz status before updating."
+    return 1
+  fi
+}
+
+# Existing deployments update through the recovery-aware command. Do this before
+# downloading anything, so a bootstrap rerun cannot replace their Compose files.
+if [[ "$prepare_only" == true ]] \
+  && { [[ -f .engaz-install.json ]] || [[ -n "$(existing_install_dir)" ]] || existing_storage; }; then
+  fail "this installation is already enrolled or has existing data or containers. Use engaz update to update it."
+fi
+if [[ "$prepare_only" != true && -f "$ENV_FILE" ]] \
+  && { [[ -f .engaz-install.json ]] || [[ -n "$(existing_install_dir)" ]] || existing_storage; }; then
+  [[ -f engaz ]] || fail "this is an existing installation without the engaz command. Keep its .env and data; follow the lifecycle enrollment instructions before updating."
+  [[ "$pull_never" != true ]] || fail "use engaz start to start an existing installation with local images; updates require a published release."
+  exec python3 "$PWD/engaz" --dir "$PWD" update
 fi
 
 # Optional proxy knobs from an existing .env (operators often set them there for
@@ -496,9 +566,9 @@ YAML
 
 download "$COMPOSE_FILE"
 download "$ENV_EXAMPLE"
-if [[ -n "$data_dir" ]]; then
-  download "$DATA_DIR_COMPOSE_FILE"
-fi
+download engaz
+chmod +x engaz
+download "$DATA_DIR_COMPOSE_FILE"
 
 if [[ -e "$ENV_FILE" ]]; then
   echo "Keeping existing .env."
@@ -510,6 +580,23 @@ else
 fi
 
 validate_required_secrets
+
+install_command() {
+  local bin_dir="${ENGAZ_BIN_DIR:-$HOME/.local/bin}"
+  [[ "$bin_dir" == /* ]] || fail "ENGAZ_BIN_DIR must be an absolute path."
+  mkdir -p -- "$bin_dir" || fail "could not create $bin_dir."
+  if [[ -e "$bin_dir/engaz" || -L "$bin_dir/engaz" ]]; then
+    [[ -L "$bin_dir/engaz" && "$(readlink "$bin_dir/engaz")" == "$PWD/engaz" ]] \
+      || fail "$bin_dir/engaz already exists. Choose another ENGAZ_BIN_DIR or use $PWD/engaz directly."
+  else
+    ln -s "$PWD/engaz" "$bin_dir/engaz" || fail "could not install the engaz command."
+  fi
+  case ":$PATH:" in
+    *":$bin_dir:"*) ;;
+    *) printf 'Add Engaz to your PATH: export PATH="%s:$PATH"\n' "$bin_dir" ;;
+  esac
+}
+install_command
 
 # Port settings may live in .env; later assignments win, as in Compose.
 env_value() {
@@ -597,7 +684,8 @@ if url_answers; then
 else
   echo "Engaz is starting. In a minute, open $url in your browser to set it up."
 fi
-echo "Engaz files are in $PWD. Run this command again to update."
+python3 "$PWD/engaz" --dir "$PWD" status
+echo "Engaz files are in $PWD. Use engaz update to update."
 if [[ -n "$data_dir" ]]; then
-  echo "Data and secrets are in $data_dir. Back up that whole folder."
+  echo "Data and secrets are in $data_dir. Use engaz backup to back up data and secrets."
 fi

@@ -1,0 +1,509 @@
+#!/usr/bin/env python3
+"""Operator commands for the published-image installation. Python standard library only."""
+import argparse
+import contextlib
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+import re
+import subprocess
+import sys
+import tarfile
+import time
+import urllib.request
+import uuid
+
+REPO = "https://api.github.com/repos/shadynafie/engaz"
+RAW = "https://raw.githubusercontent.com/shadynafie/engaz"
+BASE = "docker-compose.images.yml"
+OVERLAY = "docker-compose.data-dir.yml"
+PINNED = "docker-compose.pinned.yml"
+STATE = ".engaz-install.json"
+DOCKER = ["docker"]
+
+
+def run(args, *, capture=False, stdin=None, stdout=None):
+    result = subprocess.run(args, stdin=stdin, stdout=subprocess.PIPE if capture else stdout,
+                            check=True, text=capture)
+    return result.stdout if capture else None
+
+
+def docker(*args, **kwargs):
+    return run([*DOCKER, *args], **kwargs)
+
+
+def atomic(path, content, mode=0o600):
+    tmp = path.with_name(path.name + ".tmp-" + uuid.uuid4().hex)
+    try:
+        with tmp.open("x") as stream:
+            os.chmod(tmp, mode)
+            stream.write(content)
+        tmp.replace(path)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def digest(path):
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def assignments(path, values):
+    # Never execute dotenv content. Compose remains its parser.
+    lines = path.read_text().splitlines()
+    for key, value in values.items():
+        lines = [line for line in lines if not re.match(r"^\s*" + key + r"\s*=", line)]
+        lines.append(f"{key}={value}")
+    atomic(path, "\n".join(lines) + "\n")
+
+
+def image_pins(images):
+    services = {s: {"image": image} for s, image in images.items()}
+    services["supervisor"]["environment"] = {"ENGAZ_COMPUTER_IMAGE": images["computer"]}
+    return json.dumps({"services": services})
+
+
+class Install:
+    def __init__(self, root, project=None):
+        self.root = root.resolve()
+        if not (self.root / ".env").is_file():
+            raise ValueError(f"No installation secrets in {self.root}; use the original installation folder.")
+        self.files = [BASE]
+        if (self.root / PINNED).exists():
+            self.files.append(PINNED)
+        # Shell interpolation must not silently switch storage, project, or secrets.
+        self.env = os.environ.copy()
+        for line in (self.root / ".env").read_text().splitlines():
+            match = re.match(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=", line)
+            if match:
+                self.env.pop(match[1], None)
+        for name in (BASE, OVERLAY, PINNED):
+            template = self.root / name
+            if template.exists():
+                for key in re.findall(r"\$\{([A-Za-z_][A-Za-z0-9_]*)", template.read_text()):
+                    self.env.pop(key, None)
+        for key in ("COMPOSE_FILE", "COMPOSE_PROJECT_NAME", "COMPOSE_PROFILES", "COMPOSE_PATH_SEPARATOR"):
+            self.env.pop(key, None)
+        self.project = project
+        resolved = self.compose("config", "--environment", capture=True)
+        self.resolved = dict(line.split("=", 1) for line in resolved.splitlines() if "=" in line)
+        if self.resolved.get("ENGAZ_DATA_DIR", "").strip():
+            self.files.insert(1, OVERLAY)
+        state_path = self.root / STATE
+        state = json.loads(state_path.read_text()) if state_path.exists() else None
+        if state:
+            self.project = state["project"]
+            if state["directory"] != str(self.root):
+                raise ValueError("Installation moved. Restore its backup into a new folder instead of shadowing its data.")
+        self.refresh()
+        self.project = self.config["name"]
+        if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", self.project):
+            raise ValueError("Invalid Compose project name.")
+        self.storage = {service: self.mount(service) for service in ("api", "postgres")}
+        self.verify_shared_storage()
+        identity = {"directory": str(self.root), "project": self.project, "storage": self.storage}
+        if state and state != identity:
+            raise ValueError("Storage identity changed. Use backup/restore to migrate; existing data was left alone.")
+        self.verify_mounts()
+        if not state:
+            atomic(state_path, json.dumps(identity, indent=2) + "\n")
+
+    def compose(self, *args, capture=False, stdin=None, stdout=None):
+        cmd = [*DOCKER, "compose", "--project-directory", str(self.root), "--env-file", str(self.root / ".env")]
+        if self.project:
+            cmd += ["-p", self.project]
+        for name in self.files:
+            cmd += ["-f", str(self.root / name)]
+        result = subprocess.run([*cmd, *args], env=self.env, stdin=stdin,
+                                stdout=subprocess.PIPE if capture else stdout, check=True, text=capture)
+        return result.stdout if capture else None
+
+    def refresh(self):
+        self.config = json.loads(self.compose("config", "--format", "json", capture=True))
+
+    def mount(self, service):
+        destination = "/var/lib/postgresql/data" if service == "postgres" else "/data"
+        mounts = self.config["services"][service]["volumes"]
+        mount = next(m for m in mounts if m["target"] == destination)
+        source = mount["source"]
+        if mount["type"] == "volume":
+            source = self.config["volumes"][source]["name"]
+        if "," in source or "\n" in source:
+            raise ValueError("Storage paths cannot contain commas or newlines.")
+        return {"type": mount["type"], "source": source}
+
+    def containers(self, running=False):
+        ids = docker("ps", *( [] if running else ["-a"] ), "-q", "--filter",
+                     f"label=com.docker.compose.project={self.project}", capture=True).split()
+        return json.loads(docker("inspect", *ids, capture=True)) if ids else []
+
+    def verify_mounts(self):
+        for container in self.containers():
+            directory = container["Config"]["Labels"].get("com.docker.compose.project.working_dir")
+            if directory and Path(directory).resolve() != self.root:
+                raise ValueError("Compose project belongs to another installation folder. Use that folder's command.")
+            service = container["Config"]["Labels"].get("com.docker.compose.service")
+            if service not in self.storage:
+                continue
+            expected = self.storage[service]
+            target = "/data" if service == "api" else "/var/lib/postgresql/data"
+            mounted = next(m for m in container["Mounts"] if m["Destination"] == target)
+            actual = mounted.get("Name") if mounted["Type"] == "volume" else mounted["Source"]
+            if mounted["Type"] != expected["type"] or actual != expected["source"]:
+                raise ValueError("Compose points at different storage than the existing containers. Refusing to switch data.")
+
+    def verify_shared_storage(self):
+        for service in ("worker", "supervisor", "data-init"):
+            if self.mount(service) != self.storage["api"]:
+                raise ValueError("Application services must share the same appdata storage.")
+
+    def bots(self):
+        ids = docker("ps", "-q", "--filter", "label=engaz.managed=true", capture=True).split()
+        containers = json.loads(docker("inspect", *ids, capture=True)) if ids else []
+        storage = self.storage["api"]
+        result = []
+        for container in containers:
+            for mount in container["Mounts"]:
+                same_volume = storage["type"] == "volume" and mount.get("Name") == storage["source"]
+                same_bind = storage["type"] == "bind" and mount["Type"] == "bind" and (
+                    mount["Source"] == storage["source"] or mount["Source"].startswith(storage["source"] + "/"))
+                if same_volume or same_bind:
+                    result.append(container["Id"])
+                    break
+        return result
+
+    def helper(self, source, target, *args, readonly=False, stdin=None, stdout=None):
+        image = self.config["services"]["postgres"]["image"]
+        mount = f"type={source['type']},src={source['source']},dst={target}" + (",readonly" if readonly else "")
+        docker("run", "--rm", *(["-i"] if stdin else []), "--network", "none", "--security-opt", "no-new-privileges:true",
+               "--mount", mount, "--entrypoint", "tar", image, *args, stdin=stdin, stdout=stdout)
+
+    def start(self):
+        self.compose("up", "-d", "--wait", "--wait-timeout", "300", "--pull", "never")
+
+    @contextlib.contextmanager
+    def stopped(self, resume=True, resume_on_error=False):
+        containers = self.containers(running=True)
+        services = [c["Config"]["Labels"]["com.docker.compose.service"] for c in containers]
+        bots = []
+        failed = False
+        try:
+            for group in (("web", "api", "worker"), ("supervisor",)):
+                selected = [s for s in group if s in services]
+                if selected:
+                    self.compose("stop", "-t", "60", *selected)
+            bots = self.bots()
+            if bots:
+                docker("stop", "-t", "60", *bots)
+            yield
+        except BaseException:
+            failed = True
+            raise
+        finally:
+            if resume or (failed and resume_on_error):
+                if bots:
+                    docker("start", *bots)
+                selected = [c["Id"] for c in containers if c["Config"]["Labels"]["com.docker.compose.service"] != "postgres"]
+                if selected:
+                    docker("start", *selected)
+
+    def backup(self, destination, resume=True):
+        destination = destination.resolve()
+        appdata = self.storage["api"]
+        if appdata["type"] == "bind" and destination.is_relative_to(Path(appdata["source"])):
+            raise ValueError("Backup must be outside appdata.")
+        destination.mkdir(mode=0o700, parents=True, exist_ok=False)
+        os.chmod(destination, 0o700)
+        runtime_images = {c["Config"]["Labels"]["com.docker.compose.service"]: c["Image"] for c in self.containers()}
+        with self.stopped(resume=resume, resume_on_error=True):
+            if not self.compose("ps", "-q", "postgres", capture=True).strip():
+                raise ValueError("Start Postgres before taking a backup.")
+            for name in dict.fromkeys([".env", *self.files, OVERLAY]):
+                atomic(destination / name, (self.root / name).read_text())
+            images = {}
+            for service, spec in self.config["services"].items():
+                info = json.loads(docker("image", "inspect", runtime_images.get(service, spec["image"]), capture=True))[0]
+                images[service] = (info.get("RepoDigests") or [info["Id"]])[0]
+            atomic(destination / PINNED, image_pins(images))
+            with (destination / "database.dump").open("xb") as stream:
+                self.compose("exec", "-T", "postgres", "sh", "-c",
+                             'pg_dump -Fc --no-owner --no-privileges -U "$POSTGRES_USER" "$POSTGRES_DB"', stdout=stream)
+            with (destination / "database.dump").open("rb") as stream:
+                self.compose("exec", "-T", "postgres", "pg_restore", "--list", stdin=stream, stdout=subprocess.DEVNULL)
+            with (destination / "appdata.tar").open("xb") as stream:
+                self.helper(appdata, "/data", "--numeric-owner", "-cpf", "-", "-C", "/data", ".", readonly=True, stdout=stream)
+            validate_tar(destination / "appdata.tar")
+            files = {p.name: digest(p) for p in destination.iterdir() if p.is_file()}
+            atomic(destination / "backup.json", json.dumps({"format": 1, "project": self.project, "files": files}, indent=2))
+            for path in destination.iterdir():
+                os.chmod(path, 0o600)
+        print(f"Backup ready: {destination}")
+        return destination
+
+
+def validate_tar(path):
+    # Reject escapes and special files before tar sees a writable target.
+    members = {}
+    with tarfile.open(path) as archive:
+        for member in archive:
+            name = PurePosixPath(member.name)
+            if name.is_absolute() or ".." in name.parts or not (member.isfile() or member.isdir() or member.issym() or member.islnk()):
+                raise ValueError("Unsafe appdata archive member.")
+            if name in members:
+                raise ValueError("Duplicate appdata archive member.")
+            members[name] = member
+    # Leaf symlinks (venvs, browser state) are preserved; extraction cannot traverse one.
+    links = {name for name, member in members.items() if member.issym() or member.islnk()}
+    for name, member in members.items():
+        if any(parent in links or (parent in members and not members[parent].isdir()) for parent in name.parents):
+            raise ValueError("Appdata archive traverses a link.")
+        if member.islnk():
+            target = PurePosixPath(member.linkname)
+            if target.is_absolute() or ".." in target.parts or target not in members or not members[target].isfile():
+                raise ValueError("Archive hard links must point to an archived regular file.")
+
+
+def validate_backup(root):
+    if (root / "backup.json").is_symlink():
+        raise ValueError("Backup manifest must be a regular file.")
+    manifest = json.loads((root / "backup.json").read_text())
+    required = {".env", BASE, OVERLAY, PINNED, "database.dump", "appdata.tar"}
+    allowed = required
+    if manifest.get("format") != 1 or not required.issubset(manifest["files"]) or not set(manifest["files"]).issubset(allowed):
+        raise ValueError("Unsupported or incomplete backup.")
+    for name, expected in manifest["files"].items():
+        path = root / name
+        if path.is_symlink() or not path.is_file() or digest(path) != expected:
+            raise ValueError(f"Backup checksum failed: {name}")
+    validate_tar(root / "appdata.tar")
+    return manifest
+
+
+@contextlib.contextmanager
+def lock(root):
+    path = root / ".engaz-lock"
+    try:
+        path.mkdir(mode=0o700)
+    except FileExistsError:
+        raise ValueError(f"Another operation holds {path}. Remove it only after confirming that operation stopped.") from None
+    try:
+        yield
+    finally:
+        path.rmdir()
+
+
+def fetch(url, *, json_result=False):
+    request = urllib.request.Request(url, headers={"User-Agent": "engaz-cli", "Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        if not response.url.startswith("https://"):
+            raise ValueError("Refusing a non-HTTPS download.")
+        content = response.read().decode()
+    return json.loads(content) if json_result else content
+
+
+def update(install, version):
+    if not version:
+        versions = []
+        page = 1
+        while True:
+            tags = fetch(f"{REPO}/tags?per_page=100&page={page}", json_result=True)
+            versions.extend(t["name"] for t in tags if re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", t["name"]))
+            if len(tags) < 100:
+                break
+            page += 1
+        if not versions:
+            raise ValueError("No stable release tags exist yet. Publish and verify a versioned release first.")
+        version = max(versions, key=lambda v: tuple(map(int, v[1:].split("."))))
+    if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", version):
+        raise ValueError("Updates require a stable vX.Y.Z release.")
+    commit = fetch(REPO + "/commits/" + version, json_result=True)["sha"]
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        raise ValueError("Release did not resolve to a source commit.")
+    tag = "sha-" + commit
+    staged = {name: fetch(f"{RAW}/{commit}/infra/compose/{name}") for name in [BASE, OVERLAY, "engaz"]}
+    # Pull both images before downtime. Keep the existing operator-selected registry.
+    images = {}
+    for service in ("api", "computer"):
+        original = install.config["services"][service]["image"]
+        key = "ENGAZ_IMAGE" if service == "api" else "ENGAZ_COMPUTER_IMAGE"
+        repository = install.resolved.get(key)
+        if not repository:
+            repository = original.split("@", 1)[0]
+            if ":" in repository.rsplit("/", 1)[-1]:
+                repository = repository.rsplit(":", 1)[0]
+        if not re.fullmatch(r"[a-z0-9][a-z0-9.:/_-]+", repository) or repository == "sha256":
+            raise ValueError("Set the original image repository in .env before updating.")
+        image = repository + ":" + tag
+        docker("pull", image)
+        info = json.loads(docker("image", "inspect", image, capture=True))[0]
+        pinned = (info.get("RepoDigests") or [info["Id"]])[0]
+        for target in (("api", "worker", "web", "supervisor") if service == "api" else ("computer",)):
+            images[target] = pinned
+    backup = install.backup(install.root / "backups" / (time.strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:8]), resume=False)
+    # No automatic old-image rollback: migrations may already have changed the database.
+    with install.stopped(resume=False):
+        try:
+            previous = json.loads((backup / PINNED).read_text())["services"]
+            for service, spec in previous.items():
+                images.setdefault(service, spec["image"])
+            for name in (BASE, OVERLAY):
+                if name == BASE or name in install.files:
+                    atomic(install.root / name, staged[name])
+            assignments(install.root / ".env", {"ENGAZ_IMAGE_TAG": tag, "ENGAZ_COMPUTER_IMAGE_TAG": tag, "ENGAZ_RELEASE": version})
+            atomic(install.root / PINNED, image_pins(images))
+            if PINNED not in install.files:
+                install.files.append(PINNED)
+            install.refresh()
+            if {s: install.mount(s) for s in install.storage} != install.storage:
+                raise ValueError("New release changes storage.")
+            install.verify_shared_storage()
+            install.start()
+        except BaseException:
+            bots = install.bots()
+            if bots:
+                docker("stop", "-t", "60", *bots)
+            # Compose stop does not depend on a successfully parsed new release config.
+            containers = install.containers(running=True)
+            ids = [c["Id"] for c in containers if c["Config"]["Labels"]["com.docker.compose.service"] != "postgres"]
+            if ids:
+                docker("stop", "-t", "60", *ids)
+            raise ValueError(f"Update failed; application services are stopped. Restore {backup} into a clean folder. Do not run the old image against the migrated database.") from None
+        atomic(install.root / "engaz", staged["engaz"], 0o755)
+    print(f"Engaz updated to {version}. Recovery backup: {backup}")
+
+
+def verify_restore_runtime():
+    # Computer identities are global on one Docker daemon. Restore one at a time.
+    bots = docker("ps", "-a", "-q", "--filter", "label=engaz.botId", capture=True).strip()
+    legacy_bots = docker("ps", "-a", "-q", "--filter", "name=^/engaz-bot-", capture=True).strip()
+    networks = docker("network", "ls", "--format", "{{.Name}}", capture=True).splitlines()
+    if bots or legacy_bots or any(name.startswith("engaz-computer-") for name in networks):
+        raise ValueError("Restore needs a Docker host without existing Engaz computers or computer networks. Use a clean host, or deliberately discard backed-up, stopped source computer runtime first; restore never removes it.")
+    ids = docker("ps", "-q", "--filter", "label=com.docker.compose.service", capture=True).split()
+    containers = json.loads(docker("inspect", *ids, capture=True)) if ids else []
+    for container in containers:
+        env = container["Config"].get("Env", [])
+        if any(e.startswith("ENGAZ_COMPUTER_IMAGE=") or e == "SANDBOX_SUPERVISOR_URL=http://supervisor:7091" for e in env):
+            raise ValueError("Stop existing Engaz application services before restoring on this Docker host.")
+
+
+def restore(args):
+    source = Path(args.backup).resolve()
+    manifest = validate_backup(source)
+    target = Path(args.to).expanduser()
+    if not target.is_absolute() or any(c in str(target) for c in ":,\n"):
+        raise ValueError("Restore target must be an absolute folder path without ':', ',' or newline.")
+    target = target.resolve()
+    if target.exists() and any(target.iterdir()):
+        raise ValueError("Restore requires an empty folder. The existing installation was left alone.")
+    if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", args.project):
+        raise ValueError("Invalid Compose project name.")
+    # Computer names and networks currently identify bots globally on a Docker host.
+    # Do not let a restored database adopt the original installation's computers.
+    verify_restore_runtime()
+    for resource in ("ps", "volume", "network"):
+        prefix = ["-a", "-q"] if resource == "ps" else ["ls", "-q"]
+        if docker(resource, *prefix, "--filter", f"label=com.docker.compose.project={args.project}", capture=True).strip():
+            raise ValueError("Restore project already has Docker resources; choose a new project.")
+    target.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(target, 0o700)
+    with lock(target):
+        for name in manifest["files"]:
+            if name in (".env", BASE, PINNED):
+                atomic(target / name, (source / name).read_text())
+        # Always restore to explicit host storage; no implicit named-volume migration.
+        atomic(target / OVERLAY, (source / OVERLAY).read_text())
+        atomic(target / "engaz", Path(__file__).resolve().read_text(), 0o755)
+        assignments(target / ".env", {"ENGAZ_DATA_DIR": str(target), "COMPOSE_PROJECT_NAME": args.project,
+                    "COMPOSE_FILE": f"{BASE}:{OVERLAY}:{PINNED}", "ENGAZ_WEB_PORT": str(args.web_port),
+                    "ENGAZ_API_PORT": str(args.api_port)})
+        install = Install(target, args.project)
+        expected = {"api": {"type": "bind", "source": str(target / "appdata")},
+                    "postgres": {"type": "bind", "source": str(target / "postgres")}}
+        if install.storage != expected:
+            raise ValueError("Compose interpreted a different restore path. Use a folder without dotenv interpolation characters.")
+        for spec in install.config["services"].values():
+            try:
+                docker("image", "inspect", spec["image"], stdout=subprocess.DEVNULL)
+            except subprocess.CalledProcessError:
+                docker("pull", spec["image"])
+        (target / "postgres").mkdir(mode=0o700)
+        (target / "appdata").mkdir(mode=0o700)
+        try:
+            install.compose("up", "-d", "--wait", "--wait-timeout", "120", "--pull", "never", "postgres")
+            with (source / "database.dump").open("rb") as stream:
+                install.compose("exec", "-T", "postgres", "sh", "-c",
+                                'pg_restore --single-transaction --exit-on-error --no-owner --no-privileges -U "$POSTGRES_USER" -d "$POSTGRES_DB"', stdin=stream)
+            with (source / "appdata.tar").open("rb") as stream:
+                install.helper(install.storage["api"], "/data", "--numeric-owner", "-xpf", "-", "-C", "/data", stdin=stream)
+            try:
+                with (source / "appdata.tar").open("rb") as stream:
+                    install.helper(install.storage["api"], "/data", "--numeric-owner", "-df", "-", "-C", "/data", readonly=True, stdin=stream)
+            except subprocess.CalledProcessError:
+                raise ValueError("Restore filesystem could not preserve file ownership, permissions or contents. Use Linux storage that supports Unix metadata; application services were not started.") from None
+            verify_restore_runtime()
+            install.start()
+        except BaseException:
+            bots = install.bots()
+            if bots:
+                docker("stop", "-t", "60", *bots)
+            install.compose("stop", "-t", "60")
+            raise
+    print(f"Restored Engaz in {target}. Run {target / 'engaz'} status; verify owner sign-in, agent files and saved connections.")
+
+
+def main():
+    os.umask(0o077)
+    parser = argparse.ArgumentParser(description="Manage a published-image Engaz installation.")
+    parser.add_argument("--dir", type=Path, default=Path(__file__).resolve().parent)
+    commands = parser.add_subparsers(dest="command", required=True)
+    for name in ("start", "stop", "status"):
+        commands.add_parser(name)
+    commands.add_parser("update").add_argument("version", nargs="?")
+    commands.add_parser("backup").add_argument("destination", nargs="?", type=Path)
+    command = commands.add_parser("restore")
+    command.add_argument("backup")
+    command.add_argument("--to", required=True)
+    command.add_argument("--project", default="engaz")
+    command.add_argument("--web-port", type=int, default=7791)
+    command.add_argument("--api-port", type=int, default=7792)
+    args = parser.parse_args()
+    global DOCKER
+    if os.environ.get("ENGAZ_DOCKER_SUDO") == "1":
+        DOCKER = ["sudo", "docker"]
+    try:
+        docker("info", stdout=subprocess.DEVNULL)
+    except subprocess.CalledProcessError:
+        DOCKER = ["sudo", "-n", "docker"]
+        docker("info", stdout=subprocess.DEVNULL)
+    if args.command == "restore":
+        if not all(1 <= port <= 65535 for port in (args.web_port, args.api_port)):
+            raise ValueError("Ports must be between 1 and 65535.")
+        restore(args)
+        return
+    root = args.dir.expanduser().resolve()
+    with lock(root):
+        install = Install(root)
+        if args.command == "status":
+            install.compose("ps", "-a")
+        elif args.command == "start":
+            install.start()
+        elif args.command == "stop":
+            with install.stopped(resume=False):
+                install.compose("stop", "-t", "60")
+        elif args.command == "backup":
+            install.backup(args.destination or root / "backups" / (time.strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:8]))
+        else:
+            update(install, args.version)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (ValueError, OSError, subprocess.CalledProcessError, tarfile.TarError, KeyError) as error:
+        print(f"Engaz command failed: {error}", file=sys.stderr)
+        sys.exit(1)

@@ -42,7 +42,7 @@ services:
   data-init:
     # Optional Hub override; unset keeps busybox:1.
     image: ${BUSYBOX_IMAGE:-busybox:1}
-    command: ["chown", "-R", "1000:1000", "/data"]
+    command: ["chown", "1000:1000", "/data"]
     network_mode: none
     restart: "no"
     volumes:

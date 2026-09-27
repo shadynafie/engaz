@@ -4,7 +4,7 @@
 
 Engaz runs on your own computer or NAS, and you use it in the browser. It does not offer a hosted service.
 
-> **Current status:** Engaz is in active development, and the first release is the web app. The installer starts a fresh installation on amd64 and arm64 Linux in CI, and a new owner completes first run there. Real NAS and macOS installs, upgrades, and backup and restore of an image installation are not verified yet. The desktop and mobile apps come later.
+> **Current status:** Engaz is in active development, and the first release is the web app. The installer starts a fresh installation on amd64 and arm64 Linux in CI, and a new owner completes first run there. Linux update, backup, and restore checks pass; real NAS, macOS, and Windows installation and recovery remain unverified. The desktop and mobile apps come later.
 
 ## Install
 
@@ -27,7 +27,7 @@ To reach Engaz away from home, follow [the Cloudflare Tunnel steps](./docs/self-
 
 ## Keep your data
 
-An installation is its database, its app data, and the `.env` file holding its secrets; keep all three. Never run `docker compose down -v` on an installation you care about: it deletes the data. See the [secrets checklist](./docs/self-host-secrets.md). Use `engaz backup` before changing an installation. The [lifecycle and recovery guide](./docs/self-host.md#manage-an-image-installation) covers start, stop, updates, and restoring into a new empty folder. These commands are implemented in source and Linux recovery checks pass; a new stable release and real NAS verification remain release gates.
+An installation is its database, its app data, and the `.env` file holding its secrets; keep all three. Never run `docker compose down -v` on an installation you care about: it deletes the data. See the [secrets checklist](./docs/self-host-secrets.md). Use `engaz backup` before changing an installation. The [lifecycle and recovery guide](./docs/self-host.md#manage-an-image-installation) covers start, stop, updates, and restoring into a new empty folder. These commands ship in v0.1.7 and Linux recovery checks pass; representative NAS verification remains pending.
 
 If you connect an external model or service, what you send it follows that provider's terms. See [privacy and data flow](./docs/privacy.md).
 

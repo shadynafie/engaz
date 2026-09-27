@@ -33,7 +33,7 @@ Compose bot homes mount only their own subdirectory of the application data. Wit
 
 ## Published images (no checkout)
 
-CI installs the published images anonymously with the commands below and waits for a healthy stack on amd64 and arm64 Linux after every main publish. Real NAS and desktop hosts, and upgrades, have not been verified yet.
+CI installs the published images anonymously with the commands below and waits for a healthy stack on amd64 and arm64 Linux after every main publish. Linux update and recovery are verified below; real NAS and desktop hosts remain unverified.
 
 No clone or image build is needed. Run one command in a terminal:
 
@@ -122,8 +122,11 @@ instead of this host proxy.
 
 ### Manage an image installation
 
-These commands are implemented in source and [published-image recovery passes on amd64 and arm64](https://github.com/shadynafie/engaz/actions/runs/36273299833).
-A new stable release and a real NAS rehearsal are still required before phases 1.3–1.4 are verified.
+These commands ship in [v0.1.7](https://github.com/shadynafie/engaz/releases/tag/v0.1.7).
+[Published-image installation and recovery pass on amd64 and arm64](https://github.com/shadynafie/engaz/actions/runs/36295389219).
+An isolated Linux arm64 installation upgraded from published commit `722ce74` to v0.1.7 (`19c9c397`),
+then restored into a new folder with owner sign-in, its saved model credential, and an agent computer file intact.
+A representative NAS rehearsal remains required for the phase 1 gate; macOS and Windows recovery are unverified.
 
 ```bash
 engaz status
@@ -144,8 +147,7 @@ replaced.
 `engaz update` resolves the newest stable Git tag (`vX.Y.Z`), downloads its exact source
 commit's Compose files and CLI, and pulls the app and computer images for that full commit before
 downtime. To select a reviewed release explicitly, use `engaz update vX.Y.Z`. Keep your original
-`.env`; do not regenerate its encryption keys. Release tags already exist, including `v0.1.6`;
-that does not prove any given release includes or has passed these new recovery checks.
+`.env`; do not regenerate its encryption keys. See [v0.1.7 release verification](https://github.com/shadynafie/engaz/releases/tag/v0.1.7) for the tested Linux scope.
 
 The update makes a recovery backup, stops application services and bot computers, and starts the
 new stack; API startup runs database migrations. A failure after migration leaves application

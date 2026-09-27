@@ -41,6 +41,8 @@ log="${STUB_DOCKER_LOG:?}"
 case "${1:-}" in
   compose) shift ;;
   info)
+    # A desktop Docker app that has not started yet answers once the stub marks it running.
+    [[ -z "${STUB_DOCKER_RUNNING_FLAG-}" || -e "$STUB_DOCKER_RUNNING_FLAG" ]] || exit 1
     if [[ " $* " == *" --format "* ]]; then
       printf '%s\n' "${STUB_DOCKER_ROOT-}"
     fi
@@ -233,7 +235,7 @@ run_install() {
     export STUB_CURL_LOG="$work/curl.log" STUB_ENGAZ_SOURCE="$work/engaz-stub"
     export ENGAZ_BIN_DIR="$work/commands"
     export PATH="$work/bin:$PATH"
-    export ENGAZ_NONINTERACTIVE="${ENGAZ_NONINTERACTIVE-1}"
+    export ENGAZ_NONINTERACTIVE="${ENGAZ_NONINTERACTIVE-1}" ENGAZ_NO_BROWSER=1
     export ENGAZ_LAN_IP="${ENGAZ_LAN_IP-192.168.50.2}"
     cd "$work/cwd"
     bash "$src" "$@"
@@ -597,6 +599,99 @@ export STUB_DOCKER_IMAGES=present
 data_install "$tmp/space"
 [[ "$data_code" -eq 0 ]] || fail "an update with local images should skip the space check: $data_out"
 unset STUB_DOCKER_ROOT STUB_DF_AVAILABLE_KB STUB_DOCKER_IMAGES
+
+# Platform paths: stubs stand in for uname and each platform's own tools.
+platform_work() {
+  local work="$1" kernel="$2"
+  setup_work "$work"
+  rm "$work/cwd/.env"
+  printf '#!/usr/bin/env bash\ncase "${1:-}" in -m) echo arm64 ;; *) echo %s ;; esac\n' "$kernel" > "$work/bin/uname"
+  chmod +x "$work/bin/uname"
+}
+
+# Only the tools the early Docker checks need, so no real Docker is found.
+without_docker() {
+  local work="$1" tool
+  rm "$work/bin/docker"
+  mkdir -p "$work/system"
+  for tool in bash env python3 openssl grep sed awk tr head tail cat mkdir rm mktemp chmod id sleep; do
+    ln -s "$(command -v "$tool")" "$work/system/$tool"
+  done
+}
+
+desktop_docker_app_present=false
+for app in /Applications/Docker.app /Applications/OrbStack.app; do
+  [[ ! -d "$app" ]] || desktop_docker_app_present=true
+done
+
+if [[ "$desktop_docker_app_present" == false ]]; then
+  # macOS without Docker explains Docker Desktop instead of offering a Linux package.
+  platform_work "$tmp/mac-no-docker" Darwin
+  without_docker "$tmp/mac-no-docker"
+  set +e
+  mac_out="$(PATH="$tmp/mac-no-docker/system" run_install "$tmp/mac-no-docker" 2>&1)"
+  mac_code=$?
+  set -e
+  [[ "$mac_code" -ne 0 && "$mac_out" == *"Install Docker Desktop from https://docs.docker.com/desktop/setup/install/mac-install/"* ]] \
+    || fail "macOS without Docker needs Docker Desktop guidance: $mac_out"
+  [[ "$mac_out" != *"get.docker.com"* ]] || fail "macOS must not offer the Linux Docker script"
+
+  # A stopped Colima is started, then setup continues.
+  platform_work "$tmp/mac-colima" Darwin
+  printf '#!/usr/bin/env bash\n[[ "$1" == start ]] && touch "%s"\n' "$tmp/mac-colima/running" > "$tmp/mac-colima/bin/colima"
+  chmod +x "$tmp/mac-colima/bin/colima"
+  set +e
+  colima_out="$(STUB_DOCKER_RUNNING_FLAG="$tmp/mac-colima/running" run_install "$tmp/mac-colima" --offline 2>&1)"
+  colima_code=$?
+  set -e
+  [[ "$colima_code" -eq 0 && "$colima_out" == *"Colima is running."* && -e "$tmp/mac-colima/running" ]] \
+    || fail "a stopped Colima should be started: $colima_out"
+fi
+
+# WSL without Docker points to the Windows installer.
+platform_work "$tmp/wsl-no-docker" Linux
+without_docker "$tmp/wsl-no-docker"
+set +e
+wsl_out="$(WSL_DISTRO_NAME=Ubuntu PATH="$tmp/wsl-no-docker/system" run_install "$tmp/wsl-no-docker" 2>&1)"
+wsl_code=$?
+set -e
+[[ "$wsl_code" -ne 0 && "$wsl_out" == *"install.ps1 | iex"* ]] || fail "WSL without Docker needs the Windows command: $wsl_out"
+[[ "$wsl_out" != *"get.docker.com"* ]] || fail "WSL must not install Docker Engine beside Docker Desktop"
+
+# WSL records Windows' network address, where Docker Desktop publishes the web port.
+platform_work "$tmp/wsl-ip" Linux
+printf '#!/usr/bin/env bash\nprintf "203.0.113.9\\r\\n192.168.1.40\\r\\n"\n' > "$tmp/wsl-ip/bin/powershell.exe"
+chmod +x "$tmp/wsl-ip/bin/powershell.exe"
+(
+  unset ENGAZ_LAN_IP
+  export WSL_DISTRO_NAME=Ubuntu STUB_DOCKER_LOG="$tmp/wsl-ip/docker.log" STUB_CURL_LOG="$tmp/wsl-ip/curl.log"
+  export PATH="$tmp/wsl-ip/bin:$PATH" ENGAZ_NONINTERACTIVE=1 ENGAZ_BIN_DIR="$tmp/wsl-ip/commands"
+  cd "$tmp/wsl-ip/cwd" && bash "$src" --prepare-only --offline >/dev/null 2>&1
+) || fail "WSL preparation failed"
+grep -qxF 'WEB_ORIGIN=http://192.168.1.40:7791' "$tmp/wsl-ip/cwd/.env" || fail "WSL must use the Windows LAN address: $(cat "$tmp/wsl-ip/cwd/.env")"
+
+# Without a Windows address, WSL stays on loopback rather than its unreachable internal address.
+rm "$tmp/wsl-ip/bin/powershell.exe" "$tmp/wsl-ip/cwd/.env"
+(
+  unset ENGAZ_LAN_IP
+  export WSL_DISTRO_NAME=Ubuntu STUB_DOCKER_LOG="$tmp/wsl-ip/docker.log" STUB_CURL_LOG="$tmp/wsl-ip/curl.log"
+  export PATH="$tmp/wsl-ip/bin:$PATH" ENGAZ_NONINTERACTIVE=1 ENGAZ_BIN_DIR="$tmp/wsl-ip/commands"
+  cd "$tmp/wsl-ip/cwd" && bash "$src" --prepare-only --offline >/dev/null 2>&1
+) || fail "WSL loopback preparation failed"
+grep -qxF 'ENGAZ_WEB_BIND=127.0.0.1' "$tmp/wsl-ip/cwd/.env" || fail "WSL without a Windows address must bind loopback"
+
+# WSL keeps data in Docker Desktop: no folder question, and Windows drives are refused.
+platform_work "$tmp/wsl-ask" Linux
+printf '/mnt/c/engaz\n' > "$tmp/wsl-ask/answers"
+set +e
+wsl_ask_out="$(WSL_DISTRO_NAME=Ubuntu ENGAZ_NONINTERACTIVE=0 ENGAZ_TTY="$tmp/wsl-ask/answers" run_install "$tmp/wsl-ask" --offline 2>&1)"
+wsl_ask_code=$?
+set -e
+[[ "$wsl_ask_code" -eq 0 && "$wsl_ask_out" != *"Where should Engaz keep its data?"* ]] \
+  || fail "WSL should not ask for a data folder: $wsl_ask_out"
+platform_work "$tmp/wsl-mnt" Linux
+data_out="$(WSL_DISTRO_NAME=Ubuntu run_install "$tmp/wsl-mnt" --offline --data-dir=/mnt/c/engaz 2>&1)" && data_code=0 || data_code=$?
+expect_data_failure "Windows drives cannot hold the Engaz database"
 
 # IP discovery stays offline, rejects public overrides, and safely reports no LAN IP.
 python3 - "$src" <<'PYTEST'

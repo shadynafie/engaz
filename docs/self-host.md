@@ -37,26 +37,43 @@ CI installs the published images anonymously with the commands below and waits f
 
 [v0.1.8 merged-source installation and recovery checks](https://github.com/shadynafie/engaz/actions/runs/36311807022) pass anonymous image pulls, fresh LAN installation, protected owner setup, localhost sign-in, backup/restore, host-folder persistence, and fresh Docker installation on amd64 and arm64 Linux. [Source images](https://github.com/shadynafie/engaz/actions/runs/36311502453) publish for both architectures. An actual installed v0.1.7 CLI upgraded to v0.1.8 (`f0d27376`) on isolated Linux arm64, preserving original secrets, storage/project identity, account and agent IDs, agent files, and saved encrypted credentials; owner sign-in passed before and after, and one validated recovery backup was created. Representative NAS and desktop-host acceptance remain pending.
 
-No clone or image build is needed. Run one command in a terminal:
+No clone or image build is needed. On Linux or macOS, run one command in a terminal:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash
 ```
 
+On Windows 10 (version 2004 or newer) or Windows 11, run one command in PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install.ps1 | iex
+```
+
 The installer:
 
-1. Checks for Docker. On Linux it offers to install Docker with Docker's official script
-   (`curl -fsSL https://get.docker.com | sudo sh`) and asks before running it. On macOS and
-   Windows, install Docker Desktop first (on Windows, run the command inside WSL).
+1. Checks for Docker, and asks before installing anything:
+   - **Linux:** offers Docker's official script (`curl -fsSL https://get.docker.com | sudo sh`), or
+     pacman on Arch-based systems.
+   - **macOS:** starts Docker Desktop, OrbStack, or Colima if one is installed but stopped. Otherwise it
+     offers to download Docker Desktop and install it with Docker's command-line installer, which
+     asks for your Mac password. If Python is missing, it opens Apple's Command Line Tools installer
+     and waits.
+   - **Windows:** `install.ps1` turns on WSL (Windows may restart once; setup resumes after you sign
+     in), installs Ubuntu when there is no WSL 2 distribution, installs and starts Docker Desktop,
+     then runs the Linux installer inside WSL. An Ubuntu it installs runs Engaz as root, with no
+     Linux account to create. Docker Desktop connects to the default WSL distribution, so the
+     installer makes the one it uses the default.
 2. Asks where to keep data. Press Enter for Docker's own storage, or type a folder path; see
-   [Keep data in a folder you choose](#keep-data-in-a-folder-you-choose).
+   [Keep data in a folder you choose](#keep-data-in-a-folder-you-choose). On Windows it uses Docker
+   Desktop's storage without asking, because Windows drives cannot hold the database.
 3. Downloads Compose files, `.env.images.example`, and the `engaz` command into `~/engaz` (or the data
    folder), creates `.env` with random secrets, pulls the images, and waits until Engaz is healthy.
-   It links the command into `~/.local/bin`; follow the printed PATH instruction if needed.
-4. Prints a private first-owner setup link, the machine's network address, and its localhost address.
-   Open the setup link on any device on the same network.
+   It links the command into `~/.local/bin` and, when you run it yourself, adds that folder to your
+   shell's startup file. On Windows it also adds an `engaz` command to PowerShell that runs inside WSL.
+4. Prints a private first-owner setup link, the machine's network address, and its localhost address,
+   and opens the setup link in your browser. Open the setup link on any device on the same network.
 
-Use `engaz update` for subsequent updates. Rerunning the installer hands an existing installation
+Use `engaz update`, or the same install command, for subsequent updates. Rerunning the installer hands an existing installation
 to that command before replacing any files; an older installation without the command fails with
 enrollment instructions instead of updating unsafely. Without a keyboard (for example,
 in automation), it asks nothing: it uses Docker storage unless `--data-dir` is given, and stops if
@@ -106,6 +123,8 @@ arm64 hosts need no special tag. Do not assume `latest` is present until a stabl
 ### Reach Engaz on your network
 
 A fresh installer detects a private IPv4 address and binds the web port on the host's interfaces.
+In WSL it uses the Windows computer's address, where Docker Desktop publishes the port, and keeps
+loopback-only access if it cannot find one.
 Use `http://localhost:7791` on that machine, or its IP (for example `http://192.168.1.20:7791`)
 on another device on the same network. No SSH tunnel is needed. The host firewall must allow the
 web port. The installer uses the configured web port if it differs from 7791.

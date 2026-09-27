@@ -1,20 +1,20 @@
 import { Button } from "@engaz/ui-web";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  DEMO_BOTS,
   type DemoBot,
   type DemoMessage,
   type DemoRoutine,
   type DemoRoutineRun,
   type DemoScreen,
 } from "../demo";
-import { demoText, getDemoBots } from "../i18n/demo";
-import type { Locale } from "../i18n/locales";
 import { LandingBotAvatar } from "./LandingBotAvatar";
 import {
   type DemoTrigger,
   defaultTrigger,
   describeTrigger,
   displayRoutineWhen,
+  interpolate,
   parseWhen,
   resolveRoutineWhen,
 } from "./product-demo-when";
@@ -288,9 +288,9 @@ function OnboardThread({
   );
 }
 
-export function ProductDemo({ locale = "en" }: { locale?: Locale }) {
-  const text: DemoTranslator = (source, values) => demoText(locale, source, values);
-  const [bots, setBots] = useState<LiveBot[]>(() => cloneBots(getDemoBots(locale)));
+export function ProductDemo() {
+  const text: DemoTranslator = interpolate;
+  const [bots, setBots] = useState<LiveBot[]>(() => cloneBots(DEMO_BOTS));
   const [activeId, setActiveId] = useState("inbox");
   const [panelOpen, setPanelOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);

@@ -1,0 +1,11 @@
+# Short install commands. The scripts stay in the repository, so main is always what runs.
+/install.sh https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh 302
+/install.ps1 https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install.ps1 302
+
+# The site is English only; earlier translated pages go home.
+/de / 301
+/de/* / 301
+/ko / 301
+/ko/* / 301
+/zh / 301
+/zh/* / 301

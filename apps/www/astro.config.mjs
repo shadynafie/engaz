@@ -9,26 +9,9 @@ const wwwPort = resolveWwwPort();
 export default defineConfig({
   site: "https://engaz.app",
   output: "static",
-  i18n: {
-    defaultLocale: "en",
-    locales: ["en", "de", "ko", "zh"],
-    routing: {
-      prefixDefaultLocale: false,
-    },
-  },
   integrations: [
     react(),
-    sitemap({
-      i18n: {
-        defaultLocale: "en",
-        locales: {
-          en: "en-US",
-          de: "de-DE",
-          ko: "ko-KR",
-          zh: "zh-CN",
-        },
-      },
-    }),
+    sitemap(),
   ],
   vite: {
     plugins: [tailwindcss()],

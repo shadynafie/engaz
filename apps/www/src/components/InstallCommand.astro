@@ -1,5 +1,6 @@
 ---
-import { INSTALL_COMMAND } from "../site";
+import { INSTALL_COMMANDS } from "../site";
+import SystemIcon from "./SystemIcon.astro";
 
 type Props = {
   copyLabel: string;
@@ -9,11 +10,26 @@ type Props = {
 };
 
 const { copyLabel, copiedLabel, copyFailed, class: className } = Astro.props;
+// Mac and Linux run the same shell installer.
+const systems = [
+  { id: "mac", label: "Mac", command: "unix" },
+  { id: "linux", label: "Linux", command: "unix" },
+  { id: "windows", label: "Windows", command: "windows" },
+] as const;
 ---
 
-<div class:list={["install-command", className]} data-install>
-  <span class="install-command__prompt" aria-hidden="true">$</span>
-  <code data-install-command tabindex="0">{INSTALL_COMMAND}</code>
+<div class:list={["install-command", className]} data-install data-commands={JSON.stringify(INSTALL_COMMANDS)}>
+  <div class="install-command__systems">
+    {systems.map((system) => (
+      <button
+        type="button"
+        data-install-system={system.id}
+        data-command={system.command}
+        aria-pressed={system.id === "mac" ? "true" : "false"}
+      ><SystemIcon system={system.id} />{system.label}</button>
+    ))}
+  </div>
+  <code data-install-command tabindex="0">{INSTALL_COMMANDS.unix}</code>
   <button
     type="button"
     data-copy-install

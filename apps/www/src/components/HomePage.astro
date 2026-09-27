@@ -3,26 +3,13 @@ import Button from "./Button.astro";
 import Footer from "./Footer.astro";
 import Header from "./Header.astro";
 import InstallCommand from "./InstallCommand.astro";
-import { getHomeCopy } from "../i18n/home";
-import {
-  DEFAULT_LOCALE,
-  LOCALE_HTML_LANG,
-  isLocale,
-  localeHomePath,
-} from "../i18n/locales";
-import type { Locale } from "../i18n/locales";
+import { HOME_COPY as copy } from "../home-copy";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { botColors } from "@engaz/ui-tokens";
 import "../styles/marketing.css";
 import "../styles/stage-hero.css";
 import { DOCS_URL, GITHUB_URL, SITE_NAME, SITE_URL } from "../site";
 
-const locale: Locale = isLocale(Astro.currentLocale)
-  ? Astro.currentLocale
-  : DEFAULT_LOCALE;
-const copy = getHomeCopy(locale);
-const homeHref = localeHomePath(locale);
-const pageUrl = new URL(homeHref, SITE_URL).toString();
 const copyLabels = {
   copyLabel: copy.roster.copyCommand,
   copiedLabel: copy.roster.copiedCommand,
@@ -43,20 +30,20 @@ const structuredData = {
       "@id": `${SITE_URL}/#website`,
       url: `${SITE_URL}/`,
       name: SITE_NAME,
-      description: getHomeCopy(DEFAULT_LOCALE).description,
+      description: copy.description,
     },
     {
       "@type": "WebPage",
-      url: pageUrl,
+      url: `${SITE_URL}/`,
       name: copy.title,
       description: copy.description,
-      inLanguage: LOCALE_HTML_LANG[locale],
+      inLanguage: "en",
       isPartOf: { "@id": `${SITE_URL}/#website` },
     },
     {
       "@type": "SoftwareApplication",
       name: SITE_NAME,
-      description: getHomeCopy(DEFAULT_LOCALE).description,
+      description: copy.description,
       applicationCategory: "ProductivityApplication",
       codeRepository: GITHUB_URL,
       license: `${GITHUB_URL}/blob/main/LICENSE`,
@@ -69,15 +56,13 @@ const structuredData = {
   title={copy.title}
   description={copy.description}
   {structuredData}
-  locale={locale}
   skipLabel={copy.skipToContent}
-  homeAlternates
   ogImageAlt={copy.ogImageAlt}
 >
   <div class="workbench">
     <div class="workbench__opening">
       <div class="container">
-        <Header locale={locale} copy={copy.nav} homeHref={homeHref} />
+        <Header />
       </div>
     </div>
 
@@ -178,14 +163,7 @@ const structuredData = {
     </main>
 
     <div class="container">
-      <Footer
-        locale={locale}
-        languagesLabel={copy.footer.languagesLabel}
-        navLabel={copy.footer.navLabel}
-        homeLabel={copy.nav.home}
-        linkLabels={copy.footer.links}
-        homeHref={homeHref}
-      />
+      <Footer />
     </div>
   </div>
 </BaseLayout>
@@ -195,12 +173,32 @@ const structuredData = {
   if (root) {
     const hero = root.querySelector<HTMLElement>("[data-pointer-stage]");
     let cheer = 0;
+    // Every install box shows the same system, starting with the visitor's own.
+    const installs = [...root.querySelectorAll<HTMLElement>("[data-install]")];
+    const showSystem = (system: string) => {
+      for (const install of installs) {
+        const commands = JSON.parse(install.dataset.commands ?? "{}") as Record<string, string>;
+        const command = install.querySelector<HTMLElement>("[data-install-command]");
+        for (const option of install.querySelectorAll<HTMLButtonElement>("[data-install-system]")) {
+          const selected = option.dataset.installSystem === system;
+          option.setAttribute("aria-pressed", String(selected));
+          const text = commands[option.dataset.command ?? ""];
+          if (selected && command && text) command.textContent = text;
+        }
+      }
+    };
+    for (const option of root.querySelectorAll<HTMLButtonElement>("[data-install-system]")) {
+      option.addEventListener("click", () => showSystem(option.dataset.installSystem ?? "mac"));
+    }
+    const agent = navigator.userAgent;
+    if (/Windows/i.test(agent)) showSystem("windows");
+    else if (/Linux/i.test(agent) && !/Android/i.test(agent)) showSystem("linux");
     for (const copyButton of root.querySelectorAll<HTMLButtonElement>("[data-copy-install]")) {
       const install = copyButton.closest<HTMLElement>("[data-install]");
-      const command = install?.querySelector<HTMLElement>("[data-install-command]")?.textContent?.trim();
       const copyStatus = copyButton.querySelector<HTMLElement>("[data-copy-status]");
       let copyReset = 0;
       copyButton.addEventListener("click", async () => {
+        const command = install?.querySelector<HTMLElement>("[data-install-command]")?.textContent?.trim();
         if (!command || !copyStatus) return;
         clearTimeout(copyReset);
         try {

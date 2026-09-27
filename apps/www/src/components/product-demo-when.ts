@@ -8,7 +8,7 @@ export type DemoTrigger = {
 
 type DemoTranslator = (source: string, values?: Record<string, string | number>) => string;
 
-function interpolate(source: string, values?: Record<string, string | number>): string {
+export function interpolate(source: string, values?: Record<string, string | number>): string {
   if (!values) return source;
   return source.replace(/\{([A-Za-z0-9_]+)\}/g, (match, key: string) =>
     Object.hasOwn(values, key) ? String(values[key]) : match,
@@ -111,8 +111,7 @@ export function resolveRoutineWhen(triggers: DemoTrigger[], sourceWhen?: string)
  * List-label for a stored `when`: prefer a direct catalog hit (opaque seeds).
  * Only reparse through describeTrigger when the string round-trips via
  * whenLabel(parseWhen(...)) — i.e. it was produced by whenLabel. Opaque
- * customs and cron text stay as stored so English (and other locales without
- * a direct hit) do not collapse them to daily 9:00 AM.
+ * customs and cron text stay as stored so they do not collapse to daily 9:00 AM.
  */
 export function displayRoutineWhen(when: string, text: DemoTranslator): string {
   const direct = text(when);

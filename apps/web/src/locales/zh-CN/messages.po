@@ -2348,6 +2348,9 @@ msgstr "设置：用量"
 msgid "Setup help"
 msgstr "设置帮助"
 
+msgid "Setup key"
+msgstr ""
+
 msgid "Shape"
 msgstr "形状"
 

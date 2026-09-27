@@ -1,6 +1,6 @@
 # Engaz development roadmap
 
-Updated: 2026-09-26. This is the delivery plan and status record for Engaz v1. Change a status only when the linked behavior has been checked; a merged PR alone does not prove a user journey works.
+Updated: 2026-09-27. This is the delivery plan and status record for Engaz v1. Change a status only when the linked behavior has been checked; a merged PR alone does not prove a user journey works.
 
 ## Product goal
 
@@ -16,7 +16,7 @@ The existing orchestration, apps, and provider architecture are the foundation. 
 | Images | Anonymous pulls of app, computer, and updater and a healthy installer startup pass on amd64 and arm64 CI runners after each main publish. A published pre-1.7 installation upgraded to v0.1.7 on isolated Linux arm64. | Real NAS and desktop-host startup and recovery remain untested. |
 | Setup | Source setup and an image installer exist. The installer supports a durable host directory and offers opt-in Docker installation on supported Linux hosts, with CI startup checks. | Real NAS and macOS installations remain unverified; macOS and Windows need Docker Desktop installed first. |
 | Data | Postgres and appdata are persisted in Compose volumes; the image installer also supports a host data directory. Image lifecycle and portable backup/restore commands ship in v0.1.7; recovery passes on amd64 and arm64 Linux. | The real NAS rehearsal remains pending. A configuration directory alone is insufficient. |
-| Ownership | First registration becomes deployment owner; onboarding connects a model and creates a first agent. | First registration wins by design; the installer binds to 127.0.0.1, so only the host can claim. Signup policy after the owner needs an explicit choice. |
+| Ownership | First registration becomes deployment owner; onboarding connects a model and creates a first agent. | Direct LAN installation is in progress: fresh configuration binds the web port on host interfaces, trusts explicit LAN/loopback origins, and requires an email-bound private setup key for first ownership. Offline auth/origin tests and installer smoke checks pass; candidate-image and real-host verification remain pending. Existing configurations keep their binding. |
 | Plugins | MCP servers have one entry point in Integrations on web and mobile, a checked status with the reason for a failure, per-agent tool choice, and an owner-only local network route. The worker and MCP connector refuse a tool an agent was not given, before any approval (phase 3). | OpenAPI and GraphQL sources grant all their operations to the agents they are limited to. MCP sign-in on mobile finishes on web or desktop. |
 | Skills | Each agent's settings list the owner's skills with a switch per agent, plus the skills it was taught; runs receive only the agent's own skills. | Keep it that way as skills gain sources beyond the owner. |
 | UI | A shared monochrome token system and reusable web components exist. An agent's settings list its plugins and skills. | Changed screens still need light/dark, keyboard, narrow-width, and native navigation checks (phase 5). |

@@ -127,6 +127,8 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://127.0.0.1:7791}
       WEB_ORIGIN: ${WEB_ORIGIN:-http://127.0.0.1:7791}
       API_URL: ${API_URL:-http://127.0.0.1:7791}
+      AUTH_TRUSTED_ORIGINS: ${AUTH_TRUSTED_ORIGINS:-}
+      OWNER_SETUP_KEY: ${OWNER_SETUP_KEY:-}
       DATABASE_URL: postgres://${POSTGRES_USER:-engaz}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-engaz}
       DATA_DIR: /data
       SANDBOX_PROVIDER: ${SANDBOX_PROVIDER:-docker}
@@ -185,6 +187,8 @@ services:
       - .env
     environment:
       BETTER_AUTH_SECRET: ""
+      OWNER_SETUP_KEY: ""
+      AUTH_TRUSTED_ORIGINS: ""
       NODE_ENV: production
       DATABASE_URL: postgres://${POSTGRES_USER:-engaz}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-engaz}
       DATA_DIR: /data
@@ -239,7 +243,7 @@ services:
       ENGAZ_IMAGE_TAG: ${ENGAZ_IMAGE_TAG:-edge}
       SCREEN_PROXY_SECRET: ${SCREEN_PROXY_SECRET:?Set SCREEN_PROXY_SECRET in .env}
     ports:
-      - "127.0.0.1:${ENGAZ_WEB_PORT:-7791}:7791"
+      - "${ENGAZ_WEB_BIND:-127.0.0.1}:${ENGAZ_WEB_PORT:-7791}:7791"
     networks:
       - app
     depends_on:

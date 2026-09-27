@@ -17,6 +17,7 @@ overwrite an existing `.env` without an explicit backup and operator consent.**
 | `ENCRYPTION_KEY` | `openssl rand -hex 32` | Encrypts stored credentials at rest |
 | `SCREEN_PROXY_SECRET` | `openssl rand -hex 32` | Signs short-lived `/novnc/*` screen capabilities |
 | `SANDBOX_SUPERVISOR_TOKEN` | `openssl rand -hex 32` | API ↔ sandbox supervisor auth |
+| `OWNER_SETUP_KEY` | `openssl rand -hex 32` | Private first-owner setup; generated for fresh installs |
 
 Re-runs **preserve** an existing `.env` (they do not rotate secrets). Empty
 required keys still fail closed at Compose validate time
@@ -56,8 +57,9 @@ secret into multiple keys):
 - `ENCRYPTION_KEY`
 - `SCREEN_PROXY_SECRET`
 - `SANDBOX_SUPERVISOR_TOKEN`
+- `OWNER_SETUP_KEY` (fresh installs)
 - `ENGAZ_UPDATER_TOKEN` (only if the updater profile is enabled; ≥32 chars,
-  also distinct from the four above)
+  also distinct from the keys above)
 
 Rotating `ENCRYPTION_KEY` after credentials were stored makes old ciphertext
 unreadable. Keep the original key for an existing deployment unless you

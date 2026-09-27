@@ -12,7 +12,7 @@ g 'could not pull images'
 g 'registry-mirrors'
 g 'Set HTTP_PROXY/HTTPS_PROXY'
 g 'NO_PROXY for localhost'
-g '--pull never'
+g '"$PWD/engaz" --dir "$PWD" start'
 bash -n "$src" || fail "bash -n"
 
 # Unit: source only the sync function

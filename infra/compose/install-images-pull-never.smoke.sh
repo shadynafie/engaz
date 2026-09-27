@@ -9,9 +9,6 @@ g '--pull-never)'
 g '--offline)'
 g 'ENGAZ_PULL_NEVER'
 g 'Skipping image pull'
-g '--pull never'
-g 'cannot enforce pull-never on this Compose version'
-g '${up_pull_args[@]+"${up_pull_args[@]}"}'
 g 'HTTP_PROXY/HTTPS_PROXY'
 g '[--prepare-only] [--local] [--pull-never] [--offline]'
 set +e
@@ -91,6 +88,10 @@ if [[ "$verb" == config ]]; then
 fi
 
 if [[ "$help" == true ]]; then
+  if [[ "$verb" == config ]]; then
+    printf '%s\n' "${STUB_COMPOSE_CONFIG_HELP:---environment --format string}"
+    exit 0
+  fi
   printf '%s\n' "${STUB_COMPOSE_UP_HELP:-Usage: docker compose up
 
 Options:
@@ -111,7 +112,11 @@ case "$verb" in
     ;;
   config)
     if [[ " $* " == *" --format json "* ]]; then
-      if [[ "${STUB_EXPECT_ENV_CLEAN-}" == 1 ]]; then
+      if [[ "${STUB_COMPOSE_JSON_IS_YAML-}" == 1 ]]; then
+        printf 'services:\n  probe:\n    image: busybox:1\n'
+        exit 0
+      fi
+      if [[ "${STUB_EXPECT_ENV_CLEAN-}" == 1 && " $* " != *" --project-name engaz-preflight "* ]]; then
         [[ -z "${ENGAZ_DATA_DIR+x}" && -z "${COMPOSE_PROJECT_NAME+x}" && -z "${POSTGRES_PASSWORD+x}" ]] \
           || { echo 'STUB: ambient Compose override survived' >&2; exit 1; }
       fi
@@ -131,6 +136,13 @@ ENCRYPTION_KEY=test-encryption-key
 SCREEN_PROXY_SECRET=test-screen-secret
 SANDBOX_SUPERVISOR_TOKEN=test-supervisor-token
 EOF
+    previous=""
+    for argument in "$@"; do
+      if [[ "$previous" == --env-file && -f "$argument" ]]; then
+        sed -n '/^ENGAZ_WEB_BIND=/p; /^OWNER_SETUP_KEY=/p' "$argument"
+      fi
+      previous="$argument"
+    done
     ;;
   pull|up)
     ;;
@@ -187,9 +199,14 @@ setup_work() {
   write_stubs "$work/bin"
   cat > "$work/engaz-stub" <<'STUB'
 #!/usr/bin/env python3
-import pathlib, sys
+import pathlib, subprocess, sys
 root = pathlib.Path(sys.argv[sys.argv.index("--dir") + 1])
 command = sys.argv[-1]
+if command == "start":
+    args = ["docker", "compose", "--env-file", str(root / ".env"), "-f", str(root / "docker-compose.images.yml")]
+    if "ENGAZ_DATA_DIR=" in (root / ".env").read_text():
+        args += ["-f", str(root / "docker-compose.data-dir.yml")]
+    subprocess.run([*args, "up", "-d", "--pull", "never", "--wait", "--wait-timeout", "300"], check=True)
 (root / ".engaz-install.json").write_text('{"test": true}\n')
 print("ENGAZ_COMMAND=" + command)
 STUB
@@ -217,6 +234,7 @@ run_install() {
     export ENGAZ_BIN_DIR="$work/commands"
     export PATH="$work/bin:$PATH"
     export ENGAZ_NONINTERACTIVE="${ENGAZ_NONINTERACTIVE-1}"
+    export ENGAZ_LAN_IP="${ENGAZ_LAN_IP-192.168.50.2}"
     cd "$work/cwd"
     bash "$src" "$@"
   )
@@ -281,6 +299,52 @@ set -e
 [[ "$python_code" -ne 0 && "$python_out" == *'Python 3.9 or newer is required'* ]] \
   || fail "unsupported Python needs an actionable error"
 
+# Reject vendor Compose builds before downloads or secrets are created.
+for capability in missing-environment fake-json; do
+  setup_work "$tmp/$capability"
+  rm "$tmp/$capability/cwd/.env"
+  if [[ "$capability" == missing-environment ]]; then
+    export STUB_COMPOSE_CONFIG_HELP='--format string'
+  else
+    export STUB_COMPOSE_JSON_IS_YAML=1
+  fi
+  set +e
+  capability_out="$(run_install "$tmp/$capability" --offline 2>&1)"
+  capability_code=$?
+  set -e
+  unset STUB_COMPOSE_CONFIG_HELP STUB_COMPOSE_JSON_IS_YAML
+  [[ "$capability_code" -ne 0 && "$capability_out" == *'Upgrade the Docker Compose plugin'* ]] \
+    || fail "unsupported Compose needs a capability error"
+  [[ ! -e "$tmp/$capability/cwd/.env" && ! -s "$tmp/$capability/curl.log" ]] \
+    || fail "Compose capability failure must precede files and downloads"
+done
+
+setup_work "$tmp/public-without-key"
+printf 'ENGAZ_WEB_BIND=0.0.0.0\n' >> "$tmp/public-without-key/cwd/.env"
+set +e
+key_out="$(run_install "$tmp/public-without-key" --offline 2>&1)"
+key_code=$?
+set -e
+[[ "$key_code" -ne 0 && "$key_out" == *'network access also requires OWNER_SETUP_KEY'* ]] \
+  || fail "network startup must require an owner key"
+grep -q 'VERB=up' "$tmp/public-without-key/docker.log" && fail "blank owner key must prevent startup"
+
+setup_work "$tmp/invalid-network-ip"
+rm "$tmp/invalid-network-ip/cwd/.env"
+set +e
+ip_out="$(ENGAZ_LAN_IP=203.0.113.2 run_install "$tmp/invalid-network-ip" --offline 2>&1)"
+ip_code=$?
+set -e
+[[ "$ip_code" -ne 0 && "$ip_out" == *'ENGAZ_LAN_IP must be'* && ! -e "$tmp/invalid-network-ip/cwd/.env" ]] \
+  || fail "explicit network IP must be private and validated before secrets"
+
+setup_work "$tmp/custom-web-port"
+rm "$tmp/custom-web-port/cwd/.env"
+custom_out="$(ENGAZ_WEB_PORT=8787 run_install "$tmp/custom-web-port" --prepare-only --offline 2>&1)" \
+  || fail "custom web port preparation failed"
+grep -qxF 'WEB_ORIGIN=http://192.168.50.2:8787' "$tmp/custom-web-port/cwd/.env" \
+  || fail "canonical origins must use the configured web port"
+
 # --pull-never is accepted and skips pull (may still download Compose files).
 setup_work "$tmp/pull-never"
 set +e
@@ -293,30 +357,7 @@ set -e
 has_compose_pull "$tmp/pull-never" && fail "--pull-never should not run compose pull"
 has_up_pull_never "$tmp/pull-never" || fail "--pull-never should pass --pull never to compose up"
 
-# Old Compose without up --pull: warn and continue instead of hard-fail.
-setup_work "$tmp/old"
-export STUB_COMPOSE_UP_HELP='Usage: docker compose up
-  --wait
-  --wait-timeout int
-'
-export STUB_COMPOSE_SHORT='2.10.1'
-set +e
-old_out="$(run_install "$tmp/old" --offline 2>&1)"
-old_code=$?
-set -e
-unset STUB_COMPOSE_UP_HELP STUB_COMPOSE_SHORT
-[[ "$old_code" -eq 0 ]] || fail "old Compose --offline exited $old_code: $old_out"
-[[ "$old_out" == *"cannot enforce pull-never on this Compose version; startup fails if an image is missing locally"* ]] \
-  || fail "old Compose --offline missing soft warning: $old_out"
-[[ "$old_out" != *"Engaz setup failed:"* ]] || fail "old Compose --offline should not hard-fail: $old_out"
-[[ "$old_out" == *"Open http://127.0.0.1:7791 in your browser to set it up."* ]] || fail "old Compose --offline should continue: $old_out"
-has_compose_pull "$tmp/old" && fail "old Compose --offline should not run compose pull"
-if grep -F -e ' --pull never' "$tmp/old/docker.log" >/dev/null; then
-  fail "old Compose up should not receive --pull never: $(cat "$tmp/old/docker.log")"
-fi
-grep -q 'VERB=up' "$tmp/old/docker.log" || fail "old Compose --offline should still run compose up"
-
-# Empty up arrays under set -u must not abort a normal install (bash 3.2).
+# Default install uses the shared lifecycle startup after pulling.
 setup_work "$tmp/default"
 set +e
 default_out="$(run_install "$tmp/default" 2>&1)"
@@ -350,16 +391,25 @@ data_install "$tmp/data" "--data-dir=$tmp/data/store/"
 store="$(cd "$tmp/data/store" && pwd -P)"
 [[ -d "$store/postgres" && -d "$store/appdata" ]] || fail "--data-dir did not create data folders"
 grep -qxF "ENGAZ_DATA_DIR=$store" "$store/.env" || fail "--data-dir did not record ENGAZ_DATA_DIR: $(cat "$store/.env")"
+grep -qxF 'ENGAZ_WEB_BIND=0.0.0.0' "$store/.env" || fail "new installation must enable network web access"
+grep -qxF 'WEB_ORIGIN=http://192.168.50.2:7791' "$store/.env" || fail "network address must be the canonical origin"
+grep -qxF 'AUTH_TRUSTED_ORIGINS=http://192.168.50.2:7791,http://localhost:7791,http://127.0.0.1:7791' "$store/.env" \
+  || fail "trusted origins must be exact local addresses"
+grep -Eq '^OWNER_SETUP_KEY=[0-9a-f]{64}$' "$store/.env" || fail "new installation needs a random owner key"
+[[ "$data_out" == *'http://192.168.50.2:7791/sign-up#setup='* ]] || fail "installer must print the owner signup link"
+[[ "$(grep -c '^OWNER_SETUP_KEY=' "$store/.env")" == 1 ]] || fail "owner setup key needs one assignment"
 grep -qxF "COMPOSE_FILE=docker-compose.images.yml:docker-compose.data-dir.yml" "$store/.env" \
   || fail "--data-dir did not record COMPOSE_FILE"
 [[ "$(ls -ld "$store/.env" | cut -c1-10)" == "-rw-------" ]] || fail ".env should be private"
-grep -F -e 'up -d' "$tmp/data/docker.log" | grep -F -e '-f docker-compose.data-dir.yml' >/dev/null \
+grep -F -e 'up -d' "$tmp/data/docker.log" | grep -F -e 'docker-compose.data-dir.yml' >/dev/null \
   || fail "--data-dir should start with the data-dir Compose file: $(cat "$tmp/data/docker.log")"
 [[ "$data_out" == *"Data and secrets are in $store"* ]] || fail "--data-dir should name the folder to back up"
 
+original_setup_key=$(sed -n 's/^OWNER_SETUP_KEY=//p' "$store/.env")
 data_install "$tmp/data" "--data-dir=$store"
 [[ "$data_code" -eq 0 ]] || fail "--data-dir rerun exited $data_code: $data_out"
 [[ "$data_out" == *"ENGAZ_COMMAND=update"* ]] || fail "--data-dir rerun should use engaz update"
+[[ "$(sed -n 's/^OWNER_SETUP_KEY=//p' "$store/.env")" == "$original_setup_key" ]] || fail "rerun must preserve the owner key"
 
 # Rerunning from inside the folder without the flag must not fall back to named volumes.
 : > "$tmp/data/docker.log"
@@ -547,5 +597,23 @@ export STUB_DOCKER_IMAGES=present
 data_install "$tmp/space"
 [[ "$data_code" -eq 0 ]] || fail "an update with local images should skip the space check: $data_out"
 unset STUB_DOCKER_ROOT STUB_DF_AVAILABLE_KB STUB_DOCKER_IMAGES
+
+# IP discovery stays offline, rejects public overrides, and safely reports no LAN IP.
+python3 - "$src" <<'PYTEST'
+import contextlib, io, os, re, socket, sys
+from pathlib import Path
+from unittest.mock import patch
+text = Path(sys.argv[1]).read_text()
+code = re.search(r"detect_lan_ip\(\) \{\n  python3 -c '\n(.*?)\n'\n\}", text, re.S).group(1)
+for override, expected in (("192.168.50.2", 0), ("203.0.113.2", 2), ("127.0.0.1", 2), ("192.168.50.2 ", 2), (None, 1)):
+    env = {} if override is None else {"ENGAZ_LAN_IP": override}
+    output = io.StringIO()
+    with patch.dict(os.environ, env, clear=True), patch("socket.socket", side_effect=OSError), patch("socket.getaddrinfo", side_effect=OSError), contextlib.redirect_stdout(output):
+        try:
+            exec(code, {})
+        except SystemExit as error:
+            assert error.code == expected
+    assert output.getvalue() == ("192.168.50.2\n" if expected == 0 else "")
+PYTEST
 
 echo "ok"

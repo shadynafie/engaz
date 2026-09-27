@@ -14,11 +14,11 @@ Engaz needs Docker and Python 3.9 or newer (no Python packages to install). On L
 curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash
 ```
 
-It asks where to keep your data, starts Engaz, and prints the address to open, `http://127.0.0.1:7791`. It installs the `engaz` command; follow the printed PATH instruction if needed. Use `engaz update` to update. The [self-hosting guide](./docs/self-host.md#published-images-no-checkout) covers the options, including [keeping data in a folder you choose](./docs/self-host.md#keep-data-in-a-folder-you-choose).
+It asks where to keep your data, starts Engaz, and prints a private setup link and the addresses to open. On the installation machine, use `http://localhost:7791`; from another device on the same network, use the installation machine's IP, for example `http://192.168.1.20:7791`. It installs the `engaz` command; follow the printed PATH instruction if needed. Use `engaz update` to update. The [self-hosting guide](./docs/self-host.md#published-images-no-checkout) covers the options, including [keeping data in a folder you choose](./docs/self-host.md#keep-data-in-a-folder-you-choose).
 
 ## First run
 
-1. **Create your account.** The first account owns the installation. Create it before you make Engaz reachable from anywhere else.
+1. **Create your account.** Open the installer's setup link to create the owner account. Keep its setup key private; other people join by invitation.
 2. **Connect a model.** Engaz sends it one test request and tells you what went wrong before anything is saved. For a model server on the same computer, use `host.docker.internal` instead of `localhost`.
 3. **Build your team.** Your first agent, Chief, is ready to chat. Give agents skills from their settings, and connect plugins under **Integrations → MCP servers**, where you choose which agents may use each tool.
 4. **Invite people.** Others join with a link from **Settings → People**.

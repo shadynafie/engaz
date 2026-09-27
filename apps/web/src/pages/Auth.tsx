@@ -17,6 +17,7 @@ type AuthCapabilities = {
   resetUrl: string | null;
   /** The owner exists and new accounts need an invitation link. */
   invitationRequired?: boolean;
+  ownerSetupRequired?: boolean;
 };
 
 const fieldClass = "mt-2 h-12 rounded-xl px-4 text-base md:text-base";
@@ -30,6 +31,10 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [setupKey, setSetupKey] = useState(
+    () => new URLSearchParams(window.location.hash.slice(1)).get("setup") ?? "",
+  );
+  const [setupLinkProvided, setSetupLinkProvided] = useState(() => Boolean(setupKey));
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -51,6 +56,19 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   ) : (
     <Trans>Reset your password</Trans>
   );
+
+  useEffect(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    if (fragment.has("setup")) {
+      fragment.delete("setup");
+      const remaining = fragment.toString();
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${window.location.pathname}${window.location.search}${remaining ? `#${remaining}` : ""}`,
+      );
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -104,13 +122,20 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
               email,
               password,
               name: name || email.split("@")[0] || "User",
-              fetchOptions: invite ? { headers: { [SIGNUP_INVITE_HEADER]: invite } } : undefined,
+              fetchOptions: {
+                headers: {
+                  ...(invite ? { [SIGNUP_INVITE_HEADER]: invite } : {}),
+                  ...(setupKey ? { "x-engaz-owner-setup": setupKey } : {}),
+                },
+              },
             })
           : await authClient.signIn.email({ email, password });
       if (result.error) {
+        setSetupLinkProvided(false);
         setError(result.error.message ?? t`Could not continue`);
         return;
       }
+      setSetupKey("");
       if (mode === "up" && signupRequiresEmailVerification(result.data)) {
         setSearchParams({ verify: "email" });
         return;
@@ -156,6 +181,23 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t`Your name`}
+                className={fieldClass}
+              />
+            </div>
+          ) : null}
+          {mode === "up" && reset?.ownerSetupRequired && !setupLinkProvided ? (
+            <div className="mb-4 w-full">
+              <Label htmlFor="setup-key" className="text-muted-foreground">
+                <Trans>Setup key</Trans>
+              </Label>
+              <Input
+                id="setup-key"
+                name="setup-key"
+                type="password"
+                autoComplete="off"
+                value={setupKey}
+                onChange={(e) => setSetupKey(e.target.value)}
+                required
                 className={fieldClass}
               />
             </div>

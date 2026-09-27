@@ -205,3 +205,33 @@ describe("loadEnv", () => {
     expect(loadEnv({ ...base, NODE_ENV: "development" }).nodeEnv).toBe("development");
   });
 });
+
+describe("LAN authentication configuration", () => {
+  it("keeps setup claims optional for legacy deployments and loads explicit origins", () => {
+    expect(loadEnv(base).ownerSetupKey).toBeUndefined();
+    expect(
+      loadEnv({
+        ...base,
+        OWNER_SETUP_KEY: "offline-owner-key",
+        AUTH_TRUSTED_ORIGINS: "http://localhost:7791, http://192.168.1.20:7791",
+      }),
+    ).toMatchObject({
+      ownerSetupKey: "offline-owner-key",
+      authTrustedOrigins: ["http://localhost:7791", "http://192.168.1.20:7791"],
+    });
+  });
+  it("preserves legacy Compose environments with an empty setup key", () => {
+    expect(loadEnv({ ...base, OWNER_SETUP_KEY: "   " }).ownerSetupKey).toBeUndefined();
+  });
+});
+
+it("rejects wildcard and path-bearing authentication origins", () => {
+  for (const origin of [
+    "http://*.example.test",
+    "http://localhost:7791/path",
+    "engaz://",
+    "not-an-origin",
+  ]) {
+    expect(() => loadEnv({ ...base, AUTH_TRUSTED_ORIGINS: origin })).toThrow();
+  }
+});

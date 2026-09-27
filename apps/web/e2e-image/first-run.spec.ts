@@ -8,6 +8,9 @@ import { expect, test } from "@playwright/test";
 // and read why a broken plugin cannot be used. The model and MCP server are the fakes in
 // fake-services.mjs, reached from Docker the way a local model server is.
 
+// Installer setup links carry a one-time installation secret; never keep it in traces.
+test.use({ trace: "off" });
+
 const FAKE = `http://host.docker.internal:${process.env.FAKE_SERVICES_PORT ?? 8099}`;
 
 async function shot(page: Page, testInfo: TestInfo, name: string) {
@@ -19,8 +22,30 @@ async function shot(page: Page, testInfo: TestInfo, name: string) {
 test("a new owner goes from sign-up to a working agent with a plugin", async ({
   page,
 }, testInfo) => {
-  await page.goto("/sign-up");
+  const setupKey = process.env.OWNER_SETUP_KEY;
+  const lanUrl = process.env.ENGAZ_LAN_URL;
+  await page.goto(lanUrl ? `${lanUrl}/sign-up` : "/sign-up");
   await expect(page.getByRole("heading", { name: "Create your Engaz" })).toBeVisible();
+  if (setupKey) {
+    await expect(page.getByLabel("Setup key", { exact: true })).toBeVisible();
+    await shot(page, testInfo, "image-00-owner-setup-key");
+    const body = { email: "uninvited@engaz.test", name: "Uninvited", password: "fake-password-12" };
+    for (const headers of [{}, { "x-engaz-owner-setup": "fake-wrong-setup-key" }]) {
+      const response = await page.request.post(
+        `${lanUrl ?? "http://127.0.0.1:7791"}/api/auth/sign-up/email`,
+        { data: body, headers },
+      );
+      expect(response.status()).toBe(403);
+    }
+    // Load the printed link without logging a URL containing the key.
+    await page.evaluate(
+      (key) => window.history.replaceState(null, "", `/sign-up#setup=${key}`),
+      setupKey,
+    );
+    await page.reload();
+    await expect(page).toHaveURL(/\/sign-up$/);
+    await expect(page.getByLabel("Setup key", { exact: true })).toHaveCount(0);
+  }
   await page.getByPlaceholder("Your name").fill("First Owner");
   await page.getByPlaceholder("Your email address").fill("owner@engaz.test");
   await page.getByPlaceholder("Password").fill("fake-password-12");
@@ -107,6 +132,24 @@ test("a new owner goes from sign-up to a working agent with a plugin", async ({
   // A reload keeps the owner signed in with the conversation in place.
   await page.reload();
   await expect(page.getByText("Hello from the fake model.").first()).toBeVisible();
+  if (setupKey && lanUrl) {
+    const capabilities = await (await page.request.get(`${lanUrl}/api/auth/capabilities`)).json();
+    expect(capabilities.ownerSetupRequired).toBe(false);
+    const browser = page.context().browser()!;
+    const localContext = await browser.newContext();
+    const localPage = await localContext.newPage();
+    const local = new URL(lanUrl);
+    local.hostname = "localhost";
+    await localPage.goto(`${local.origin}/sign-in`);
+    await localPage.getByPlaceholder("Your email address").fill("owner@engaz.test");
+    await localPage.getByPlaceholder("Password").fill("fake-password-12");
+    await localPage.getByRole("button", { name: "Continue with email" }).click();
+    await expect(localPage.getByRole("combobox", { name: "Message Chief" })).toBeVisible();
+    await localPage.reload();
+    await expect(localPage.getByText("Hello from the fake model.").first()).toBeVisible();
+    await shot(localPage, testInfo, "image-07-localhost-sign-in");
+    await localContext.close();
+  }
 });
 
 test("recovery keeps owner sign-in, private agent files and saved credentials", async ({
@@ -124,7 +167,7 @@ test("recovery keeps owner sign-in, private agent files and saved credentials", 
         "../../infra/compose/image-lifecycle-check.py",
         "--install-dir",
         installation,
-        "--rehearse-update",
+        ...(process.env.ENGAZ_RECOVERY_SKIP_UPDATE === "1" ? [] : ["--rehearse-update"]),
         "--target",
         path.join(path.dirname(installation), `${path.basename(installation)}-recovered`),
       ],

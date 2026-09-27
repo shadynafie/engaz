@@ -340,7 +340,24 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
   page.on("console", (message) => {
     if (message.type() === "error") browserErrors.push(message.text());
   });
+  const capabilitiesUrl = new URL("/api/auth/capabilities", testInfo.project.use.baseURL).href;
+  let capabilitiesLoaded = false;
+  page.on("requestfinished", async (request) => {
+    if (request.method() === "GET" && request.url() === capabilitiesUrl) {
+      if ((await request.response())?.status() === 200) capabilitiesLoaded = true;
+    }
+  });
   page.on("requestfailed", (request) => {
+    // Strict Mode can leave a duplicate optional request until its 8s deadline.
+    // Accept its cancellation only after another capabilities request completed.
+    if (
+      capabilitiesLoaded &&
+      request.method() === "GET" &&
+      request.url() === capabilitiesUrl &&
+      request.failure()?.errorText === "net::ERR_ABORTED"
+    ) {
+      return;
+    }
     failedRequests.push(
       `${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
     );

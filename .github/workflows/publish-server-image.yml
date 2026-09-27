@@ -64,17 +64,28 @@ jobs:
           fi
 
   installer-smoke:
-    name: Compose installer smokes
+    # macOS proves the installer with BSD tools; Windows proves install.ps1 under Windows PowerShell 5.1.
+    name: Compose installer smokes ${{ matrix.os }}
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     permissions:
       contents: read
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           persist-credentials: false
-      - run: bash infra/compose/run-smokes.sh
+      - if: runner.os != 'Windows'
+        run: bash infra/compose/run-smokes.sh
+      - if: runner.os == 'Windows'
+        run: bash infra/compose/install-ps1.smoke.sh
 
   validate:
     name: Validate ${{ matrix.name }} image

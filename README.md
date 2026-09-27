@@ -4,17 +4,23 @@
 
 Engaz runs on your own computer or NAS, and you use it in the browser. It does not offer a hosted service.
 
-> **Current status:** Engaz is in active development, and the first release is the web app. The installer starts a fresh installation on amd64 and arm64 Linux in CI, and a new owner completes first run there. Linux update, backup, and restore checks pass; real NAS, macOS, and Windows installation and recovery remain unverified. The desktop and mobile apps come later.
+> **Current status:** Engaz is in active development, and the first release is the web app. The installer starts a fresh installation on amd64 and arm64 Linux in CI, and a new owner completes first run there. Linux update, backup, and restore checks pass. The macOS and Windows installer paths pass offline checks; real NAS, macOS, and Windows installation and recovery remain unverified. The desktop and mobile apps come later.
 
 ## Install
 
-Engaz needs Docker and Python 3.9 or newer (no Python packages to install). On Linux the installer offers to install Docker; on macOS and Windows, install Docker Desktop first (on Windows, run the command inside WSL). Then run:
+On **Linux or macOS**, open a terminal and run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash
 ```
 
-It asks where to keep your data, starts Engaz, and prints a private setup link and the addresses to open. On the installation machine, use `http://localhost:7791`; from another device on the same network, use the installation machine's IP, for example `http://192.168.1.20:7791`. It installs the `engaz` command; follow the printed PATH instruction if needed. Use `engaz update` to update. The [self-hosting guide](./docs/self-host.md#published-images-no-checkout) covers the options, including [keeping data in a folder you choose](./docs/self-host.md#keep-data-in-a-folder-you-choose).
+On **Windows 10 (2004 or newer) or 11**, open PowerShell and run:
+
+```powershell
+irm https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install.ps1 | iex
+```
+
+The installer asks before installing anything. It offers Docker on Linux, Docker Desktop on macOS, and WSL with Docker Desktop on Windows, where Windows may restart once and setup then resumes by itself. It starts Engaz, prints a private setup link, and opens it in your browser. On the installation machine, use `http://localhost:7791`; from another device on the same network, use the machine's IP, for example `http://192.168.1.20:7791`. It installs the `engaz` command. Run the same command again, or `engaz update`, to update. The [self-hosting guide](./docs/self-host.md#published-images-no-checkout) covers the options, including [keeping data in a folder you choose](./docs/self-host.md#keep-data-in-a-folder-you-choose).
 
 ## First run
 

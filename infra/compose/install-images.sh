@@ -66,18 +66,46 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Emoji make each step easy to spot; terminals without UTF-8 get plain text.
+emoji=false
+case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
+  *[Uu][Tt][Ff]-8* | *[Uu][Tt][Ff]8*) emoji=true ;;
+esac
+if [[ "${ENGAZ_PLAIN:-}" == 1 || "${TERM:-}" == dumb ]]; then
+  emoji=false
+fi
+
+say() {
+  if [[ "$emoji" == true ]]; then
+    printf '%s %s\n' "$1" "$2"
+  else
+    printf '%s\n' "$2"
+  fi
+}
+
+step() {
+  echo
+  say "$1" "$2"
+}
+
 fail() {
-  echo "Engaz setup failed: $*" >&2
+  say "❌" "Engaz setup failed: $*" >&2
   exit 1
 }
 
-for command_name in curl openssl; do
-  command -v "$command_name" >/dev/null 2>&1 || fail "'$command_name' is required."
-done
-command -v python3 >/dev/null 2>&1 \
-  || fail "Python 3.9 or newer is required. Install your operating system's python3 package, then run this command again."
-python3 -c 'import sys; sys.exit(sys.version_info < (3, 9))' \
-  || fail "Python 3.9 or newer is required. Install your operating system's python3 package, then run this command again."
+platform=linux
+case "$(uname -s)" in
+  Darwin) platform=macos ;;
+  Linux)
+    if [[ -n "${WSL_DISTRO_NAME:-}" ]] || grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null; then
+      platform=wsl
+    fi
+    ;;
+  *) platform=other ;;
+esac
+readonly platform
+readonly WINDOWS_INSTALL_COMMAND="irm ${DOWNLOAD_BASE}/install.ps1 | iex"
+readonly WINDOWS_DOCKER_DESKTOP="/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe"
 
 # Questions read the keyboard even when this script arrives through `curl ... | bash`.
 # ENGAZ_TTY lets the installer smokes answer them from a file.
@@ -96,10 +124,137 @@ ask() {
   printf '%s' "$answer"
 }
 
+# Enter accepts; only an explicit no declines.
+confirm() {
+  local answer
+  answer=$(ask "$1 [Y/n]")
+  [[ ! "$answer" =~ ^[[:space:]]*[nN] ]]
+}
+
+step "👋" "Welcome to Engaz! Let's get your AI team workspace running."
+
+for command_name in curl openssl; do
+  command -v "$command_name" >/dev/null 2>&1 || fail "'$command_name' is required. Install it with your system's package manager, then run this command again."
+done
+
+python_ready() {
+  python3 -c 'import sys; sys.exit(sys.version_info < (3, 9))' >/dev/null 2>&1
+}
+
+# A new Mac has only a python3 placeholder until Apple's Command Line Tools are installed.
+if ! python_ready; then
+  if [[ "$platform" == macos ]] && ! xcode-select -p >/dev/null 2>&1; then
+    step "🧰" "Engaz needs Apple's Command Line Tools, which include Python."
+    xcode-select --install >/dev/null 2>&1 || true
+    [[ "$interactive" == true ]] || fail "install Apple's Command Line Tools with xcode-select --install, then run this command again."
+    say "⏳" "Click Install in the window that opened. Setup continues when it finishes."
+    waited=0
+    until xcode-select -p >/dev/null 2>&1 && python_ready; do
+      ((waited < 3600)) || fail "Apple's Command Line Tools were not installed. Run this command again to retry."
+      sleep 5
+      waited=$((waited + 5))
+    done
+  else
+    fail "Python 3.9 or newer is required. Install your operating system's python3 package, then run this command again."
+  fi
+fi
+
+# Docker Desktop and its Mac alternatives provide Docker only while their app runs.
+docker_ready() {
+  command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1
+}
+
+# Docker Desktop for Mac puts its command-line tools on PATH only for new terminals.
+add_mac_docker_path() {
+  local directory
+  [[ "$platform" == macos ]] || return 0
+  for directory in "$HOME/.docker/bin" /usr/local/bin /Applications/Docker.app/Contents/Resources/bin; do
+    if [[ -x "$directory/docker" && ":$PATH:" != *":$directory:"* ]]; then
+      PATH="$PATH:$directory"
+    fi
+  done
+  export PATH
+}
+add_mac_docker_path
+
+wait_for_docker() {
+  local waited=0
+  say "⏳" "Waiting for $1 to start. The first start can take a few minutes."
+  until docker_ready; do
+    ((waited < 300)) || return 1
+    sleep 3
+    waited=$((waited + 3))
+    add_mac_docker_path
+  done
+  say "✅" "$1 is running."
+}
+
+start_docker_app() {
+  local app
+  case "$platform" in
+    macos)
+      if [[ -d /Applications/Docker.app ]]; then
+        app="Docker Desktop"
+        open -g -a Docker || return 1
+      elif [[ -d /Applications/OrbStack.app ]]; then
+        app=OrbStack
+        open -g -a OrbStack || return 1
+      elif command -v colima >/dev/null 2>&1; then
+        app=Colima
+        say "🐳" "Starting Colima."
+        colima start >&2 || return 1
+      else
+        return 1
+      fi
+      ;;
+    wsl)
+      [[ -f "$WINDOWS_DOCKER_DESKTOP" ]] || return 1
+      app="Docker Desktop"
+      cmd.exe /c start "" "$(wslpath -w "$WINDOWS_DOCKER_DESKTOP")" >/dev/null 2>&1 || return 1
+      ;;
+    *) return 1 ;;
+  esac
+  wait_for_docker "$app"
+}
+
+install_docker_desktop_mac() {
+  local architecture url mount_point
+  case "$(uname -m)" in
+    arm64) architecture=arm64 ;;
+    *) architecture=amd64 ;;
+  esac
+  url="https://desktop.docker.com/mac/main/$architecture/Docker.dmg"
+  step "🐳" "Engaz runs on Docker, which is not installed yet."
+  echo "   Engaz can install Docker Desktop for you (about 600 MB)."
+  echo "   It is free for personal use and small businesses. Installing it accepts the Docker"
+  echo "   Subscription Service Agreement: https://www.docker.com/legal/docker-subscription-service-agreement/"
+  [[ "$interactive" == true ]] \
+    || fail "Docker is required. Install Docker Desktop from https://docs.docker.com/desktop/setup/install/mac-install/, open it once, then run this command again."
+  confirm "Install Docker Desktop now?" \
+    || fail "Docker is required. Install Docker Desktop from https://docs.docker.com/desktop/setup/install/mac-install/, open it once, then run this command again."
+  say "⬇️ " "Downloading Docker Desktop."
+  temporary_file=$(mktemp "${TMPDIR:-/tmp}/engaz-docker.XXXXXX")
+  curl -fL --proto '=https' --progress-bar "$url" -o "$temporary_file" \
+    || fail "could not download Docker Desktop."
+  mount_point=$(mktemp -d "${TMPDIR:-/tmp}/engaz-docker-mount.XXXXXX")
+  hdiutil attach -nobrowse -readonly -quiet -mountpoint "$mount_point" "$temporary_file" \
+    || fail "could not open the Docker Desktop download."
+  say "🔑" "Enter your Mac password to install Docker Desktop."
+  if ! sudo "$mount_point/Docker.app/Contents/MacOS/install" --accept-license --user="$(id -un)" <&3; then
+    hdiutil detach -quiet "$mount_point" || true
+    fail "Docker Desktop installation failed."
+  fi
+  hdiutil detach -quiet "$mount_point" || true
+  rmdir "$mount_point" 2>/dev/null || true
+  rm -f -- "$temporary_file"
+  temporary_file=""
+  start_docker_app || fail "Docker Desktop did not start. Open Docker Desktop from Applications, then run this command again."
+}
+
 install_docker() {
-  local answer os_ids="" install_command
-  case "$(uname -s)" in
-    Linux)
+  local os_ids="" install_command
+  case "$platform" in
+    linux)
       if [[ -r /etc/os-release ]]; then
         os_ids=$(. /etc/os-release && printf '%s %s' "${ID:-}" "${ID_LIKE:-}")
       fi
@@ -108,11 +263,10 @@ install_docker() {
         *" arch "* | *" archarm "*) install_command="sudo pacman -Syu --needed docker docker-compose" ;;
         *) install_command="curl -fsSL https://get.docker.com | sudo sh" ;;
       esac
-      echo "Docker is not installed. Engaz can install it with:"
-      echo "  $install_command"
+      step "🐳" "Engaz runs on Docker, which is not installed yet. Engaz can install it with:"
+      echo "   $install_command"
       [[ "$interactive" == true ]] || fail "Docker is required. Run the command above, then run this installer again."
-      answer=$(ask "Install Docker now? [y/N]")
-      [[ "$answer" == [yY] || "$answer" == [yY][eE][sS] ]] \
+      confirm "Install Docker now?" \
         || fail "Docker is required. Run the command above, then run this installer again."
       if [[ "$install_command" == "sudo pacman "* ]]; then
         # pacman asks its own questions; answer them from the terminal, not the piped script.
@@ -129,11 +283,17 @@ install_docker() {
         sudo systemctl enable --now docker >/dev/null 2>&1 || true
       fi
       ;;
-    Darwin)
-      fail "Docker is not installed. Install Docker Desktop from https://docs.docker.com/desktop/setup/install/mac-install/, open it once, then run this command again."
+    macos)
+      install_docker_desktop_mac
+      ;;
+    wsl)
+      if [[ -f "$WINDOWS_DOCKER_DESKTOP" ]]; then
+        fail "Docker Desktop is not connected to this Linux distribution. In Docker Desktop, open Settings > Resources > WSL integration, turn on ${WSL_DISTRO_NAME:-this distribution}, then run this command again."
+      fi
+      fail "Docker Desktop is required. In Windows PowerShell, run: $WINDOWS_INSTALL_COMMAND"
       ;;
     *)
-      fail "Docker is not installed. Install Docker Desktop (on Windows, run this command inside WSL) or Docker Engine, then run this command again."
+      fail "Docker is not installed. Install Docker Desktop or Docker Engine, then run this command again."
       ;;
   esac
 }
@@ -143,7 +303,14 @@ install_docker() {
 use_docker() {
   local sudo_args=(-n)
   docker info >/dev/null 2>&1 && return 0
-  if [[ "$(uname -s)" == Linux ]] && command -v sudo >/dev/null 2>&1; then
+  if [[ "$platform" == macos || "$platform" == wsl ]]; then
+    start_docker_app && return 0
+    if [[ "$platform" == wsl && -f "$WINDOWS_DOCKER_DESKTOP" ]]; then
+      fail "Docker Desktop is not connected to this Linux distribution. In Docker Desktop, open Settings > Resources > WSL integration, turn on ${WSL_DISTRO_NAME:-this distribution}, then run this command again."
+    fi
+    fail "cannot reach Docker. Start Docker Desktop, then run this command again."
+  fi
+  if [[ "$platform" == linux ]] && command -v sudo >/dev/null 2>&1; then
     [[ "$interactive" == true ]] && sudo_args=()
     if sudo ${sudo_args[@]+"${sudo_args[@]}"} docker info >/dev/null 2>&1; then
       echo "Using sudo for Docker. To use Docker without sudo later: sudo usermod -aG docker $(id -un)"
@@ -156,9 +323,11 @@ use_docker() {
   fail "cannot reach the Docker daemon. Start Docker, then run this command again."
 }
 
+step "🐳" "Checking Docker."
 if ! command -v docker >/dev/null 2>&1; then
   [[ "$prepare_only" != true ]] || fail "'docker' is required."
-  install_docker
+  # An installed Docker Desktop may simply not be running yet.
+  start_docker_app || install_docker
 fi
 if [[ "$prepare_only" != true ]]; then
   use_docker
@@ -216,6 +385,9 @@ prepare_data_dir() {
   case "$data_dir" in
     *:* | *,* | *$'\n'*) fail "--data-dir cannot contain ':', ',' or a newline." ;;
   esac
+  if [[ "$platform" == wsl && "$data_dir" == /mnt/* ]]; then
+    fail "Windows drives cannot hold the Engaz database. Use a Linux folder such as ~/engaz-data, or leave out --data-dir to use Docker's storage."
+  fi
   while [[ "$data_dir" == */ && "$data_dir" != / ]]; do
     data_dir="${data_dir%/}"
   done
@@ -257,13 +429,15 @@ prepare_data_dir() {
 
   mkdir -p -- "$data_dir/postgres" "$data_dir/appdata" || fail "could not create folders in $data_dir."
   cd -- "$data_dir"
-  echo "Keeping Engaz data in $data_dir"
+  say "📁" "Keeping Engaz data in $data_dir"
 }
 
 ask_data_dir() {
   local answer
-  echo "Where should Engaz keep its data?" >&2
-  answer=$(ask "Press Enter to use Docker's own storage, or type a folder path:")
+  # Windows drives cannot hold the database; Docker Desktop's own storage can.
+  [[ "$platform" != wsl ]] || return 0
+  step "📁" "Where should Engaz keep its data?" >&2
+  answer=$(ask "   Press Enter to use Docker's own storage, or type a folder path:")
   answer="${answer#"${answer%%[![:space:]]*}"}"
   answer="${answer%"${answer##*[![:space:]]}"}"
   [[ -n "$answer" ]] || return 0
@@ -284,7 +458,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
     [[ -z "$data_dir" ]] || fail "Engaz is already installed in $existing_dir. Run this command without --data-dir to update it."
     [[ -f "$existing_dir/$ENV_FILE" ]] || fail "Engaz is already installed in $existing_dir, but its .env is missing."
     cd -- "$existing_dir"
-    echo "Updating the Engaz installation in $existing_dir"
+    say "🔄" "Updating the Engaz installation in $existing_dir"
   elif [[ -z "$data_dir" ]]; then
     [[ "$interactive" != true ]] || ask_data_dir
     # `curl ... | bash` has no script folder; keep the files in one predictable place.
@@ -361,6 +535,7 @@ if [[ "$prepare_only" != true && -f "$ENV_FILE" ]] \
   && { [[ -f .engaz-install.json ]] || [[ -n "$(existing_install_dir)" ]] || existing_storage; }; then
   [[ -f engaz ]] || fail "this is an existing installation without the engaz command. Keep its .env and data; follow the lifecycle enrollment instructions before updating."
   [[ "$pull_never" != true ]] || fail "use engaz start to start an existing installation with local images; updates require a published release."
+  step "🔄" "Engaz is already installed in $PWD. Updating it to the latest release; a backup is made first."
   exec python3 "$PWD/engaz" --dir "$PWD" update
 fi
 
@@ -534,9 +709,29 @@ sys.exit(2 if override is not None else 1)
 '
 }
 
+# WSL has its own internal address; Docker Desktop publishes ports on Windows' addresses.
+windows_lan_ips() {
+  command -v powershell.exe >/dev/null 2>&1 || return 0
+  powershell.exe -NoProfile -NonInteractive -Command \
+    'Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq "Up" } | ForEach-Object { $_.IPv4Address.IPAddress }' \
+    2>/dev/null | tr -d '\r' || true
+}
+
+network_ip() {
+  local candidate
+  if [[ "$platform" != wsl || -n "${ENGAZ_LAN_IP+x}" ]]; then
+    detect_lan_ip
+    return
+  fi
+  for candidate in $(windows_lan_ips); do
+    ENGAZ_LAN_IP="$candidate" detect_lan_ip && return 0
+  done
+  return 1
+}
+
 create_env() {
   local lan_ip web_port web_bind=0.0.0.0
-  if ! lan_ip=$(detect_lan_ip); then
+  if ! lan_ip=$(network_ip); then
     [[ -z "${ENGAZ_LAN_IP+x}" ]] || fail "ENGAZ_LAN_IP must be this computer's private network IPv4 address."
     lan_ip=127.0.0.1
     web_bind=127.0.0.1
@@ -584,7 +779,7 @@ create_env() {
   chmod 600 "$temporary_file"
   mv -- "$temporary_file" "$ENV_FILE"
   temporary_file=""
-  echo "Created .env with random secrets."
+  say "🔐" "Created .env with random secrets."
 }
 
 validate_required_secrets() {
@@ -630,6 +825,7 @@ YAML
   fi
 }
 
+step "📦" "Preparing Engaz in $PWD"
 download "$COMPOSE_FILE"
 download "$ENV_EXAMPLE"
 download engaz
@@ -637,7 +833,7 @@ chmod +x engaz
 download "$DATA_DIR_COMPOSE_FILE"
 
 if [[ -e "$ENV_FILE" ]]; then
-  echo "Keeping existing .env."
+  say "🔐" "Keeping existing .env."
 else
   if [[ "$prepare_only" != true && -n "$(docker volume ls -q --filter name=^engaz_pgdata$ 2>/dev/null)" ]]; then
     fail "this Docker host already has an Engaz database (volume engaz_pgdata) from an earlier installation. Run this command from that installation's folder, which holds its .env secrets."
@@ -659,8 +855,23 @@ install_command() {
   fi
   case ":$PATH:" in
     *":$bin_dir:"*) ;;
-    *) printf 'Add Engaz to your PATH: export PATH="%s:$PATH"\n' "$bin_dir" ;;
+    *) add_to_shell_path "$bin_dir" || printf 'Add Engaz to your PATH: export PATH="%s:$PATH"\n' "$bin_dir" ;;
   esac
+}
+
+# A person at the keyboard gets the default command folder added to their shell.
+add_to_shell_path() {
+  local profile line='export PATH="$HOME/.local/bin:$PATH"'
+  [[ "$interactive" == true && -z "${ENGAZ_BIN_DIR:-}" && "$1" == "$HOME/.local/bin" ]] || return 1
+  case "${SHELL##*/}" in
+    zsh) profile="$HOME/.zshrc" ;;
+    bash) if [[ "$platform" == macos ]]; then profile="$HOME/.bash_profile"; else profile="$HOME/.bashrc"; fi ;;
+    *) return 1 ;;
+  esac
+  if ! grep -qsF "$line" "$profile"; then
+    printf '\n# Added by the Engaz installer\n%s\n' "$line" >> "$profile" || return 1
+  fi
+  say "🔧" "Added the engaz command to $profile. It works in new terminal windows."
 }
 install_command
 
@@ -705,12 +916,24 @@ check_image_space() {
   fi
 }
 
+# Limits are not reservations, but a small Docker Desktop VM stops agents mid-task.
+check_docker_memory() {
+  local bytes
+  bytes=$(docker info --format '{{.MemTotal}}' 2>/dev/null) || return 0
+  [[ "$bytes" =~ ^[0-9]+$ ]] || return 0
+  if ((bytes < 3500 * 1024 * 1024)); then
+    say "⚠️ " "Docker has less than 4 GB of memory, so agents may run slowly or stop. In Docker Desktop, raise it under Settings > Resources."
+  fi
+}
+
 check_ports
 check_image_space
+check_docker_memory
 prepare_proxy_env
 if [[ "$pull_never" == true ]]; then
   echo "Skipping image pull (--pull-never / --offline); images must already be on this Docker host."
 else
+  step "⬇️ " "Downloading Engaz. The first download takes a few minutes."
   if ! docker compose "${compose_args[@]}" pull; then
     fail "could not pull images. Shell HTTP_PROXY often does not reach the Docker daemon. Configure daemon proxy/registry-mirrors, set image env vars to a reachable registry, or preload images then compose up with --pull never."
   fi
@@ -727,21 +950,49 @@ url_answers() {
   return 1
 }
 
-echo "Waiting for healthy services."
+open_browser() {
+  [[ "$interactive" == true && "${ENGAZ_NO_BROWSER:-}" != 1 ]] || return 0
+  case "$platform" in
+    macos) open "$1" ;;
+    wsl) cmd.exe /c start "" "$1" ;;
+    linux) [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && xdg-open "$1" ;;
+  esac >/dev/null 2>&1 || true
+}
+
+step "🚀" "Starting Engaz. This can take a couple of minutes."
 python3 "$PWD/engaz" --dir "$PWD" start
 canonical_url=$(env_value WEB_ORIGIN "$url")
-if url_answers; then
-  echo "Engaz is ready. Open $canonical_url in your browser to set it up."
+local_url="http://localhost:$(env_value ENGAZ_WEB_PORT 7791)"
+ready=false
+url_answers && ready=true
+python3 "$PWD/engaz" --dir "$PWD" status
+
+# The link comes last so it is what the reader sees.
+echo
+if [[ "$ready" == true ]]; then
+  say "🎉" "Engaz is ready. Open $canonical_url in your browser to set it up."
 else
-  echo "Engaz is starting. In a minute, open $canonical_url in your browser to set it up."
+  say "⏳" "Engaz is starting. In a minute, open $canonical_url in your browser to set it up."
 fi
 setup_key=$(env_value OWNER_SETUP_KEY "")
+setup_url="$canonical_url"
 if [[ -n "$setup_key" ]]; then
-  echo "Create your account: $canonical_url/sign-up#setup=$setup_key"
-  echo "On this computer: http://localhost:$(env_value ENGAZ_WEB_PORT 7791)"
+  setup_url="$canonical_url/sign-up#setup=$setup_key"
+  echo
+  say "👉" "Create your account: $setup_url"
+  say "🔑" "Keep this link private. It makes whoever opens it first the owner."
+  say "💻" "On this computer: $local_url"
+  if [[ "$canonical_url" != "$url" ]]; then
+    say "📱" "On your other devices on this network: $canonical_url"
+  fi
 fi
-python3 "$PWD/engaz" --dir "$PWD" status
-echo "Engaz files are in $PWD. Use engaz update to update."
+echo
+say "📂" "Engaz files are in $PWD. Use engaz update to update."
 if [[ -n "$data_dir" ]]; then
-  echo "Data and secrets are in $data_dir. Use engaz backup to back up data and secrets."
+  say "💾" "Data and secrets are in $data_dir. Use engaz backup to back up data and secrets."
 fi
+say "🛠️ " "Manage Engaz with: engaz status, engaz stop, engaz start, engaz backup"
+if [[ "$(docker info --format '{{.OperatingSystem}}' 2>/dev/null)" == "Docker Desktop" ]]; then
+  say "💡" "Keep Docker Desktop's \"Start when you sign in\" setting on so Engaz comes back after a restart."
+fi
+open_browser "$setup_url"

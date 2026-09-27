@@ -47,8 +47,12 @@ export function InvitesSettingsPanel() {
   }
 
   async function copy(url: string) {
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
   }
 
   return (
@@ -65,6 +69,7 @@ export function InvitesSettingsPanel() {
             <Input readOnly value={created.url} aria-label={t`Invitation link`} />
             <Button
               variant="outline"
+              disabled={!navigator.clipboard}
               onClick={() => void copy(created.url)}
               aria-label={t`Copy invitation link`}
             >

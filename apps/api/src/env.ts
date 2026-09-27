@@ -26,6 +26,8 @@ export interface AppEnv {
   signupsEnabled: string | undefined;
   signupAllowlist: string | undefined;
   signupsInviteOnly: string | undefined;
+  ownerSetupKey?: string;
+  authTrustedOrigins?: string[];
   encryptionKey: string;
   dataDir: string;
   /** Opt-in Pi JSONL session recording under DATA_DIR/pi-sessions. Default off. */
@@ -115,6 +117,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     signupsEnabled: source.SIGNUPS_ENABLED,
     signupAllowlist: source.SIGNUP_ALLOWLIST,
     signupsInviteOnly: source.SIGNUPS_INVITE_ONLY,
+    ownerSetupKey: optional(source.OWNER_SETUP_KEY),
+    authTrustedOrigins: parseAuthTrustedOrigins(source.AUTH_TRUSTED_ORIGINS),
     encryptionKey: resolveEncryptionKey(source),
     dataDir: source.DATA_DIR ?? "./data",
     piSessionRecording: source.PI_SESSION_RECORDING === "true",
@@ -191,4 +195,22 @@ function required(source: NodeJS.ProcessEnv, key: string): string {
 function optional(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed || undefined;
+}
+
+function parseAuthTrustedOrigins(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .map((origin) => {
+      const url = new URL(origin);
+      if (
+        !["http:", "https:"].includes(url.protocol) ||
+        url.origin !== origin.replace(url.protocol === "http:" ? /:80$/ : /:443$/, "") ||
+        url.hostname.includes("*")
+      ) {
+        throw new Error("AUTH_TRUSTED_ORIGINS must contain exact HTTP or HTTPS origins");
+      }
+      return url.origin;
+    });
 }

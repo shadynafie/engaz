@@ -2348,6 +2348,9 @@ msgstr "Ayarlar: Kullanım"
 msgid "Setup help"
 msgstr "Kurulum yardımı"
 
+msgid "Setup key"
+msgstr ""
+
 msgid "Shape"
 msgstr "Şekil"
 

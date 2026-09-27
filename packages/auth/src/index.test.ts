@@ -70,6 +70,7 @@ describe("resolveSignupPolicy", () => {
       enabled: false,
       allowlist: ["you@example.com", "@company.test"],
       invitationRequired: false,
+      ownerSetupRequired: false,
     });
   });
 
@@ -92,6 +93,7 @@ describe("resolveSignupPolicy", () => {
       enabled: false,
       allowlist: ["existing-policy@example.com"],
       invitationRequired: false,
+      ownerSetupRequired: false,
     });
   });
 
@@ -114,6 +116,7 @@ describe("resolveSignupPolicy", () => {
       enabled: false,
       allowlist: ["approved@example.com"],
       invitationRequired: false,
+      ownerSetupRequired: false,
     });
   });
 
@@ -129,6 +132,7 @@ describe("resolveSignupPolicy", () => {
     const env = { signupsEnabled: "true", signupAllowlist: "" };
     await expect(resolveSignupPolicy(prisma as never, env)).resolves.toMatchObject({
       invitationRequired: false,
+      ownerSetupRequired: false,
     });
     settings.ownerUserId = "owner-1";
     await expect(resolveSignupPolicy(prisma as never, env)).resolves.toMatchObject({
@@ -137,6 +141,7 @@ describe("resolveSignupPolicy", () => {
     settings.signupsInviteOnly = false;
     await expect(resolveSignupPolicy(prisma as never, env)).resolves.toMatchObject({
       invitationRequired: false,
+      ownerSetupRequired: false,
     });
   });
 });

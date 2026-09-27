@@ -10,6 +10,10 @@ on:
   pull_request:
     paths:
       - ".github/workflows/published-image-boot.yml"
+      - "packages/auth/**"
+      - "apps/api/src/env*"
+      - "apps/api/src/app.ts"
+      - "apps/web/src/pages/Auth.tsx"
       - "apps/web/e2e-image/**"
       - "apps/web/playwright.image.config.ts"
       - "infra/compose/install-images.sh"
@@ -42,7 +46,7 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       ARCH: ${{ matrix.arch }}
     steps:
@@ -58,6 +62,22 @@ jobs:
           printf '{}\n' > "$RUNNER_TEMP/docker-config/config.json"
           echo "DOCKER_CONFIG=$RUNNER_TEMP/docker-config" >> "$GITHUB_ENV"
 
+      # Backend and signup behavior need this pull request's app, not an older release.
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        if: github.event_name == 'pull_request'
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        if: github.event_name == 'pull_request'
+        with:
+          context: .
+          file: infra/compose/Dockerfile
+          load: true
+          tags: ghcr.io/shadynafie/engaz/app:ci-candidate
+          build-args: GIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=boot-${{ matrix.arch }}
+          provenance: false
+          sbom: false
+
       # Pull requests prove their own installer; published runs use the documented download from main.
       - name: Install from this pull request
         if: github.event_name == 'pull_request'
@@ -66,7 +86,13 @@ jobs:
           cp infra/compose/install-images.sh infra/compose/engaz infra/compose/docker-compose.data-dir.yml infra/compose/docker-compose.images.yml \
             infra/compose/.env.images.example "$RUNNER_TEMP/engaz/"
           cd "$RUNNER_TEMP/engaz"
-          bash install-images.sh --local
+          bash install-images.sh --local --prepare-only
+          echo "::add-mask::$(sed -n 's/^OWNER_SETUP_KEY=//p' .env)"
+          sed -i 's/^ENGAZ_IMAGE_TAG=.*/ENGAZ_IMAGE_TAG=ci-candidate/' .env
+          while IFS= read -r image; do
+            [[ "$image" == ghcr.io/shadynafie/engaz/app:ci-candidate ]] || docker pull "$image"
+          done < <(docker compose --env-file .env -f docker-compose.images.yml config --images | sort -u)
+          bash install-images.sh --local --pull-never
 
       - name: Install with the documented command
         if: github.event_name != 'pull_request'
@@ -74,7 +100,9 @@ jobs:
         run: |
           mkdir engaz && cd engaz
           curl -fsSLO https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh
-          bash install-images.sh
+          bash install-images.sh > "$RUNNER_TEMP/install.log" 2>&1
+          echo "::add-mask::$(sed -n 's/^OWNER_SETUP_KEY=//p' .env)"
+          cat "$RUNNER_TEMP/install.log"
 
       - name: Check the running stack
         working-directory: ${{ runner.temp }}/engaz
@@ -104,7 +132,12 @@ jobs:
       - name: Walk a new owner through first run
         env:
           ENGAZ_RECOVERY_INSTALL: ${{ runner.temp }}/engaz
-        run: pnpm --filter @engaz/web exec playwright test -c playwright.image.config.ts
+          ENGAZ_RECOVERY_SKIP_UPDATE: ${{ github.event_name == 'pull_request' && '1' || '0' }}
+        run: |
+          # Read the generated key without displaying it or putting it in a URL log.
+          export OWNER_SETUP_KEY="$(sed -n 's/^OWNER_SETUP_KEY=//p' "$ENGAZ_RECOVERY_INSTALL/.env")"
+          export ENGAZ_LAN_URL="$(sed -n 's/^WEB_ORIGIN=//p' "$ENGAZ_RECOVERY_INSTALL/.env")"
+          pnpm --filter @engaz/web exec playwright test -c playwright.image.config.ts
 
       - name: Keep first-run screenshots
         if: always()
@@ -124,6 +157,10 @@ jobs:
           printf '### Published images on %s\n\n| Image | Repository digest | Architecture |\n| --- | --- | --- |\n' "$ARCH" > "$report"
           status=0
           for name in app computer updater; do
+            if [[ "$name" == app && "${{ github.event_name }}" == pull_request ]]; then
+              echo "Candidate app built from this pull request: ${{ github.sha }}" >> "$report"
+              continue
+            fi
             ref="ghcr.io/shadynafie/engaz/${name}:edge"
             digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$ref")
             arch=$(docker image inspect --format '{{.Architecture}}' "$ref")
@@ -157,7 +194,7 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
         with:
@@ -171,13 +208,39 @@ jobs:
           # A space in the path proves bind mounts are quoted end to end.
           echo "DATA=$RUNNER_TEMP/engaz data" >> "$GITHUB_ENV"
 
+      # Backend and signup behavior need this pull request's app, not an older release.
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        if: github.event_name == 'pull_request'
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        if: github.event_name == 'pull_request'
+        with:
+          context: .
+          file: infra/compose/Dockerfile
+          load: true
+          tags: ghcr.io/shadynafie/engaz/app:ci-candidate
+          build-args: GIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=boot-${{ matrix.arch }}
+          provenance: false
+          sbom: false
+
       - name: Install into a host data folder
         run: |
           mkdir -p "$DATA"
           cp infra/compose/install-images.sh infra/compose/engaz infra/compose/docker-compose.images.yml \
             infra/compose/docker-compose.data-dir.yml infra/compose/.env.images.example "$DATA/"
           cd "$DATA"
-          bash install-images.sh --local "--data-dir=$DATA"
+          bash install-images.sh --local --prepare-only "--data-dir=$DATA"
+          echo "::add-mask::$(sed -n 's/^OWNER_SETUP_KEY=//p' .env)"
+          if [[ "${{ github.event_name }}" == pull_request ]]; then
+            sed -i 's/^ENGAZ_IMAGE_TAG=.*/ENGAZ_IMAGE_TAG=ci-candidate/' .env
+            while IFS= read -r image; do
+              [[ "$image" == ghcr.io/shadynafie/engaz/app:ci-candidate ]] || docker pull "$image"
+            done < <(docker compose --env-file .env -f docker-compose.images.yml -f docker-compose.data-dir.yml config --images | sort -u)
+            bash install-images.sh --local --pull-never "--data-dir=$DATA"
+          else
+            bash install-images.sh --local "--data-dir=$DATA"
+          fi
 
       - name: Check data lives in the folder
         run: |
@@ -245,7 +308,8 @@ jobs:
     # The one-command path on a Linux host without Docker: answer yes to installing
     # Docker, press Enter for Docker storage, and reach a healthy Engaz.
     name: Fresh host installs Docker ${{ matrix.arch }}
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # Installing Docker from scratch exercises the published artifacts after publication.
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
     strategy:
       fail-fast: false
       matrix:
@@ -282,8 +346,10 @@ jobs:
             infra/compose/.env.images.example "$RUNNER_TEMP/engaz/"
           printf 'y\n\n' > "$RUNNER_TEMP/answers"
           cd "$RUNNER_TEMP/engaz"
-          ENGAZ_TTY="$RUNNER_TEMP/answers" bash install-images.sh --local 2>&1 | tee "$RUNNER_TEMP/install.log"
-          grep -F "Engaz is ready. Open http://127.0.0.1:7791 in your browser to set it up." "$RUNNER_TEMP/install.log"
+          ENGAZ_TTY="$RUNNER_TEMP/answers" bash install-images.sh --local > "$RUNNER_TEMP/install.log" 2>&1
+          echo "::add-mask::$(sed -n 's/^OWNER_SETUP_KEY=//p' .env)"
+          cat "$RUNNER_TEMP/install.log"
+          grep -F "Engaz is ready. Open http://" "$RUNNER_TEMP/install.log"
           grep -F "Engaz files are in $RUNNER_TEMP/engaz." "$RUNNER_TEMP/install.log"
           # Enter at the data question keeps Docker storage.
           if grep -q '^ENGAZ_DATA_DIR=' .env; then

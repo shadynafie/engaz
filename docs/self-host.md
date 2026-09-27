@@ -51,7 +51,8 @@ The installer:
 3. Downloads Compose files, `.env.images.example`, and the `engaz` command into `~/engaz` (or the data
    folder), creates `.env` with random secrets, pulls the images, and waits until Engaz is healthy.
    It links the command into `~/.local/bin`; follow the printed PATH instruction if needed.
-4. Prints the address to open, `http://127.0.0.1:7791`, where the first account completes setup.
+4. Prints a private first-owner setup link, the machine's network address, and its localhost address.
+   Open the setup link on any device on the same network.
 
 Use `engaz update` for subsequent updates. Rerunning the installer hands an existing installation
 to that command before replacing any files; an older installation without the command fails with
@@ -59,7 +60,7 @@ enrollment instructions instead of updating unsafely. Without a keyboard (for ex
 in automation), it asks nothing: it uses Docker storage unless `--data-dir` is given, and stops if
 Docker is missing. Flags go after `bash -s --`, for example `| bash -s -- --data-dir=/volume1/engaz`.
 
-Requires Python 3.9 or newer (standard library only), the Compose plugin, curl, and OpenSSL; Docker Engine 26+ (API 1.45+) is needed for bot home
+Requires Python 3.9 or newer (standard library only), a Compose plugin supporting `config --environment` and JSON configuration output, curl, and OpenSSL; Docker Engine 26+ (API 1.45+) is needed for bot home
 volume subpaths. If Docker was just installed, the installer uses `sudo` for Docker commands during
 that run instead of changing group membership. For
 the installer secret list, non-reuse rules, and recovery, see
@@ -100,12 +101,35 @@ Auto Review uses that LLM checker by default. To use TypeSafe Jev instead, set
 The example defaults to `edge` (main builds). Every publish is multi-arch (`amd64` + `arm64`), so
 arm64 hosts need no special tag. Do not assume `latest` is present until a stable release exists.
 
-Open [http://127.0.0.1:7791](http://127.0.0.1:7791). The first registered user becomes the
-deployment owner. Put TLS in front of `:7791` for a public host and set the three public origins to
-that HTTPS URL.
+### Reach Engaz on your network
 
-Images Compose binds web to loopback (`127.0.0.1:7791`). Terminate TLS on the host and proxy
-there. Vite preview same-origin-proxies `/api` and `/rpc`, so do not expose `:7792`. Set
+A fresh installer detects a private IPv4 address and binds the web port on the host's interfaces.
+Use `http://localhost:7791` on that machine, or its IP (for example `http://192.168.1.20:7791`)
+on another device on the same network. No SSH tunnel is needed. The host firewall must allow the
+web port. The installer uses the configured web port if it differs from 7791.
+
+The printed `/sign-up#setup=…` link contains a private setup key. Engaz removes it from the browser
+address after reading it and sends it only when creating the owner account. If you open the plain
+address first, enter the key from `OWNER_SETUP_KEY` in `.env` on the sign-up screen. The key binds
+setup to the first accepted email and is consumed once ownership is established; later accounts
+follow the invitation policy. Keep it with the
+other installation secrets.
+
+The installer records the detected address in `BETTER_AUTH_URL`, `WEB_ORIGIN`, and `API_URL`,
+trusts localhost and 127.0.0.1 at the same port through `AUTH_TRUSTED_ORIGINS`, and sets
+`ENGAZ_WEB_BIND=0.0.0.0`. To select a particular private IPv4 address, set `ENGAZ_LAN_IP` when
+running the installer. If no private address is found, it keeps loopback access. Reserve the
+machine's IP in your router; if it changes, update those three URL values and run `engaz start`.
+Existing installations keep their `.env` and loopback binding on update. After creating the owner,
+you can deliberately enable LAN access by setting the three URLs, `AUTH_TRUSTED_ORIGINS` to
+`http://localhost:7791,http://127.0.0.1:7791`, and `ENGAZ_WEB_BIND=0.0.0.0`, then running `engaz start`.
+
+Browser microphone access needs HTTPS or localhost. On an HTTP network address, invitation links
+can be selected and copied manually if the browser does not offer clipboard access.
+
+For public access, put TLS in front of `:7791` and set the three public origins to that HTTPS URL.
+The Compose template defaults to loopback; fresh LAN installs override it in `.env`.
+For a host TLS proxy, set `ENGAZ_WEB_BIND=127.0.0.1` and proxy there. Vite preview same-origin-proxies `/api` and `/rpc`, so do not expose `:7792`. Set
 `BETTER_AUTH_URL`, `WEB_ORIGIN`, and `API_URL` to that same HTTPS origin, and set
 `ENGAZ_HOST` to its hostname (for example, `app.example.com`).
 
@@ -249,7 +273,7 @@ the original files and investigate instead of editing the recorded identity.
 
 A [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
 gives a home computer or NAS an HTTPS address without opening router ports. Cloudflare holds the
-certificate; Engaz keeps listening only on `127.0.0.1:7791`.
+certificate; set `ENGAZ_WEB_BIND=127.0.0.1` to keep Engaz listening only on loopback.
 
 1. Open Engaz locally and create your account first. The first account becomes the owner; after
    that, new accounts need an invitation link from **Settings → People**.
@@ -271,6 +295,8 @@ certificate; Engaz keeps listening only on `127.0.0.1:7791`.
    WEB_ORIGIN=https://engaz.example.com
    API_URL=https://engaz.example.com
    ENGAZ_HOST=engaz.example.com
+   ENGAZ_WEB_BIND=127.0.0.1
+   AUTH_TRUSTED_ORIGINS=
    ```
 
 From then on, use the HTTPS address, including at home: sign-in cookies are HTTPS-only, and the

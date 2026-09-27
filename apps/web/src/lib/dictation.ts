@@ -199,6 +199,10 @@ export class Dictation {
     endpointMs: number,
     spaceId: string | null,
   ) {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.set({ ...IDLE, error: "Microphone access requires HTTPS or localhost." });
+      return;
+    }
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });

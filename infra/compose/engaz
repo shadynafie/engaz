@@ -183,6 +183,16 @@ class Install:
                "--mount", mount, "--entrypoint", "tar", image, *args, stdin=stdin, stdout=stdout)
 
     def start(self):
+        if self.resolved.get("OWNER_SETUP_KEY", "").strip():
+            self.compose("stop", "-t", "60", "web")
+            self.compose("up", "-d", "--wait", "--wait-timeout", "300", "--pull", "never", "api", "worker")
+            try:
+                self.compose("exec", "-T", "api", "node", "-e",
+                             "fetch('http://127.0.0.1:7792/api/auth/capabilities',{signal:AbortSignal.timeout(10000)})"
+                             ".then(async r=>{const v=await r.json();if(!r.ok||typeof v.ownerSetupRequired!=='boolean')process.exit(1)})"
+                             ".catch(()=>process.exit(1))")
+            except subprocess.CalledProcessError:
+                raise ValueError("This image cannot protect first-owner setup. Update to a current Engaz image; web access remains stopped.") from None
         self.compose("up", "-d", "--wait", "--wait-timeout", "300", "--pull", "never")
 
     @contextlib.contextmanager

@@ -164,8 +164,10 @@ describe("the images compose file", () => {
     }
   });
 
-  it("publishes the web UI on loopback only", () => {
-    expect(compose.services.web?.ports).toEqual(["127.0.0.1:${ENGAZ_WEB_PORT:-7791}:7791"]);
+  it("defaults the web UI to loopback and permits an explicit network bind", () => {
+    expect(compose.services.web?.ports).toEqual([
+      "${ENGAZ_WEB_BIND:-127.0.0.1}:${ENGAZ_WEB_PORT:-7791}:7791",
+    ]);
     expect(compose.services.api?.ports).toEqual(["127.0.0.1:${ENGAZ_API_PORT:-7792}:7792"]);
     for (const key of ["BETTER_AUTH_URL", "WEB_ORIGIN", "API_URL"]) {
       expect(compose.services.api?.environment?.[key]).toBe(`\${${key}:-http://127.0.0.1:7791}`);

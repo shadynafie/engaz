@@ -5,6 +5,7 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import tarfile
@@ -52,6 +53,30 @@ class RecoveryChecks(unittest.TestCase):
         with patch.object(engaz.Install, "compose", return_value=json.dumps(config(self.root))), \
              patch.object(engaz.Install, "containers", return_value=[]):
             return engaz.Install(self.root)
+
+    @unittest.skipUnless(shutil.which("node"), "Node is needed to check the API capability probe")
+    def test_owner_guard_stops_web_and_checks_image_before_exposure(self):
+        for payload in ({}, {"ownerSetupRequired": "false"}, {"ownerSetupRequired": False}, {"ownerSetupRequired": True}):
+            install = self.install()
+            install.resolved = {"OWNER_SETUP_KEY": "test-owner-key"}
+            events = []
+
+            def compose(*args, **kwargs):
+                events.append(args)
+                if args[0] == "exec":
+                    fake = "global.fetch=async()=>({ok:true,json:async()=>(" + json.dumps(payload) + ")});"
+                    subprocess.run(["node", "-e", fake + args[-1]], check=True)
+
+            compatible = isinstance(payload.get("ownerSetupRequired"), bool)
+            with patch.object(install, "compose", side_effect=compose):
+                if compatible:
+                    install.start()
+                else:
+                    with self.assertRaisesRegex(ValueError, "cannot protect first-owner setup"):
+                        install.start()
+            self.assertEqual(events[0], ("stop", "-t", "60", "web"))
+            self.assertEqual(events[1][-2:], ("api", "worker"))
+            self.assertEqual(any(event[0] == "up" and event[-1] == "never" for event in events), compatible)
 
     def backup_fixture(self):
         root = self.root / "backup"

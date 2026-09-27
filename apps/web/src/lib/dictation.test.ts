@@ -39,6 +39,16 @@ function stubRecorderFallback(fetchMock: ReturnType<typeof vi.fn>) {
 }
 
 describe("Dictation recorder fallback", () => {
+  it("explains microphone access on an HTTP network address", async () => {
+    vi.stubGlobal("navigator", { language: "en-US" });
+    const dictation = new Dictation();
+    await dictation.listen({ mode: "hold", transcribe: true, onFinal: vi.fn() });
+    expect(dictation.state).toMatchObject({
+      status: "idle",
+      error: "Microphone access requires HTTPS or localhost.",
+    });
+  });
+
   it("stops tracks if hold-to-talk is cancelled while the mic prompt is open", async () => {
     const track = { stop: vi.fn() };
     let grant!: (stream: { getTracks: () => Array<{ stop: () => void }> }) => void;

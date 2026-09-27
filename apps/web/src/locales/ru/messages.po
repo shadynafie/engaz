@@ -2348,6 +2348,9 @@ msgstr "Настройки: Использование"
 msgid "Setup help"
 msgstr "Помощь по настройке"
 
+msgid "Setup key"
+msgstr ""
+
 msgid "Shape"
 msgstr "Форма"
 

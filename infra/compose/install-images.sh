@@ -166,6 +166,22 @@ fi
 docker compose version >/dev/null 2>&1 \
   || fail "the Docker Compose plugin is required. Install Docker Desktop, or the docker-compose-plugin package from Docker's repository."
 
+# Some vendor Compose builds advertise JSON but emit YAML. Check the capabilities
+# used by both setup and the lifecycle CLI before creating files or secrets.
+compose_config_help=$(docker compose config --help </dev/null 2>/dev/null || true)
+if ! grep -q -- '--environment' <<<"$compose_config_help" \
+  || ! grep -q -- '--format' <<<"$compose_config_help"; then
+  fail "Docker Compose must support config --environment and JSON output. Upgrade the Docker Compose plugin, then run setup again."
+fi
+if ! docker compose --project-name engaz-preflight --env-file /dev/null -f - config --format json <<'YAML' | python3 -c 'import json,sys; value=json.load(sys.stdin); sys.exit(not isinstance(value.get("services"),dict))' >/dev/null 2>&1
+services:
+  probe:
+    image: busybox:1
+YAML
+then
+  fail "Docker Compose must support config --environment and JSON output. Upgrade the Docker Compose plugin, then run setup again."
+fi
+
 # The data-dir Compose file uses !override and !reset, added in Compose 2.24.
 compose_supports_data_dir() {
   local version major minor
@@ -487,7 +503,49 @@ download() {
   temporary_file=""
 }
 
+detect_lan_ip() {
+  python3 -c '
+import ipaddress, os, socket, sys
+nets = [ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")]
+override = os.environ.get("ENGAZ_LAN_IP")
+candidates = []
+if override is not None:
+    candidates = [override]
+else:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("192.0.2.1", 80))
+            candidates.append(sock.getsockname()[0])
+    except OSError:
+        pass
+    try:
+        candidates.extend(info[4][0] for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET))
+    except OSError:
+        pass
+for value in candidates:
+    try:
+        address = ipaddress.ip_address(value)
+        if address.version == 4 and any(address in network for network in nets):
+            print(address)
+            sys.exit(0)
+    except ValueError:
+        pass
+sys.exit(2 if override is not None else 1)
+'
+}
+
 create_env() {
+  local lan_ip web_port web_bind=0.0.0.0
+  if ! lan_ip=$(detect_lan_ip); then
+    [[ -z "${ENGAZ_LAN_IP+x}" ]] || fail "ENGAZ_LAN_IP must be this computer's private network IPv4 address."
+    lan_ip=127.0.0.1
+    web_bind=127.0.0.1
+  fi
+  web_port="${ENGAZ_WEB_PORT:-$(sed -n 's/^ENGAZ_WEB_PORT=//p' "$ENV_EXAMPLE" | tail -n 1 | tr -d "\"' \r")}"
+  web_port="${web_port:-7791}"
+  [[ "$web_port" =~ ^[0-9]{1,5}$ ]] && ((10#$web_port >= 1 && 10#$web_port <= 65535)) \
+    || fail "ENGAZ_WEB_PORT must be between 1 and 65535."
+  web_port=$((10#$web_port))
   umask 077
   temporary_file=$(mktemp "./${ENV_FILE}.tmp.XXXXXX")
 
@@ -508,11 +566,16 @@ create_env() {
       "SANDBOX_SUPERVISOR_TOKEN=")
         printf 'SANDBOX_SUPERVISOR_TOKEN=%s\n' "$(openssl rand -hex 32)"
         ;;
+      OWNER_SETUP_KEY=* | ENGAZ_WEB_BIND=* | ENGAZ_WEB_PORT=* | ENGAZ_HOST=* | BETTER_AUTH_URL=* | WEB_ORIGIN=* | API_URL=* | AUTH_TRUSTED_ORIGINS=*)
+        ;;
       *)
         printf '%s\n' "$line"
         ;;
     esac
   done < "$ENV_EXAMPLE" > "$temporary_file"
+  printf '\nOWNER_SETUP_KEY=%s\nENGAZ_WEB_BIND=%s\nENGAZ_WEB_PORT=%s\nENGAZ_HOST=%s\nBETTER_AUTH_URL=http://%s:%s\nWEB_ORIGIN=http://%s:%s\nAPI_URL=http://%s:%s\nAUTH_TRUSTED_ORIGINS=http://%s:%s,http://localhost:%s,http://127.0.0.1:%s\n' \
+    "$(openssl rand -hex 32)" "$web_bind" "$web_port" "$lan_ip" "$lan_ip" "$web_port" "$lan_ip" "$web_port" "$lan_ip" "$web_port" \
+    "$lan_ip" "$web_port" "$web_port" "$web_port" >> "$temporary_file"
   if [[ -n "$data_dir" ]]; then
     printf '\nENGAZ_DATA_DIR=%s\nCOMPOSE_FILE=%s:%s\n' \
       "$data_dir" "$COMPOSE_FILE" "$DATA_DIR_COMPOSE_FILE" >> "$temporary_file"
@@ -536,6 +599,8 @@ validate_required_secrets() {
     {
       name = $0
       sub(/=.*/, "", name)
+      if (name == "ENGAZ_WEB_BIND") { bind = $0; sub(/^[^=]*=/, "", bind) }
+      if (name == "OWNER_SETUP_KEY") { setup = $0; sub(/^[^=]*=/, "", setup); gsub(/[[:space:]]/, "", setup) }
       if (!(name in required)) next
       seen[name]++
 
@@ -545,6 +610,7 @@ validate_required_secrets() {
       if (value != "") nonempty[name]++
     }
     END {
+      if (bind != "" && bind != "127.0.0.1" && bind != "localhost" && bind != "::1" && setup == "") exit 1
       for (name in required) {
         if (seen[name] != 1 || nonempty[name] != 1) exit 1
       }
@@ -560,7 +626,7 @@ services:
       _ENGAZ_VALIDATE_SANDBOX_SUPERVISOR_TOKEN: ${SANDBOX_SUPERVISOR_TOKEN:?Set SANDBOX_SUPERVISOR_TOKEN in .env}
 YAML
   then
-    fail "set every required secret in .env to a non-empty value."
+    fail "set every required secret in .env to a non-empty value; network access also requires OWNER_SETUP_KEY."
   fi
 }
 
@@ -649,18 +715,6 @@ else
     fail "could not pull images. Shell HTTP_PROXY often does not reach the Docker daemon. Configure daemon proxy/registry-mirrors, set image env vars to a reachable registry, or preload images then compose up with --pull never."
   fi
 fi
-# `--wait` without `--wait-timeout` can hang on one-shot services (Compose < 2.7)
-# or never return if a healthcheck stays red (Compose < 2.17). Prefer both flags.
-compose_up_help=$(docker compose up --help 2>/dev/null || true)
-up_pull_args=()
-if [[ "$pull_never" == true ]]; then
-  if grep -q -- '--pull' <<<"$compose_up_help"; then
-    up_pull_args=(--pull never)
-  else
-    echo "cannot enforce pull-never on this Compose version; startup fails if an image is missing locally" >&2
-  fi
-fi
-# bash 3.2 + set -u: "${arr[@]}" aborts when arr is empty.
 url="http://127.0.0.1:$(env_value ENGAZ_WEB_PORT 7791)"
 
 # Healthy containers are not enough: the port must answer from the host, as the browser sees it.
@@ -673,16 +727,18 @@ url_answers() {
   return 1
 }
 
-if grep -q -- '--wait-timeout' <<<"$compose_up_help"; then
-  echo "Waiting for healthy services."
-  docker compose "${compose_args[@]}" up -d ${up_pull_args[@]+"${up_pull_args[@]}"} --wait --wait-timeout 300
-else
-  docker compose "${compose_args[@]}" up -d ${up_pull_args[@]+"${up_pull_args[@]}"}
-fi
+echo "Waiting for healthy services."
+python3 "$PWD/engaz" --dir "$PWD" start
+canonical_url=$(env_value WEB_ORIGIN "$url")
 if url_answers; then
-  echo "Engaz is ready. Open $url in your browser to set it up."
+  echo "Engaz is ready. Open $canonical_url in your browser to set it up."
 else
-  echo "Engaz is starting. In a minute, open $url in your browser to set it up."
+  echo "Engaz is starting. In a minute, open $canonical_url in your browser to set it up."
+fi
+setup_key=$(env_value OWNER_SETUP_KEY "")
+if [[ -n "$setup_key" ]]; then
+  echo "Create your account: $canonical_url/sign-up#setup=$setup_key"
+  echo "On this computer: http://localhost:$(env_value ENGAZ_WEB_PORT 7791)"
 fi
 python3 "$PWD/engaz" --dir "$PWD" status
 echo "Engaz files are in $PWD. Use engaz update to update."

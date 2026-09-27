@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import type { TransactionalEmail, TransactionalEmailProvider } from "@engaz/adapter-kit";
 import {
   emailAllowed,
@@ -21,6 +21,7 @@ export interface AuthEnv {
   signupAllowlist: string | undefined;
   signupsInviteOnly?: string | undefined;
   extraOrigins?: string[];
+  ownerSetupKey?: string;
   email?: TransactionalEmailProvider;
   onEmailError?: (error: unknown) => void;
   beforeDeleteUser?: (userId: string) => Promise<void>;
@@ -31,11 +32,12 @@ export type SignupPolicy = {
   allowlist: string[];
   /** The owner exists and new accounts need an invitation link. */
   invitationRequired: boolean;
+  ownerSetupRequired: boolean;
 };
 
 export async function resolveSignupPolicy(
   prisma: Pick<PrismaClient, "deploymentSettings">,
-  env: Pick<AuthEnv, "signupsEnabled" | "signupAllowlist" | "signupsInviteOnly">,
+  env: Pick<AuthEnv, "signupsEnabled" | "signupAllowlist" | "signupsInviteOnly" | "ownerSetupKey">,
 ): Promise<SignupPolicy> {
   const settings = await prisma.deploymentSettings.findUnique({
     where: { id: "default" },
@@ -51,6 +53,7 @@ export async function resolveSignupPolicy(
   const ownerExists = Boolean(settings?.ownerUserId);
   if (settings?.signupPolicyInitialized) {
     return {
+      ownerSetupRequired: !ownerExists && env.ownerSetupKey !== undefined,
       enabled: settings.signupsEnabled,
       allowlist: parseAllowlist(settings.signupAllowlist),
       invitationRequired: ownerExists && settings.signupsInviteOnly !== false,
@@ -58,6 +61,7 @@ export async function resolveSignupPolicy(
   }
   const policy = signupPolicyFromEnv(env);
   return {
+    ownerSetupRequired: !ownerExists && env.ownerSetupKey !== undefined,
     enabled: policy.enabled,
     allowlist: policy.allowlist,
     invitationRequired: ownerExists && policy.inviteOnly,
@@ -73,6 +77,69 @@ function normalizedEmail(value: unknown): string {
   return String(value ?? "")
     .trim()
     .toLowerCase();
+}
+
+export const OWNER_SETUP_HEADER = "x-engaz-owner-setup";
+
+function ownerClaimId(key: string): string {
+  return `engaz-owner-claim:${hashSignupInviteToken(key)}`;
+}
+
+function requireOwnerSetupKey(key: string, supplied: string | null | undefined) {
+  if (
+    !key ||
+    !supplied ||
+    !timingSafeEqual(
+      createHash("sha256").update(key).digest(),
+      createHash("sha256").update(supplied).digest(),
+    )
+  ) {
+    throw new APIError("FORBIDDEN", { message: "Enter the setup key from your installer." });
+  }
+}
+
+async function reserveOwnerClaim(prisma: PrismaClient, key: string, email: string) {
+  const id = ownerClaimId(key);
+  const claim = await prisma.verification.upsert({
+    where: { id },
+    create: {
+      id,
+      identifier: id,
+      value: normalizedEmail(email),
+      // This binding must survive failed signups and process restarts. It is
+      // separate from expiring email-verification and password-reset tokens.
+      expiresAt: new Date("9999-12-31T23:59:59.000Z"),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    update: {},
+  });
+  if (claim.value !== normalizedEmail(email)) {
+    throw new APIError("FORBIDDEN", { message: "This setup key has already been claimed." });
+  }
+}
+
+async function completeOwnerClaim(prisma: PrismaClient, key: string, userId: string) {
+  const id = ownerClaimId(key);
+  await prisma.verification.upsert({
+    where: { id },
+    create: {
+      id,
+      identifier: id,
+      value: `claimed:${userId}`,
+      expiresAt: new Date("9999-12-31T23:59:59.000Z"),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    update: { value: `claimed:${userId}` },
+  });
+}
+
+async function requireReservedOwnerClaim(prisma: PrismaClient, key: string, email: string) {
+  const claim = await prisma.verification.findUnique({ where: { id: ownerClaimId(key) } });
+  if (!claim || claim.value !== normalizedEmail(email)) {
+    throw new APIError("FORBIDDEN", { message: "Enter the setup key from your installer." });
+  }
 }
 
 /**
@@ -138,6 +205,17 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
       deleteUser: {
         enabled: true,
         beforeDelete: async (user) => {
+          if (env.ownerSetupKey) {
+            const settings = await prisma.deploymentSettings.findUnique({
+              where: { id: "default" },
+              select: { ownerUserId: true },
+            });
+            if (settings?.ownerUserId === user.id) {
+              // Persist before deleting any owner resources, including when
+              // bootstrap succeeded but its completion marker previously failed.
+              await completeOwnerClaim(prisma, env.ownerSetupKey, user.id);
+            }
+          }
           await env.beforeDeleteUser?.(user.id);
           const memberships = await prisma.member.findMany({
             where: { userId: user.id },
@@ -178,6 +256,10 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
     ],
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        const origin = ctx.headers?.get("origin");
+        if (origin && !ctx.context.isTrustedOrigin(origin)) {
+          throw new APIError("FORBIDDEN", { message: "Origin is not allowed" });
+        }
         for (const value of [ctx.body?.email, ctx.body?.newEmail]) {
           if (typeof value === "string" && isMessagingEmail(value)) {
             throw new APIError("BAD_REQUEST", { message: "Email is not available" });
@@ -188,6 +270,9 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
             ? await resolveSignupPolicy(prisma, env)
             : undefined;
         if (ctx.path === "/sign-up/email") {
+          if (policy?.ownerSetupRequired) {
+            requireOwnerSetupKey(env.ownerSetupKey!, ctx.headers?.get(OWNER_SETUP_HEADER));
+          }
           if (!policy?.enabled) {
             throw new APIError("BAD_REQUEST", { message: "Registration is closed" });
           }
@@ -257,6 +342,9 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
             // deployment owner. Bootstrap only at the first admitted session.
             const membership = await prisma.spaceMember.findFirst({ where: { userId: user.id } });
             if (!membership) {
+              if (policy.ownerSetupRequired) {
+                await requireReservedOwnerClaim(prisma, env.ownerSetupKey!, user.email);
+              }
               if (!policy.enabled || !emailAllowed(user.email, policy.allowlist)) {
                 throw new APIError("FORBIDDEN", { message: "Registration is closed" });
               }
@@ -272,15 +360,33 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
                 throw new APIError("FORBIDDEN", { message: "Registration is closed" });
               }
               await bootstrapUserSpace(prisma, user, env);
+              if (policy.ownerSetupRequired) {
+                await completeOwnerClaim(prisma, env.ownerSetupKey!, user.id);
+              }
             }
           },
         },
       },
       user: {
         create: {
-          before: async (user) => {
+          before: async (user, ctx) => {
             if (isMessagingEmail(user.email)) {
               throw new APIError("BAD_REQUEST", { message: "Email is not available" });
+            }
+            // Reserve after Better Auth validates the signup body, before the
+            // account row exists. The unique ID serializes concurrent claimants.
+            const policy = await resolveSignupPolicy(prisma, env);
+            if (policy.ownerSetupRequired) {
+              requireOwnerSetupKey(env.ownerSetupKey!, ctx?.headers?.get(OWNER_SETUP_HEADER));
+              await reserveOwnerClaim(prisma, env.ownerSetupKey!, user.email);
+            } else if (env.ownerSetupKey && policy.invitationRequired) {
+              // The owner may have been claimed after this request's signup
+              // hook. Recheck before writing its account, not only its session.
+              const invited = await prisma.signupInvite.findFirst({
+                where: { usedByEmail: normalizedEmail(user.email) },
+                select: { id: true },
+              });
+              if (!invited) throw new APIError("FORBIDDEN", { message: "Registration is closed" });
             }
           },
         },

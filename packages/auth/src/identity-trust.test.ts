@@ -1,7 +1,7 @@
 import type { TransactionalEmail } from "@engaz/adapter-kit";
 import { bootstrapUserSpace } from "@engaz/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createAuth } from "./index.js";
+import { createAuth, OWNER_SETUP_HEADER } from "./index.js";
 
 // Exercise Better Auth's real routing, password hashing, verification and
 // session hooks with its official offline adapter. Only persistence is faked.
@@ -20,12 +20,16 @@ function fixture({
   baseURL = "http://auth.example.test",
   webOrigin = "http://web.example.test",
   requestOrigin,
+  ownerSetupKey,
+  extraOrigins,
 }: {
   allowlist?: string;
   delivery?: boolean;
   baseURL?: string;
   webOrigin?: string;
   requestOrigin?: string;
+  ownerSetupKey?: string;
+  extraOrigins?: string[];
 } = {}) {
   const data: Record<string, Record<string, unknown>[]> = {
     user: [],
@@ -34,15 +38,49 @@ function fixture({
     verification: [],
   };
   const policy = {
+    ownerUserId: null as string | null,
+    signupsInviteOnly: true,
     signupsEnabled: true,
     signupAllowlist: allowlist,
     signupPolicyInitialized: true,
   };
   const messages: TransactionalEmail[] = [];
   const members = new Set<string>();
+  const claims = new Map<string, { value: string }>();
   const prisma = {
+    signupInvite: { findFirst: vi.fn(async () => null) },
+    verification: {
+      upsert: vi.fn(
+        async ({
+          where,
+          create,
+          update,
+        }: {
+          where: { id: string };
+          create: { value: string };
+          update: { value?: string };
+        }) => {
+          if (!claims.has(where.id)) claims.set(where.id, { ...create });
+          else if (update.value) claims.set(where.id, { value: update.value });
+          return claims.get(where.id)!;
+        },
+      ),
+      findUnique: vi.fn(
+        async ({ where }: { where: { id: string } }) => claims.get(where.id) ?? null,
+      ),
+    },
     authData: data,
-    deploymentSettings: { findUnique: vi.fn(async () => policy) },
+    deploymentSettings: {
+      findUnique: vi.fn(async () => policy),
+      updateMany: vi.fn(async () => {
+        policy.ownerUserId = null;
+        return { count: 1 };
+      }),
+    },
+    member: { findMany: vi.fn(async () => []) },
+    messagingIdentity: { deleteMany: vi.fn(async () => ({ count: 0 })) },
+    organization: { deleteMany: vi.fn(async () => ({ count: 0 })) },
+    $transaction: vi.fn(async (operations: Promise<unknown>[]) => Promise.all(operations)),
     spaceMember: {
       findFirst: vi.fn(async ({ where }: { where: { userId: string } }) =>
         members.has(where.userId) ? { spaceId: "space-1" } : null,
@@ -51,6 +89,7 @@ function fixture({
   };
   vi.mocked(bootstrapUserSpace).mockImplementation(async (_prisma, user) => {
     members.add(user.id);
+    if (ownerSetupKey && !policy.ownerUserId) policy.ownerUserId = user.id;
     return { spaceId: "space-1" };
   });
   const auth = createAuth(prisma as never, {
@@ -59,6 +98,8 @@ function fixture({
     webOrigin,
     signupsEnabled: "true",
     signupAllowlist: "",
+    ownerSetupKey,
+    extraOrigins,
     email: delivery
       ? {
           describe: () => ({
@@ -73,26 +114,32 @@ function fixture({
         }
       : undefined,
   });
-  const request = (path: string, body?: unknown, token?: string) =>
+  const request = (path: string, body?: unknown, token?: string, setup?: string) =>
     auth.handler(
       new Request(`${baseURL}/api/auth${path}`, {
         method: body ? "POST" : "GET",
         headers: {
           "content-type": "application/json",
           origin: requestOrigin ?? webOrigin,
+          ...(setup ? { [OWNER_SETUP_HEADER]: setup } : {}),
           ...(token ? { authorization: `Bearer ${token}` } : {}),
         },
         body: body ? JSON.stringify(body) : undefined,
       }),
     );
-  const signup = (email = "approved@example.test") =>
-    request("/sign-up/email", {
-      email,
-      password: "offline-password12",
-      name: "Test User",
-      emailVerified: true,
-      id: "msg-attacker-chosen-id",
-    });
+  const signup = (email = "approved@example.test", setup?: string) =>
+    request(
+      "/sign-up/email",
+      {
+        email,
+        password: "offline-password12",
+        name: "Test User",
+        emailVerified: true,
+        id: "msg-attacker-chosen-id",
+      },
+      undefined,
+      setup,
+    );
   const signin = (email = "approved@example.test") =>
     request("/sign-in/email", {
       email,
@@ -102,7 +149,7 @@ function fixture({
     const url = new URL(messages.at(-1)!.text.match(/http:\/\/\S+/)![0]);
     return request(`${url.pathname.replace("/api/auth", "")}${url.search}`);
   };
-  return { auth, request, signup, signin, verify, data, policy, messages, members };
+  return { auth, request, signup, signin, verify, data, policy, messages, members, claims };
 }
 
 beforeEach(() => vi.clearAllMocks());
@@ -247,5 +294,90 @@ describe("identity trust through auth endpoints", () => {
     expect(await (await f.request("/get-session", undefined, token)).json()).toBeNull();
     expect((await f.request("/update-user", { name: "Changed" }, token)).status).toBe(401);
     expect(f.messages).toHaveLength(0);
+  });
+});
+
+describe("installer owner claim", () => {
+  const key = "offline-setup-key-with-at-least-32-characters";
+
+  it("rejects missing or incorrect keys before creating any account", async () => {
+    const f = fixture({ delivery: false, ownerSetupKey: key });
+    expect((await f.signup()).status).toBe(403);
+    expect((await f.signup(undefined, "wrong-key")).status).toBe(403);
+    expect(f.data.user).toHaveLength(0);
+    expect(f.data.account).toHaveLength(0);
+    expect(f.claims.size).toBe(0);
+  });
+
+  it("serializes concurrent email claims and requires invitations after the owner exists", async () => {
+    const f = fixture({ delivery: false, ownerSetupKey: key });
+    const responses = await Promise.all([
+      f.signup("first@example.test", key),
+      f.signup("second@example.test", key),
+    ]);
+    expect(responses.map((r) => r.status).sort()).toEqual([200, 403]);
+    expect(f.data.user).toHaveLength(1);
+    expect(f.data.account).toHaveLength(1);
+    expect(f.members.size).toBe(1);
+    expect((await f.signup("third@example.test", key)).status).toBe(403);
+    expect(f.data.user).toHaveLength(1);
+    expect(f.policy.ownerUserId).toBeTruthy();
+  });
+
+  it("keeps the binding when the owner disappears and rejects an unbound existing account", async () => {
+    const f = fixture({ delivery: false, ownerSetupKey: key });
+    expect((await f.signup("owner@example.test", key)).status).toBe(200);
+    f.policy.signupsInviteOnly = false;
+    expect((await f.signup("member@example.test")).status).toBe(200);
+    const member = f.data.user!.find((u) => u.email === "member@example.test")!;
+    f.members.delete(String(member.id));
+    f.policy.ownerUserId = null;
+    expect((await f.signin("member@example.test")).status).toBe(403);
+    expect((await f.signup("replacement@example.test", key)).status).toBe(403);
+    expect(f.claims.size).toBe(1);
+  });
+
+  it.each([false, true])(
+    "does not reopen a consumed key after owner deletion (changed email: %s)",
+    async (changedEmail) => {
+      const f = fixture({ delivery: false, ownerSetupKey: key });
+      const signup = await f.signup("owner@example.test", key);
+      expect(signup.status).toBe(200);
+      const { token } = (await signup.json()) as { token: string };
+      if (changedEmail) f.data.user![0]!.email = "renamed@example.test";
+      expect(
+        (await f.request("/delete-user", { password: "offline-password12" }, token)).status,
+      ).toBe(200);
+      expect(f.data.user).toHaveLength(0);
+      expect((await f.signup("owner@example.test", key)).status).toBe(403);
+      expect(f.data.user).toHaveLength(0);
+      expect([...f.claims.values()][0]!.value).toMatch(/^claimed:/);
+    },
+  );
+
+  it("allows only the explicitly configured LAN origin and port", async () => {
+    const options = {
+      delivery: false,
+      ownerSetupKey: key,
+      baseURL: "http://192.168.1.20:7791",
+      webOrigin: "http://192.168.1.20:7791",
+      extraOrigins: ["http://localhost:7791", "http://127.0.0.1:7791"],
+    };
+    expect(
+      (await fixture({ ...options, requestOrigin: "http://localhost:7791" }).signup(undefined, key))
+        .status,
+    ).toBe(200);
+    expect(
+      (
+        await fixture({ ...options, requestOrigin: "http://192.168.1.21:7791" }).signup(
+          undefined,
+          key,
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (await fixture({ ...options, requestOrigin: "http://localhost:7792" }).signup(undefined, key))
+        .status,
+    ).toBe(403);
   });
 });

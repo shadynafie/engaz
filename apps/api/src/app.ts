@@ -86,6 +86,7 @@ import { ORPCError, onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { authExtraOrigins, isTrustedApiOrigin } from "./auth-origins.js";
 import type { AppEnv } from "./env.js";
 import { loadEnv } from "./env.js";
 import { mountLocalSettings } from "./local-settings.js";
@@ -315,17 +316,10 @@ export async function createApp(
     signupsEnabled: env.signupsEnabled,
     signupAllowlist: env.signupAllowlist,
     signupsInviteOnly: env.signupsInviteOnly,
+    ownerSetupKey: env.ownerSetupKey,
     email,
     onEmailError: (error) => getLogger().error("transactional email delivery failed", error),
-    extraOrigins: [
-      "engaz://",
-      "exp://",
-      "exp://*",
-      "http://localhost:8081",
-      "http://127.0.0.1:8081",
-      "http://localhost:19006",
-      "http://127.0.0.1:19006",
-    ],
+    extraOrigins: authExtraOrigins(env),
     beforeDeleteUser: async (userId) => {
       const bots = await prisma.bot.findMany({
         where: { userId },
@@ -484,18 +478,21 @@ export async function createApp(
     cors({
       origin: (origin) => {
         if (!origin) return env.webOrigin;
-        return isTrustedOrigin(origin, env) ? origin : "";
+        return isTrustedApiOrigin(origin, env) ? origin : "";
       },
       credentials: true,
     }),
   );
-  app.get("/api/auth/capabilities", async (c) =>
-    c.json({
+  app.get("/api/auth/capabilities", async (c) => {
+    const policy = await resolveSignupPolicy(prisma, env);
+    c.header("cache-control", "no-store");
+    return c.json({
       passwordReset: Boolean(email),
       resetUrl: email ? new URL("/reset-password", env.webOrigin).href : null,
-      invitationRequired: (await resolveSignupPolicy(prisma, env)).invitationRequired,
-    }),
-  );
+      invitationRequired: policy.invitationRequired,
+      ownerSetupRequired: policy.ownerSetupRequired,
+    });
+  });
   if (localEmailEmulator && env.nodeEnv === "development") {
     app.get(
       "/api/dev/emails",
@@ -871,20 +868,8 @@ export async function createApp(
   };
 }
 
-function isTrustedOrigin(origin: string, env: AppEnv) {
-  if (!origin) return true;
-  if (origin === env.webOrigin || origin === env.apiUrl || origin === env.authUrl) return true;
-  if (origin.startsWith("engaz://") || origin.startsWith("exp://")) return true;
-  try {
-    const host = new URL(origin).hostname;
-    return isLoopbackHost(host);
-  } catch {
-    return false;
-  }
-}
-
 function isLoopbackHost(host: string): boolean {
-  return host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
+  return ["localhost", "127.0.0.1", "::1", "[::1]"].includes(host);
 }
 
 function sessionHeaders(request: Request) {

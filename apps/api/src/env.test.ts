@@ -235,3 +235,12 @@ it("rejects wildcard and path-bearing authentication origins", () => {
     expect(() => loadEnv({ ...base, AUTH_TRUSTED_ORIGINS: origin })).toThrow();
   }
 });
+
+it("normalizes explicitly configured default authentication ports", () => {
+  expect(
+    loadEnv({
+      ...base,
+      AUTH_TRUSTED_ORIGINS: "http://192.168.1.20:80,http://localhost:80,https://example.test:443",
+    }).authTrustedOrigins,
+  ).toEqual(["http://192.168.1.20", "http://localhost", "https://example.test"]);
+});

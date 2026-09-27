@@ -50,7 +50,9 @@ async function main() {
     const databaseUrl = container.getConnectionUri();
     const apiPort = Number(process.env.API_PORT ?? 3110);
     const webPort = Number(process.env.WEB_PORT ?? 5180);
-    const webOrigin = `http://127.0.0.1:${webPort}`;
+    // Integration apps use in-memory requests and the suites' shared virtual
+    // origin. Only browser E2E starts a web server on the configured port.
+    const webOrigin = `http://127.0.0.1:${integration ? 7791 : webPort}`;
 
     process.env.DATABASE_URL = databaseUrl;
     process.env.REALTIME_DATABASE_URL = databaseUrl;

@@ -206,11 +206,11 @@ function parseAuthTrustedOrigins(value: string | undefined): string[] {
       const url = new URL(origin);
       if (
         !["http:", "https:"].includes(url.protocol) ||
-        url.origin !== origin ||
+        url.origin !== origin.replace(url.protocol === "http:" ? /:80$/ : /:443$/, "") ||
         url.hostname.includes("*")
       ) {
         throw new Error("AUTH_TRUSTED_ORIGINS must contain exact HTTP or HTTPS origins");
       }
-      return origin;
+      return url.origin;
     });
 }

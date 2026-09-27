@@ -9,6 +9,7 @@
 - Keep the existing minimal monochrome visual system. Use semantic tokens and existing components. Bot identity color is the exception. The Engaz face in `packages/ui-tokens/assets` is the brand mark; generate app icons from it and use `EngazMark` in the product rather than drawing new logos.
 - Treat the current repository as a capable foundation, not a finished one-command product. `infra/compose/install-images.sh` requires Docker, Compose, curl, and OpenSSL; it can offer opt-in Docker installation on supported Linux hosts and Docker Desktop on macOS. On Windows, `infra/compose/install.ps1` prepares WSL and Docker Desktop, then runs the same installer inside WSL; keep installer logic in the shell script, not duplicated in PowerShell. Anonymous published-image startup passes on amd64 and arm64 Linux CI runners, while real NAS, macOS, and Windows installs, upgrades, and restore remain unverified. Do not describe a fully verified one-command setup as shipped.
 - Use [docs/roadmap.md](docs/roadmap.md) for development order, acceptance checks, and delivery status. Update its evidence and status when work lands.
+- Follow [docs/release-policy.md](docs/release-policy.md) for version numbers and publication. Public fresh installs and official updates select the same published stable release; main/edge is development only. Never move a released tag or replace its assets.
 
 ## Self-hosting and live-data boundaries
 

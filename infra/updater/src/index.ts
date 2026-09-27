@@ -8,6 +8,7 @@ import {
   type ComposeUpdateStep,
   chooseUpdateStrategy,
   commitImageTag,
+  compareReleaseTags,
   composeUpArgv,
   composeUpdatePlan,
   DEFAULT_UPDATE_REMOTE,
@@ -22,13 +23,15 @@ import {
   isGitCommit,
   normalizeUpdateBranch,
   PREVIOUS_IMAGE_TAG_ENV,
+  PUBLISHED_IMAGE_REPO,
   parseGitNameOnly,
   parseGitStatusPorcelain,
   parseLsRemoteReleases,
+  parseReleaseTag,
+  publishedReleaseTag,
   repoIdentity,
   resolveTrackedDirtyPaths,
   rollbackTarget,
-  selectLatestRelease,
   upsertEnvAssignments,
   validateUpdateRequest,
 } from "@engaz/core";
@@ -38,6 +41,7 @@ import { requestLogging } from "@engaz/logging/hono";
 import { serve } from "@hono/node-server";
 import { type Context, Hono } from "hono";
 import {
+  readEnvAssignment,
   readTagState,
   resolveUpdaterConfig,
   truncateOutput,
@@ -65,7 +69,12 @@ export interface CommandResult {
 export type UpdaterCommandRunner = (
   command: string,
   args: string[],
-  options: { cwd: string; timeoutMs: number; env?: Record<string, string> },
+  options: {
+    cwd: string;
+    timeoutMs: number;
+    env?: Record<string, string>;
+    captureStdout?: boolean;
+  },
 ) => Promise<CommandResult>;
 
 const PASSTHROUGH_ENV = [
@@ -129,10 +138,15 @@ export function commandEnvironment(
  * argument and reaches Compose not at all, so there is no string a caller can craft that becomes
  * part of a command line, a build argument, or a service definition.
  */
-const runCommand: UpdaterCommandRunner = (
+export const runCommand: UpdaterCommandRunner = (
   command: string,
   args: string[],
-  options: { cwd: string; timeoutMs: number; env?: Record<string, string> },
+  options: {
+    cwd: string;
+    timeoutMs: number;
+    env?: Record<string, string>;
+    captureStdout?: boolean;
+  },
 ): Promise<CommandResult> =>
   new Promise((resolve) => {
     execFile(
@@ -141,7 +155,7 @@ const runCommand: UpdaterCommandRunner = (
       {
         cwd: options.cwd,
         timeout: options.timeoutMs,
-        maxBuffer: 8 * 1024 * 1024,
+        maxBuffer: options.captureStdout ? 1024 * 1024 : 8 * 1024 * 1024,
         windowsHide: true,
         shell: false,
         env: commandEnvironment(process.env, options.env),
@@ -149,7 +163,7 @@ const runCommand: UpdaterCommandRunner = (
       (error, stdout, stderr) => {
         const output = truncateOutput(`${stdout}${stderr}`);
         if (!error) {
-          resolve({ ok: true, exitCode: 0, output });
+          resolve({ ok: true, exitCode: 0, output: options.captureStdout ? stdout : output });
           return;
         }
         const exitCode = typeof error.code === "number" ? error.code : null;
@@ -217,7 +231,8 @@ export function createUpdaterApp(
       if (planInFlight !== null) throw new UpdateRefused("A plan is already running.");
       const request = parseRequest(await body(c.req.raw));
       const work = (async () => {
-        const tags = readTagState(await readEnvFile());
+        const environment = await readEnvFile();
+        const tags = readTagState(environment);
         const decision = chooseUpdateStrategy(request);
         const checkout = await readCheckout();
         if (decision.strategy === "build") {
@@ -233,7 +248,7 @@ export function createUpdaterApp(
             checkout,
           };
         }
-        const target = await resolveRelease(request.repoUrl);
+        const target = await resolveRelease(request.repoUrl, environment);
         return {
           strategy: decision.strategy,
           reason: `${decision.reason} Latest stable release: ${target.releaseTag}.`,
@@ -408,26 +423,68 @@ export function createUpdaterApp(
     };
   }
 
-  /** `ls-remote` reads the tag list without cloning, so it works for the pull path with no checkout. */
-  async function resolveRelease(repoUrl: string) {
-    const listed = await run("git", ["ls-remote", "--tags", "--", repoUrl], {
-      cwd: config.deployDir,
-      timeoutMs: STEP_TIMEOUT_MS.fetch ?? DEFAULT_TIMEOUT_MS,
-    });
-    if (!listed.ok) {
-      throw new UpdateRefused(`Could not read releases from ${repoUrl}: ${listed.output}`);
-    }
-    const release = selectLatestRelease(parseLsRemoteReleases(listed.output));
-    if (release === null) {
+  /** Only a published stable GitHub Release is a supported official update. */
+  async function resolveRelease(repoUrl: string, environment: string) {
+    let tag: string | null;
+    try {
+      const response = await run(
+        "curl",
+        [
+          "--fail",
+          "--silent",
+          "--show-error",
+          "--max-time",
+          "30",
+          "--proto",
+          "=https",
+          "--location",
+          "--max-redirs",
+          "0",
+          "--header",
+          "Accept: application/vnd.github+json",
+          `https://api.github.com/repos/${PUBLISHED_IMAGE_REPO}/releases/latest`,
+        ],
+        { cwd: config.deployDir, timeoutMs: 35_000, captureStdout: true },
+      );
+      if (!response.ok) throw new Error();
+      tag = publishedReleaseTag(JSON.parse(response.output));
+    } catch {
       throw new UpdateRefused(
-        `${repoUrl} has no published release tags, so there is no image to pull.`,
+        "Could not read the latest published Engaz release. No update was started.",
       );
     }
-    return {
-      releaseTag: release.tag,
-      commit: release.commit,
-      imageTag: commitImageTag(release.commit),
-    };
+    if (tag === null)
+      throw new UpdateRefused(
+        "GitHub did not return a published stable Engaz release. No update was started.",
+      );
+    const installed = parseReleaseTag(
+      readEnvAssignment(environment, "ENGAZ_RELEASE")?.trim() ||
+        readTagState(environment).currentTag,
+    );
+    const selected = parseReleaseTag(tag)!;
+    if (installed && compareReleaseTags(selected, installed) < 0) {
+      throw new UpdateRefused(
+        `Refusing to downgrade ${installed.tag} to ${tag}. Restore a backup to roll back.`,
+      );
+    }
+    const listed = await run(
+      "git",
+      ["ls-remote", "--tags", "--", repoUrl, `refs/tags/${tag}`, `refs/tags/${tag}^{}`],
+      {
+        cwd: config.deployDir,
+        timeoutMs: STEP_TIMEOUT_MS.fetch ?? DEFAULT_TIMEOUT_MS,
+      },
+    );
+    if (!listed.ok)
+      throw new UpdateRefused(
+        "Could not resolve the published Engaz release's source commit. No update was started.",
+      );
+    const release = parseLsRemoteReleases(listed.output).find((candidate) => candidate.tag === tag);
+    if (!release)
+      throw new UpdateRefused(
+        "The published Engaz release has no valid source commit. No update was started.",
+      );
+    return { releaseTag: tag, commit: release.commit, imageTag: commitImageTag(release.commit) };
   }
 
   /** The branch head on the remote, read without fetching, so a plan does not mutate the checkout. */
@@ -459,7 +516,8 @@ export function createUpdaterApp(
 
   async function apply(request: { repoUrl: string; branch: string; official: boolean }) {
     const decision = chooseUpdateStrategy(request);
-    const tags = readTagState(await readEnvFile());
+    const environment = await readEnvFile();
+    const tags = readTagState(environment);
     const checkout = await readCheckout();
 
     if (decision.strategy === "build") {
@@ -489,7 +547,7 @@ export function createUpdaterApp(
     let targetCommit: string | null = null;
     let releaseTag: string | null = null;
     if (decision.strategy === "pull") {
-      const target = await resolveRelease(request.repoUrl);
+      const target = await resolveRelease(request.repoUrl, environment);
       targetTag = target.imageTag;
       targetCommit = target.commit;
       releaseTag = target.releaseTag;
@@ -521,6 +579,12 @@ export function createUpdaterApp(
         request,
         strategy: decision.strategy,
         fromTag: tags.currentTag,
+        fromRelease:
+          readEnvAssignment(environment, "ENGAZ_RELEASE") ||
+          parseReleaseTag(tags.currentTag)?.tag ||
+          null,
+        originalPreviousRelease: readEnvAssignment(environment, "ENGAZ_RELEASE_PREVIOUS"),
+        toRelease: releaseTag,
         originalPreviousTag: tags.previousTag,
         toTag: targetTag,
         fromCommit: checkout.commit,
@@ -542,7 +606,8 @@ export function createUpdaterApp(
   }
 
   async function rollback(): Promise<ServerUpdateRun> {
-    const tags = readTagState(await readEnvFile());
+    const environment = await readEnvFile();
+    const tags = readTagState(environment);
     const decision = rollbackTarget(tags);
     if ("error" in decision) throw new UpdateRefused(decision.error);
     const checkout = await readCheckout();
@@ -555,6 +620,12 @@ export function createUpdaterApp(
         request: { repoUrl: "", branch: "" },
         strategy: "pull",
         fromTag: tags.currentTag,
+        fromRelease:
+          readEnvAssignment(environment, "ENGAZ_RELEASE") ||
+          parseReleaseTag(tags.currentTag)?.tag ||
+          null,
+        originalPreviousRelease: readEnvAssignment(environment, "ENGAZ_RELEASE_PREVIOUS"),
+        toRelease: readEnvAssignment(environment, "ENGAZ_RELEASE_PREVIOUS"),
         originalPreviousTag: tags.previousTag,
         toTag: decision.tag,
         fromCommit: checkout.commit,
@@ -581,6 +652,9 @@ export function createUpdaterApp(
     strategy: "pull" | "build";
     fromTag: string;
     originalPreviousTag: string | null;
+    fromRelease: string | null;
+    originalPreviousRelease: string | null;
+    toRelease: string | null;
     toTag: string | null;
     fromCommit: string | null;
     fromBranch: string | null;
@@ -605,9 +679,20 @@ export function createUpdaterApp(
       error: null,
       steps: [],
     };
+    const releaseMetadata =
+      input.strategy === "pull" &&
+      (input.toRelease !== null ||
+        input.fromRelease !== null ||
+        input.originalPreviousRelease !== null);
     const revertAssignments = {
       [IMAGE_TAG_ENV]: input.fromTag,
       [PREVIOUS_IMAGE_TAG_ENV]: input.originalPreviousTag ?? input.fromTag,
+      ...(releaseMetadata
+        ? {
+            ENGAZ_RELEASE: input.fromRelease ?? "",
+            ENGAZ_RELEASE_PREVIOUS: input.originalPreviousRelease ?? "",
+          }
+        : {}),
     };
     // A failed Git command can still change files. Restore once before Compose recovery, or in
     // finally for failures that never reached Compose.
@@ -659,6 +744,12 @@ export function createUpdaterApp(
         await writeEnvAssignments({
           [IMAGE_TAG_ENV]: toTag,
           [PREVIOUS_IMAGE_TAG_ENV]: input.fromTag,
+          ...(releaseMetadata
+            ? {
+                ENGAZ_RELEASE: input.toRelease ?? "",
+                ENGAZ_RELEASE_PREVIOUS: input.fromRelease ?? "",
+              }
+            : {}),
         });
       } catch {
         record.error = "Could not persist the target image tag in the deployment environment.";

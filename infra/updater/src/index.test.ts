@@ -7,6 +7,7 @@ import {
   commandEnvironment,
   createUpdaterApp,
   restoreCheckoutArgv,
+  runCommand,
   type UpdaterCommandRunner,
 } from "./index.js";
 import { resolveUpdaterConfig } from "./updater-logic.js";
@@ -45,6 +46,26 @@ function ok(output = "") {
 
 function failed(output: string) {
   return { ok: false, exitCode: 1, output };
+}
+
+const publishedRelease = {
+  tag_name: "v1.1.0",
+  draft: false,
+  prerelease: false,
+  published_at: "2026-09-27T00:00:00Z",
+  target_commitish: "main",
+};
+function fixtureApp(
+  config: Parameters<typeof createUpdaterApp>[0],
+  options: Parameters<typeof createUpdaterApp>[1] = {},
+) {
+  return createUpdaterApp(config, {
+    ...options,
+    run: async (command, args, config) =>
+      command === "curl"
+        ? ok(JSON.stringify(publishedRelease))
+        : (options.run ?? runCommand)(command, args, config),
+  });
 }
 
 function request(app: ReturnType<typeof createUpdaterApp>, pathname: string, body?: unknown) {
@@ -114,7 +135,7 @@ describe("updater HTTP surface", () => {
 
   it("refuses a fork build when the deployment has no checkout to build from", async () => {
     const fixture = await deployment();
-    const response = await createUpdaterApp(fixture.config).request("/apply", {
+    const response = await fixtureApp(fixture.config).request("/apply", {
       method: "POST",
       headers: authorized,
       body: JSON.stringify({ repoUrl: "https://github.com/someone/engaz", branch: "main" }),
@@ -126,7 +147,7 @@ describe("updater HTTP surface", () => {
 
   it("refuses a rollback when no previous tag was recorded", async () => {
     const fixture = await deployment("ENGAZ_IMAGE_TAG=v1.0.0\n");
-    const response = await createUpdaterApp(fixture.config).request("/rollback", {
+    const response = await fixtureApp(fixture.config).request("/rollback", {
       method: "POST",
       headers: authorized,
     });
@@ -137,7 +158,7 @@ describe("updater HTTP surface", () => {
 
   it("reports the deployment it manages without touching Docker", async () => {
     const fixture = await deployment();
-    const response = await createUpdaterApp(fixture.config).request("/state", {
+    const response = await fixtureApp(fixture.config).request("/state", {
       headers: authorized,
     });
     expect(response.status).toBe(200);
@@ -174,7 +195,7 @@ describe("updater orchestration", () => {
       }
       return ok();
     };
-    const subject = createUpdaterApp(fixture.config, { run });
+    const subject = fixtureApp(fixture.config, { run });
     const input = { repoUrl: "https://github.com/shadynafie/engaz", branch: "main" };
     const first = request(subject, "/apply", input);
     await atRemote;
@@ -202,7 +223,7 @@ describe("updater orchestration", () => {
       if (args[0] === "fetch") return failed("registry unavailable");
       return ok();
     };
-    const subject = createUpdaterApp(fixture.config, { run });
+    const subject = fixtureApp(fixture.config, { run });
     const response = await request(subject, "/apply", { repoUrl: nextRemote, branch: "main" });
     const record = (await response.json()) as ServerUpdateRun;
     expect(record.ok).toBe(false);
@@ -226,7 +247,7 @@ describe("updater orchestration", () => {
       upCalls += 1;
       return upCalls === 1 ? failed("api did not become healthy") : ok("restored");
     };
-    const subject = createUpdaterApp(fixture.config, { run });
+    const subject = fixtureApp(fixture.config, { run });
     const response = await request(subject, "/apply", {
       repoUrl: "https://github.com/shadynafie/engaz",
       branch: "main",
@@ -277,7 +298,7 @@ describe("updater orchestration", () => {
       }
       return ok();
     };
-    const response = await request(createUpdaterApp(fixture.config, { run }), "/apply", {
+    const response = await request(fixtureApp(fixture.config, { run }), "/apply", {
       repoUrl: "https://github.com/example/fork",
       branch: "main",
     });
@@ -312,7 +333,7 @@ describe("updater orchestration", () => {
       if (args[0] === "merge") return failed("not a fast-forward");
       return ok();
     };
-    const response = await request(createUpdaterApp(fixture.config, { run }), "/apply", {
+    const response = await request(fixtureApp(fixture.config, { run }), "/apply", {
       repoUrl: "https://github.com/example/fork",
       branch: "main",
     });
@@ -334,7 +355,7 @@ describe("updater orchestration", () => {
       calls.push(args);
       return ok();
     };
-    const response = await request(createUpdaterApp(fixture.config, { run }), "/rollback");
+    const response = await request(fixtureApp(fixture.config, { run }), "/rollback");
     const record = (await response.json()) as ServerUpdateRun;
     expect(record.ok).toBe(true);
     expect(calls.some((args) => args.includes("pull"))).toBe(false);
@@ -350,7 +371,7 @@ describe("updater orchestration", () => {
     const before = await lstat(envFile);
     const run: UpdaterCommandRunner = async (command) =>
       command === "git" ? ok(`${targetCommit}\trefs/tags/v1.1.0\n`) : ok();
-    const response = await request(createUpdaterApp(fixture.config, { run }), "/apply", {
+    const response = await request(fixtureApp(fixture.config, { run }), "/apply", {
       repoUrl: "https://github.com/shadynafie/engaz",
       branch: "main",
     });
@@ -374,7 +395,7 @@ describe("updater orchestration", () => {
     await symlink(target, envFile);
     const run: UpdaterCommandRunner = async (command) =>
       command === "git" ? ok(`${targetCommit}\trefs/tags/v1.1.0\n`) : ok();
-    const response = await request(createUpdaterApp(fixture.config, { run }), "/apply", {
+    const response = await request(fixtureApp(fixture.config, { run }), "/apply", {
       repoUrl: "https://github.com/shadynafie/engaz",
       branch: "main",
     });
@@ -397,7 +418,7 @@ describe("updater orchestration", () => {
       if (args.includes("status")) return failed("cannot read index");
       return ok();
     };
-    const response = await request(createUpdaterApp(fixture.config, { run }), "/apply", {
+    const response = await request(fixtureApp(fixture.config, { run }), "/apply", {
       repoUrl: "https://github.com/example/fork",
       branch: "main",
     });
@@ -440,6 +461,9 @@ describe("child process environment", () => {
       {
         PATH: "/usr/bin",
         HTTPS_PROXY: "http://proxy.invalid",
+        http_proxy: "http://proxy.invalid",
+        NO_PROXY: "localhost",
+        SSL_CERT_FILE: "/certs/test.pem",
         BETTER_AUTH_SECRET: "fake-secret-that-must-not-leak",
         DATABASE_URL: "postgres://fake.invalid/db",
         AXIOM_TOKEN: "fake-axiom-token",
@@ -450,6 +474,9 @@ describe("child process environment", () => {
     expect(env).toMatchObject({
       PATH: "/usr/bin",
       HTTPS_PROXY: "http://proxy.invalid",
+      http_proxy: "http://proxy.invalid",
+      NO_PROXY: "localhost",
+      SSL_CERT_FILE: "/certs/test.pem",
       ENGAZ_IMAGE_TAG: "sha-123",
       GIT_TERMINAL_PROMPT: "0",
     });
@@ -476,5 +503,166 @@ describe("child process environment", () => {
       "deploy",
       currentCommit,
     ]);
+  });
+});
+
+describe("release response capture", () => {
+  it("keeps bounded successful JSON stdout intact despite long notes and stderr", async () => {
+    const release = { ...publishedRelease, body: "x".repeat(12_000) };
+    const result = await runCommand(
+      process.execPath,
+      [
+        "-e",
+        "process.stdout.write(process.argv[1]); process.stderr.write('warning');",
+        JSON.stringify(release),
+      ],
+      {
+        cwd: os.tmpdir(),
+        timeoutMs: 5_000,
+        captureStdout: true,
+      },
+    );
+    expect(result.ok).toBe(true);
+    expect(JSON.parse(result.output)).toEqual(release);
+  });
+});
+
+describe("release response size limit", () => {
+  it("fails closed when JSON exceeds the one MiB capture bound", async () => {
+    const result = await runCommand(
+      process.execPath,
+      ["-e", "process.stdout.write('x'.repeat(1024 * 1024 + 1));"],
+      {
+        cwd: os.tmpdir(),
+        timeoutMs: 5_000,
+        captureStdout: true,
+      },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.output.length).toBeLessThan(10_000);
+  });
+});
+
+describe("published release discovery", () => {
+  const input = { repoUrl: "https://github.com/shadynafie/engaz", branch: "main" };
+  it("uses published latest, ignores newer Git-only tags, and peels only that release", async () => {
+    const fixture = await deployment();
+    const calls: Array<{ command: string; args: string[] }> = [];
+    const run: UpdaterCommandRunner = async (command, args) => {
+      calls.push({ command, args });
+      if (command === "curl") return ok(JSON.stringify(publishedRelease));
+      return ok(
+        `${"a".repeat(40)}\trefs/tags/v1.1.0\n${targetCommit}\trefs/tags/v1.1.0^{}\n${"3".repeat(40)}\trefs/tags/v9.0.0\n`,
+      );
+    };
+    const response = await request(createUpdaterApp(fixture.config, { run }), "/plan", input);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ targetTag: `sha-${targetCommit}`, targetCommit });
+    expect(calls[0]).toEqual({
+      command: "curl",
+      args: [
+        "--fail",
+        "--silent",
+        "--show-error",
+        "--max-time",
+        "30",
+        "--proto",
+        "=https",
+        "--location",
+        "--max-redirs",
+        "0",
+        "--header",
+        "Accept: application/vnd.github+json",
+        "https://api.github.com/repos/shadynafie/engaz/releases/latest",
+      ],
+    });
+    expect(calls[1]).toEqual({
+      command: "git",
+      args: ["ls-remote", "--tags", "--", input.repoUrl, "refs/tags/v1.1.0", "refs/tags/v1.1.0^{}"],
+    });
+    expect(calls).toHaveLength(2);
+    expect(await readFile(fixture.config.envFile, "utf8")).toBe(
+      "ENGAZ_IMAGE_TAG=v1.0.0\nENGAZ_IMAGE_TAG_PREVIOUS=v0.9.0\n",
+    );
+  });
+
+  it.each([
+    { ...publishedRelease, draft: true },
+    { ...publishedRelease, prerelease: true },
+    { ...publishedRelease, tag_name: "v2.0.0-rc.1" },
+    { tag_name: "v9.0.0" },
+  ])(
+    "refuses unavailable published release metadata before Git, Docker or environment mutation",
+    async (body) => {
+      const fixture = await deployment();
+      const commands: string[] = [];
+      const run: UpdaterCommandRunner = async (command) => {
+        commands.push(command);
+        return ok(JSON.stringify(body));
+      };
+      const response = await request(createUpdaterApp(fixture.config, { run }), "/apply", input);
+      expect(response.status).toBe(400);
+      expect(commands).toEqual(["curl"]);
+      expect(await readFile(fixture.config.envFile, "utf8")).toBe(
+        "ENGAZ_IMAGE_TAG=v1.0.0\nENGAZ_IMAGE_TAG_PREVIOUS=v0.9.0\n",
+      );
+    },
+  );
+
+  it("does not fall back to Git tags when GitHub latest fails", async () => {
+    const fixture = await deployment();
+    const commands: string[] = [];
+    const response = await request(
+      createUpdaterApp(fixture.config, {
+        run: async (command) => {
+          commands.push(command);
+          return failed("unavailable");
+        },
+      }),
+      "/apply",
+      input,
+    );
+    expect(response.status).toBe(400);
+    expect(commands).toEqual(["curl"]);
+  });
+
+  it.each([
+    "ENGAZ_IMAGE_TAG=v2.0.0\n",
+    `ENGAZ_IMAGE_TAG=sha-${currentCommit}\nENGAZ_RELEASE=v2.0.0\n`,
+  ])("refuses known downgrades before changing the environment or runtime", async (environment) => {
+    const fixture = await deployment(environment);
+    const commands: string[] = [];
+    const response = await request(
+      createUpdaterApp(fixture.config, {
+        run: async (command) => {
+          commands.push(command);
+          return ok(JSON.stringify(publishedRelease));
+        },
+      }),
+      "/apply",
+      input,
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: expect.stringMatching(/downgrade/) });
+    expect(commands).toEqual(["curl"]);
+    expect(await readFile(fixture.config.envFile, "utf8")).toBe(environment);
+  });
+
+  it("records the selected release after apply and preserves that record on failed apply", async () => {
+    const environment = "FAKE_SECRET=kept\nENGAZ_IMAGE_TAG=v1.0.0\nENGAZ_RELEASE=v1.0.0\n";
+    const fixture = await deployment(environment);
+    const run: UpdaterCommandRunner = async (command) =>
+      command === "git" ? ok(`${targetCommit}\trefs/tags/v1.1.0\n`) : ok();
+    expect((await request(fixtureApp(fixture.config, { run }), "/apply", input)).status).toBe(200);
+    const after = await readFile(fixture.config.envFile, "utf8");
+    expect(after).toContain("ENGAZ_RELEASE=v1.1.0\n");
+    expect(after).toContain("ENGAZ_RELEASE_PREVIOUS=v1.0.0\n");
+    expect(after).toContain("FAKE_SECRET=kept\n");
+    const failing = await deployment(environment);
+    const failedRun: UpdaterCommandRunner = async (command) =>
+      command === "git" ? ok(`${targetCommit}\trefs/tags/v1.1.0\n`) : failed("pull unavailable");
+    const response = await request(fixtureApp(failing.config, { run: failedRun }), "/apply", input);
+    expect(await response.json()).toMatchObject({ ok: false });
+    expect(await readFile(failing.config.envFile, "utf8")).toContain("ENGAZ_RELEASE=v1.0.0\n");
   });
 });

@@ -148,6 +148,22 @@ export function parseReleaseTag(tag: string): ReleaseTag | null {
   };
 }
 
+/** Validate GitHub's published-release response, never an unpublished Git tag. */
+export function publishedReleaseTag(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const release = value as Record<string, unknown>;
+  if (
+    release.draft !== false ||
+    release.prerelease !== false ||
+    typeof release.tag_name !== "string" ||
+    typeof release.published_at !== "string" ||
+    !Number.isFinite(Date.parse(release.published_at))
+  )
+    return null;
+  const parsed = parseReleaseTag(release.tag_name);
+  return parsed && parsed.prerelease === null && isValidImageTag(parsed.tag) ? parsed.tag : null;
+}
+
 export function compareReleaseTags(a: ReleaseTag, b: ReleaseTag): number {
   if (a.major !== b.major) return a.major - b.major;
   if (a.minor !== b.minor) return a.minor - b.minor;

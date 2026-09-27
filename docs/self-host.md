@@ -40,13 +40,13 @@ CI installs the published images anonymously with the commands below and waits f
 No clone or image build is needed. On Linux or macOS, run one command in a terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash
+curl -fsSL https://engaz.app/install.sh | bash
 ```
 
-On Windows 10 (version 2004 or newer) or Windows 11, run one command in PowerShell:
+On Windows 10 22H2 or Windows 11 23H2 (or newer), run one command in PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install.ps1 | iex
+irm https://engaz.app/install.ps1 | iex
 ```
 
 The installer:
@@ -93,7 +93,7 @@ By default, Postgres and app data live in Docker named volumes. To keep everythi
 survive in one host folder, such as a NAS share, give a new installation an absolute path:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash -s -- --data-dir=/volume1/engaz
+curl -fsSL https://engaz.app/install.sh | bash -s -- --data-dir=/volume1/engaz
 ```
 
 Typing the same path at the installer's data question does the same. The folder must be empty or not exist yet. The installer checks that Docker is running, Compose is
@@ -117,8 +117,10 @@ Optional: set `OPENROUTER_API_KEY` or connect a model in the UI after signup.
 Auto Review uses that LLM checker by default. To use TypeSafe Jev instead, set
 `ENGAZ_AUTO_REVIEW_PROVIDER=jev` and `TYPESAFE_API_KEY`. Core still runs with neither.
 
-The example defaults to `edge` (main builds). Every publish is multi-arch (`amd64` + `arm64`), so
-arm64 hosts need no special tag. Do not assume `latest` is present until a stable release exists.
+The public installer and `engaz update` both select the latest published stable GitHub release.
+Its installer assets download Compose, the CLI, and image tags from that release's exact source commit.
+Main/`edge` is for development and is not the public installation channel. Every publish is multi-arch
+(`amd64` + `arm64`), so arm64 hosts need no special tag. See the [release policy](release-policy.md).
 
 ### Reach Engaz on your network
 
@@ -782,7 +784,10 @@ public repositories) and merge the digests into one manifest. QEMU emulation
 (`docker/setup-qemu-action`, `binfmt`) still works if you have no native arm64 machine, but it is
 many times slower, hours rather than minutes for the `computer` image.
 
-The updater resolves the newest stable `vX.Y.Z` source tag but deploys its `sha-<full-commit>` image,
+The image-installation CLI selects GitHub's latest published stable release (excluding drafts and
+prereleases), resolves its source tag, and deploys its `sha-<full-commit>` image. It refuses a known
+release downgrade. The optional official updater sidecar follows the same published-release
+selector. Both use source-addressed images,
 not `latest` or a moving minor tag. A registry tag is not an OCI digest and GHCR package writers can
 replace it, so the trust boundary remains this repository's publishing credentials. The workflow
 reduces that boundary by using SHA-pinned actions, read-only pull-request jobs, digest-pinned base

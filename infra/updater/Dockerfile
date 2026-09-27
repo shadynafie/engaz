@@ -11,7 +11,7 @@ COPY --from=dockercli /usr/local/libexec/docker/cli-plugins/docker-compose \
 COPY --from=dockercli /usr/local/libexec/docker/cli-plugins/docker-buildx \
   /usr/local/libexec/docker/cli-plugins/docker-buildx
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git ca-certificates \
+  && apt-get install -y --no-install-recommends git curl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./

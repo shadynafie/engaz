@@ -301,16 +301,14 @@ class RecoveryChecks(unittest.TestCase):
         self.assertEqual((self.root / ".env").read_bytes(), before)
         self.assertEqual((self.root / engaz.BASE).read_text(), "services: {}\n")
 
-    def test_latest_update_uses_numeric_stable_tags_across_pages(self):
+    def test_latest_update_uses_published_release_not_newer_unpublished_tags(self):
         install = self.install()
         requested = []
 
         def fetch(url, **kwargs):
             requested.append(url)
-            if url.endswith("page=1"):
-                return [{"name": "v0.9.9"}] * 99 + [{"name": "v9.0.0-rc.1"}]
-            if url.endswith("page=2"):
-                return [{"name": "v0.10.2"}, {"name": "v0.10.1"}]
+            if url.endswith("/releases/latest"):
+                return {"tag_name": "v0.10.2", "draft": False, "prerelease": False, "published_at": "2026-01-01T00:00:00Z"}
             raise ValueError("stop before downloading")
 
         with patch.object(engaz, "fetch", side_effect=fetch), patch.object(engaz, "docker") as docker:
@@ -318,7 +316,21 @@ class RecoveryChecks(unittest.TestCase):
                 engaz.update(install, None)
             docker.assert_not_called()
         self.assertEqual(requested[-1], engaz.REPO + "/commits/v0.10.2")
-        self.assertEqual(len(requested), 3)
+        self.assertEqual(requested, [engaz.REPO + "/releases/latest", engaz.REPO + "/commits/v0.10.2"])
+
+    def test_update_rejects_draft_prerelease_and_downgrade_before_changes(self):
+        install = self.install()
+        install.resolved["ENGAZ_RELEASE"] = "v0.10.3"
+        for release in ({"tag_name": "v0.10.2", "draft": False, "prerelease": False, "published_at": "2026-01-01T00:00:00Z"},
+                        {"tag_name": "v0.11.0"}, {"tag_name": "v0.11.0", "draft": True},
+                        {"tag_name": "v0.11.0-rc.1", "prerelease": True}):
+            with self.subTest(release=release), patch.object(engaz, "fetch", return_value=release) as fetch, \
+                 patch.object(engaz, "docker") as docker, patch.object(install, "backup") as backup:
+                with self.assertRaises(ValueError):
+                    engaz.update(install, None)
+                fetch.assert_called_once()
+                docker.assert_not_called()
+                backup.assert_not_called()
 
     def update_operation(self, fail=False):
         install = self.install()

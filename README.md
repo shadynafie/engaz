@@ -11,13 +11,13 @@ Engaz runs on your own computer or NAS, and you use it in the browser. It does n
 On **Linux or macOS**, open a terminal and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install-images.sh | bash
+curl -fsSL https://engaz.app/install.sh | bash
 ```
 
-On **Windows 10 (2004 or newer) or 11**, open PowerShell and run:
+On **Windows 10 22H2 or Windows 11 23H2 (or newer)**, open PowerShell and run:
 
 ```powershell
-irm https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install.ps1 | iex
+irm https://engaz.app/install.ps1 | iex
 ```
 
 The installer asks before installing anything. It offers Docker on Linux, Docker Desktop on macOS, and WSL with Docker Desktop on Windows, where Windows may restart once and setup then resumes by itself. It starts Engaz, prints a private setup link, and opens it in your browser. On the installation machine, use `http://localhost:7791`; from another device on the same network, use the machine's IP, for example `http://192.168.1.20:7791`. It installs the `engaz` command. Run the same command again, or `engaz update`, to update. The [self-hosting guide](./docs/self-host.md#published-images-no-checkout) covers the options, including [keeping data in a folder you choose](./docs/self-host.md#keep-data-in-a-folder-you-choose).

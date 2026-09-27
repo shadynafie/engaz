@@ -2,7 +2,10 @@
 
 set -Eeuo pipefail
 
-DOWNLOAD_BASE="${ENGAZ_DOWNLOAD_BASE:-https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose}"
+readonly RELEASE_VERSION=""
+readonly DEFAULT_DOWNLOAD_BASE="https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose"
+DOWNLOAD_BASE="${ENGAZ_DOWNLOAD_BASE:-$DEFAULT_DOWNLOAD_BASE}"
+[[ -z "$RELEASE_VERSION" ]] || DOWNLOAD_BASE="$DEFAULT_DOWNLOAD_BASE"
 while [[ "$DOWNLOAD_BASE" == */ ]]; do
   DOWNLOAD_BASE="${DOWNLOAD_BASE%/}"
 done
@@ -105,7 +108,7 @@ case "$(uname -s)" in
 esac
 readonly platform
 readonly WINDOWS_INSTALL_COMMAND="irm ${DOWNLOAD_BASE}/install.ps1 | iex"
-readonly WINDOWS_DOCKER_DESKTOP="/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe"
+readonly WINDOWS_DOCKER_DESKTOP="${ENGAZ_WINDOWS_DOCKER_DESKTOP:-/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe}"
 
 # Questions read the keyboard even when this script arrives through `curl ... | bash`.
 # ENGAZ_TTY lets the installer smokes answer them from a file.
@@ -536,6 +539,9 @@ if [[ "$prepare_only" != true && -f "$ENV_FILE" ]] \
   [[ -f engaz ]] || fail "this is an existing installation without the engaz command. Keep its .env and data; follow the lifecycle enrollment instructions before updating."
   [[ "$pull_never" != true ]] || fail "use engaz start to start an existing installation with local images; updates require a published release."
   step "🔄" "Engaz is already installed in $PWD. Updating it to the latest release; a backup is made first."
+  if [[ -n "$RELEASE_VERSION" ]]; then
+    exec python3 "$PWD/engaz" --dir "$PWD" update "$RELEASE_VERSION"
+  fi
   exec python3 "$PWD/engaz" --dir "$PWD" update
 fi
 
@@ -730,7 +736,10 @@ network_ip() {
 }
 
 create_env() {
-  local lan_ip web_port web_bind=0.0.0.0
+  local lan_ip web_port web_bind=0.0.0.0 release_commit=""
+  if [[ "$DOWNLOAD_BASE" =~ /([0-9a-f]{40})/infra/compose$ ]]; then
+    release_commit="${BASH_REMATCH[1]}"
+  fi
   if ! lan_ip=$(network_ip); then
     [[ -z "${ENGAZ_LAN_IP+x}" ]] || fail "ENGAZ_LAN_IP must be this computer's private network IPv4 address."
     lan_ip=127.0.0.1
@@ -763,11 +772,20 @@ create_env() {
         ;;
       OWNER_SETUP_KEY=* | ENGAZ_WEB_BIND=* | ENGAZ_WEB_PORT=* | ENGAZ_HOST=* | BETTER_AUTH_URL=* | WEB_ORIGIN=* | API_URL=* | AUTH_TRUSTED_ORIGINS=*)
         ;;
+      ENGAZ_IMAGE_TAG=* | ENGAZ_COMPUTER_IMAGE_TAG=*)
+        [[ -n "$release_commit" ]] || printf '%s\n' "$line"
+        ;;
       *)
         printf '%s\n' "$line"
         ;;
     esac
   done < "$ENV_EXAMPLE" > "$temporary_file"
+  if [[ -n "$release_commit" ]]; then
+    printf '\nENGAZ_IMAGE_TAG=sha-%s\nENGAZ_COMPUTER_IMAGE_TAG=sha-%s\n' "$release_commit" "$release_commit" >> "$temporary_file"
+    if [[ -n "$RELEASE_VERSION" ]]; then
+      printf 'ENGAZ_RELEASE=%s\n' "$RELEASE_VERSION" >> "$temporary_file"
+    fi
+  fi
   printf '\nOWNER_SETUP_KEY=%s\nENGAZ_WEB_BIND=%s\nENGAZ_WEB_PORT=%s\nENGAZ_HOST=%s\nBETTER_AUTH_URL=http://%s:%s\nWEB_ORIGIN=http://%s:%s\nAPI_URL=http://%s:%s\nAUTH_TRUSTED_ORIGINS=http://%s:%s,http://localhost:%s,http://127.0.0.1:%s\n' \
     "$(openssl rand -hex 32)" "$web_bind" "$web_port" "$lan_ip" "$lan_ip" "$web_port" "$lan_ip" "$web_port" "$lan_ip" "$web_port" \
     "$lan_ip" "$web_port" "$web_port" "$web_port" >> "$temporary_file"
@@ -841,6 +859,10 @@ else
   create_env
 fi
 
+if [[ -n "$RELEASE_VERSION" ]]; then
+  # Compose and the lifecycle CLI must pull the same images from this installation's .env.
+  unset ENGAZ_IMAGE ENGAZ_IMAGE_TAG ENGAZ_COMPUTER_IMAGE ENGAZ_COMPUTER_IMAGE_TAG
+fi
 validate_required_secrets
 
 install_command() {

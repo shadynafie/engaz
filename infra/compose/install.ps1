@@ -1,5 +1,5 @@
 # Engaz installer for Windows. Run in PowerShell:
-#   irm https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose/install.ps1 | iex
+#   irm https://engaz.app/install.ps1 | iex
 # It prepares WSL and Docker Desktop, then runs the same installer as Linux and macOS
 # inside WSL. Running it again updates an existing installation.
 # Keep this file ASCII: Windows PowerShell 5.1 reads saved scripts without a BOM as ANSI.
@@ -10,10 +10,12 @@
   $ProgressPreference = 'SilentlyContinue'
   [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
+  $ReleaseVersion = ''
   $DownloadBase = 'https://raw.githubusercontent.com/shadynafie/engaz/main/infra/compose'
-  if ($env:ENGAZ_DOWNLOAD_BASE) { $DownloadBase = $env:ENGAZ_DOWNLOAD_BASE.TrimEnd('/') }
-  $DockerDesktop = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'
-  $DockerCli = Join-Path $env:ProgramFiles 'Docker\Docker\resources\bin\docker.exe'
+  if (-not $ReleaseVersion -and $env:ENGAZ_DOWNLOAD_BASE) { $DownloadBase = $env:ENGAZ_DOWNLOAD_BASE.TrimEnd('/') }
+  $InstallerBase = if ($ReleaseVersion) { "https://github.com/shadynafie/engaz/releases/download/$ReleaseVersion" } else { $DownloadBase }
+  $DockerDesktop = ''
+  $DockerCli = ''
   $CommandDir = Join-Path $env:LOCALAPPDATA 'Engaz'
 
   # Windows Terminal and VS Code draw emoji; the classic console shows boxes.
@@ -56,7 +58,7 @@
 
   # Setup resumes by itself after a restart that Windows requires.
   function Register-Resume {
-    $command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -Command `"irm $DownloadBase/install.ps1 | iex`""
+    $command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -Command `"irm $InstallerBase/install.ps1 | iex`""
     Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce' -Name 'EngazSetup' -Value $command
   }
 
@@ -65,6 +67,38 @@
     Step 'restart' "$Reason Setup continues by itself after you sign in again."
     if (Confirm-Step 'Restart now?') { Restart-Computer -Force }
     throw 'ENGAZ-RESTART: Restart Windows to continue. Setup resumes after you sign in.'
+  }
+
+  function Test-WindowsBuild([int]$Build) {
+    # Windows 10 22H2, or Windows 11 23H2 and newer, as required by Docker Desktop.
+    return ($Build -ge 19045 -and $Build -lt 22000) -or $Build -ge 22631
+  }
+
+  function Find-DockerInstallation([string]$ProgramFiles, [string]$LocalAppData) {
+    foreach ($root in @((Join-Path $LocalAppData 'Programs\DockerDesktop'), (Join-Path $ProgramFiles 'Docker\Docker'))) {
+      $desktop = Join-Path $root 'Docker Desktop.exe'
+      $cli = Join-Path $root 'resources\bin\docker.exe'
+      if ((Test-Path $desktop) -and (Test-Path $cli)) {
+        return [pscustomobject]@{ Desktop = $desktop; Cli = $cli }
+      }
+    }
+    return $null
+  }
+
+  function ConvertFrom-WslVersion([string[]]$Lines) {
+    foreach ($line in $Lines) {
+      $clean = $line -replace "`0", ''
+      if ($clean -match '(\d+\.\d+\.\d+(?:\.\d+)?)') { return [version]$Matches[1] }
+    }
+    return $null
+  }
+
+  function Test-WslVersion {
+    $ErrorActionPreference = 'Continue'
+    $lines = & wsl.exe --version 2>$null
+    if ($LASTEXITCODE -ne 0) { return $false }
+    $version = ConvertFrom-WslVersion $lines
+    return $null -ne $version -and $version -ge [version]'2.1.5'
   }
 
   function Test-Wsl {
@@ -97,6 +131,9 @@
     if ($default.Count -gt 0) { return $default[0] }
     $ubuntu = @($usable | Where-Object { $_.Name -like 'Ubuntu*' })
     if ($ubuntu.Count -gt 0) { return $ubuntu[0] }
+    if (@($Distros | Where-Object { $_.Name -eq 'Ubuntu' -and $_.Version -eq 1 }).Count -gt 0) {
+      Fail 'Ubuntu already uses WSL 1. To convert it explicitly, run wsl --set-version Ubuntu 2, then run this command again. Back up existing Ubuntu data before conversion.'
+    }
     return $null
   }
 
@@ -168,8 +205,8 @@
   function Install-Engaz {
     Step 'wave' "Welcome to Engaz! Let's get your AI team workspace running on Windows."
 
-    if ([Environment]::OSVersion.Version.Build -lt 19041) {
-      Fail 'Engaz needs Windows 10 version 2004 or newer, or Windows 11. Update Windows, then run this command again.'
+    if (-not (Test-WindowsBuild ([Environment]::OSVersion.Version.Build))) {
+      Fail 'Docker Desktop needs Windows 10 22H2 (build 19045), or Windows 11 23H2 (build 22631) or newer. Update Windows, then run this command again.'
     }
     if (-not [Environment]::Is64BitOperatingSystem) { Fail 'Engaz needs 64-bit Windows.' }
 
@@ -185,8 +222,19 @@
         Fail 'WSL is required. Run wsl --install in an administrator PowerShell, restart, then run this command again.'
       }
       $code = Invoke-Elevated 'wsl.exe' @('--install', '--no-distribution')
+      if ($code -eq 3010) { Request-Restart 'Restart Windows to finish turning on WSL.' }
       if ($code -ne 0) { Fail "turning on WSL failed (code $code)." }
       if (-not (Test-Wsl)) { Request-Restart 'Restart Windows to finish turning on WSL.' }
+    }
+    if (-not (Test-WslVersion)) {
+      if (-not (Confirm-Step 'Docker Desktop needs WSL 2.1.5 or newer. Update WSL now? Windows may ask for permission.')) {
+        Fail 'Run wsl --update in an administrator PowerShell, then run this command again.'
+      }
+      $code = Invoke-Elevated 'wsl.exe' @('--update')
+      if ($code -eq 3010) { Request-Restart 'Restart Windows to finish updating WSL.' }
+      if ($code -ne 0 -or -not (Test-WslVersion)) {
+        Fail 'WSL must be version 2.1.5 or newer. Run wsl --update in an administrator PowerShell, restart if requested, then run this command again.'
+      }
     }
     Say 'ok' 'WSL is ready.'
 
@@ -218,7 +266,14 @@
     if ($installedDistro) { $user = 'root' }
 
     Step 'docker' 'Checking Docker Desktop.'
-    if (-not (Test-Path $DockerDesktop)) { Install-DockerDesktop }
+    $dockerInstallation = Find-DockerInstallation $env:ProgramFiles $env:LOCALAPPDATA
+    if (-not $dockerInstallation) {
+      Install-DockerDesktop
+      $dockerInstallation = Find-DockerInstallation $env:ProgramFiles $env:LOCALAPPDATA
+      if (-not $dockerInstallation) { Fail 'Docker Desktop installation files were not found. Open Docker Desktop, then run this command again.' }
+    }
+    $DockerDesktop = $dockerInstallation.Desktop
+    $DockerCli = $dockerInstallation.Cli
     if (-not (Test-DockerEngine)) {
       Start-Process -FilePath $DockerDesktop
       Say 'wait' 'Waiting for Docker Desktop to start. The first start can take a few minutes.'
@@ -244,13 +299,15 @@
 
     # The Linux installer does the rest, and updates an existing installation.
     $env:ENGAZ_DOWNLOAD_BASE = $DownloadBase
-    $shared = @('ENGAZ_DOWNLOAD_BASE/u')
+    $env:ENGAZ_INSTALLER_URL = "$InstallerBase/install-images.sh"
+    $env:ENGAZ_WINDOWS_DOCKER_DESKTOP = $DockerDesktop
+    $shared = @('ENGAZ_DOWNLOAD_BASE/u', 'ENGAZ_INSTALLER_URL/u', 'ENGAZ_WINDOWS_DOCKER_DESKTOP/p')
     if (-not $Fancy) {
       $env:ENGAZ_PLAIN = '1'
       $shared += 'ENGAZ_PLAIN/u'
     }
     $env:WSLENV = (@($env:WSLENV) + $shared | Where-Object { $_ }) -join ':'
-    Invoke-InWsl $name $user 'set -o pipefail; curl -fsSL --proto =https $ENGAZ_DOWNLOAD_BASE/install-images.sh | bash'
+    Invoke-InWsl $name $user 'set -o pipefail; curl -fsSL --proto =https "$ENGAZ_INSTALLER_URL" | bash'
     if ($LASTEXITCODE -ne 0) { Fail 'the installer stopped. Read the message above, then run this command again.' }
 
     Install-EngazCommand $name $user

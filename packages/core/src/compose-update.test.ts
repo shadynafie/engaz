@@ -26,6 +26,7 @@ import {
   parseLsRemoteReleases,
   parseLsRemoteTags,
   parseReleaseTag,
+  publishedReleaseTag,
   RECREATED_SERVICES,
   resolveComposeProjectName,
   resolveExecutionMode,
@@ -98,6 +99,26 @@ describe("release tag resolution", () => {
     expect(parseReleaseTag("1.2.3")).toBeNull();
     expect(parseReleaseTag("v1.2")).toBeNull();
     expect(parseReleaseTag("latest")).toBeNull();
+  });
+
+  it("requires an actual published stable GitHub release", () => {
+    const release = {
+      tag_name: "v0.1.8",
+      draft: false,
+      prerelease: false,
+      published_at: "2026-09-27T00:00:00Z",
+    };
+    expect(publishedReleaseTag(release)).toBe("v0.1.8");
+    for (const value of [
+      null,
+      { tag_name: "v0.1.9" },
+      { ...release, draft: true },
+      { ...release, prerelease: true },
+      { ...release, published_at: null },
+      { ...release, tag_name: "v0.2.0-rc.1" },
+      { ...release, tag_name: "main" },
+    ])
+      expect(publishedReleaseTag(value)).toBeNull();
   });
 
   it("orders releases numerically rather than lexically", () => {

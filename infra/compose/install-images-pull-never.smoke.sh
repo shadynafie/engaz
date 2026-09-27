@@ -35,6 +35,7 @@ log="${STUB_DOCKER_LOG:?}"
   for a in "$@"; do
     printf ' %s' "$a"
   done
+  [[ -z "${ENGAZ_IMAGE_TAG+x}${ENGAZ_COMPUTER_IMAGE_TAG+x}" ]] || printf ' IMAGE_OVERRIDE_PRESENT'
   printf '\n'
 } >> "$log"
 
@@ -211,6 +212,7 @@ if command == "start":
     subprocess.run([*args, "up", "-d", "--pull", "never", "--wait", "--wait-timeout", "300"], check=True)
 (root / ".engaz-install.json").write_text('{"test": true}\n')
 print("ENGAZ_COMMAND=" + command)
+print("ENGAZ_ARGS=" + " ".join(sys.argv[1:]))
 STUB
   cp "$work/engaz-stub" "$work/cwd/engaz"
   : > "$work/cwd/docker-compose.images.yml"
@@ -369,6 +371,46 @@ set -e
 [[ "$default_out" != *"unbound variable"* ]] || fail "empty array expansion aborted: $default_out"
 has_compose_pull "$tmp/default" || fail "default install should run compose pull"
 grep -q 'VERB=up' "$tmp/default/docker.log" || fail "default install should run compose up"
+
+# A released installer uses its exact source image tags when creating secrets.
+setup_work "$tmp/stable"
+rm "$tmp/stable/cwd/.env"
+cp "$root/.env.images.example" "$tmp/stable/cwd/.env.images.example"
+stable_commit=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+stable_out="$(ENGAZ_DOWNLOAD_BASE="https://raw.githubusercontent.com/shadynafie/engaz/$stable_commit/infra/compose" run_install "$tmp/stable" --local --prepare-only 2>&1)" \
+  || fail "stable preparation failed: $stable_out"
+grep -Fx "ENGAZ_IMAGE_TAG=sha-$stable_commit" "$tmp/stable/cwd/.env" >/dev/null || fail "app is not release-source pinned"
+grep -Fx "ENGAZ_COMPUTER_IMAGE_TAG=sha-$stable_commit" "$tmp/stable/cwd/.env" >/dev/null || fail "computer is not release-source pinned"
+! grep -q '=edge$' "$tmp/stable/cwd/.env" || fail "released setup retained a moving edge tag"
+
+# The generated asset freezes an existing installation's update even with an older CLI.
+setup_work "$tmp/released-update"
+printf '{}\n' > "$tmp/released-update/cwd/.engaz-install.json"
+python3 - "$root" "$tmp/released-installer.sh" <<'PY'
+import importlib.util
+from pathlib import Path
+import sys
+root = Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location("release_assets", root / "release-assets.py")
+assets = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(assets)
+Path(sys.argv[2]).write_text(assets.render("install-images.sh", (root / "install-images.sh").read_text(), "v0.1.9", "a" * 40))
+PY
+source_installer="$src"
+src="$tmp/released-installer.sh"
+released_out="$(run_install "$tmp/released-update" 2>&1)" || fail "released handoff failed: $released_out"
+[[ "$released_out" == *" update v0.1.9"* ]] || fail "released handoff did not freeze its version"
+
+# Ambient development image variables cannot change a released installation's pull.
+setup_work "$tmp/released-fresh"
+rm "$tmp/released-fresh/cwd/.env"
+cp "$root/.env.images.example" "$tmp/released-fresh/cwd/.env.images.example"
+released_out="$(ENGAZ_IMAGE_TAG=edge ENGAZ_COMPUTER_IMAGE_TAG=edge run_install "$tmp/released-fresh" --local 2>&1)" \
+  || fail "released fresh preparation failed: $released_out"
+grep -Fx "ENGAZ_RELEASE=v0.1.9" "$tmp/released-fresh/cwd/.env" >/dev/null || fail "released setup did not record its version"
+grep -Fx "ENGAZ_IMAGE_TAG=sha-$stable_commit" "$tmp/released-fresh/cwd/.env" >/dev/null || fail "released image source changed"
+grep ' pull' "$tmp/released-fresh/docker.log" | grep -qv IMAGE_OVERRIDE_PRESENT || fail "released pull used ambient image overrides"
+src="$source_installer"
 
 # --data-dir keeps .env, Postgres, and app data together in a new host folder.
 data_install() {

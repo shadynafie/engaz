@@ -317,19 +317,17 @@ def fetch(url, *, json_result=False):
 
 def update(install, version):
     if not version:
-        versions = []
-        page = 1
-        while True:
-            tags = fetch(f"{REPO}/tags?per_page=100&page={page}", json_result=True)
-            versions.extend(t["name"] for t in tags if re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", t["name"]))
-            if len(tags) < 100:
-                break
-            page += 1
-        if not versions:
-            raise ValueError("No stable release tags exist yet. Publish and verify a versioned release first.")
-        version = max(versions, key=lambda v: tuple(map(int, v[1:].split("."))))
+        release = fetch(REPO + "/releases/latest", json_result=True)
+        if (not isinstance(release, dict) or release.get("draft") is not False
+                or release.get("prerelease") is not False or not release.get("published_at")):
+            raise ValueError("Updates require a published stable release.")
+        version = release.get("tag_name", "")
     if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", version):
         raise ValueError("Updates require a stable vX.Y.Z release.")
+    current = install.resolved.get("ENGAZ_RELEASE", "")
+    if (re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", current)
+            and tuple(map(int, version[1:].split("."))) < tuple(map(int, current[1:].split(".")))):
+        raise ValueError("Refusing a release downgrade. Restore a previous backup into a clean installation instead.")
     commit = fetch(REPO + "/commits/" + version, json_result=True)["sha"]
     if not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise ValueError("Release did not resolve to a source commit.")

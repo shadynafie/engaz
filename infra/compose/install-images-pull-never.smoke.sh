@@ -84,6 +84,9 @@ for a in "$@"; do
   esac
 done
 
+if [[ "${STUB_CONSUME_STDIN:-}" == 1 && ( "$verb" == version || "$verb" == pull ) ]]; then
+  cat >/dev/null
+fi
 echo "VERB=${verb:-none}" >> "$log"
 
 if [[ "$verb" == config ]]; then
@@ -202,7 +205,9 @@ setup_work() {
   write_stubs "$work/bin"
   cat > "$work/engaz-stub" <<'STUB'
 #!/usr/bin/env python3
-import pathlib, subprocess, sys
+import os, pathlib, subprocess, sys
+if os.environ.get("STUB_CONSUME_STDIN") == "1":
+    print("ENGAZ_STDIN_BYTES=" + str(len(sys.stdin.read())))
 root = pathlib.Path(sys.argv[sys.argv.index("--dir") + 1])
 command = sys.argv[-1]
 if command == "start":
@@ -620,12 +625,17 @@ set +e
 piped_out="$(
   export STUB_DOCKER_LOG="$tmp/piped/docker.log" STUB_CURL_LOG="$tmp/piped/curl.log"
   export PATH="$tmp/piped/bin:$PATH" HOME="$tmp/piped/home" ENGAZ_NONINTERACTIVE=1
-  export ENGAZ_BIN_DIR="$tmp/piped/commands" STUB_ENGAZ_SOURCE="$tmp/piped/engaz-stub"
-  cd "$tmp/piped/cwd" && bash < "$src" 2>&1
+  export ENGAZ_BIN_DIR="$tmp/piped/commands" STUB_ENGAZ_SOURCE="$tmp/piped/engaz-stub" STUB_CONSUME_STDIN=1
+  cd "$tmp/piped/cwd" && cat "$src" | bash 2>&1
 )"
 piped_code=$?
 set -e
 [[ "$piped_code" -eq 0 ]] || fail "piped install exited $piped_code: $piped_out"
+[[ "$piped_out" == *"Docker is installed and running."* ]] || fail "Docker check did not report success: $piped_out"
+[[ "$(printf '%s\n' "$piped_out" | grep -c '^ENGAZ_STDIN_BYTES=0$')" == 2 ]] || fail "lifecycle commands inherited installer input: $piped_out"
+[[ "$piped_out" == *"Engaz is ready."* ]] || fail "piped install lost its ready message: $piped_out"
+[[ "$piped_out" == *"/sign-up#setup="* && "$piped_out" == *"Create your account:"* ]] || fail "piped install lost its owner setup link: $piped_out"
+
 [[ -f "$tmp/piped/home/engaz/.env" ]] || fail "piped install should use ~/engaz: $piped_out"
 [[ ! -e "$tmp/piped/cwd/.env" ]] || fail "piped install should not write into the current folder"
 [[ "$piped_out" == *"Engaz files are in $(cd "$tmp/piped/home/engaz" && pwd)."* ]] \

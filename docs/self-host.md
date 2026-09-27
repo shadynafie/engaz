@@ -182,6 +182,10 @@ engaz start
 engaz update
 ```
 
+`engaz status` shows whether Engaz is running, its browser address, release, and file
+location. If something needs attention, it names the affected part. Use
+`engaz status --verbose` for the Docker container details.
+
 The command follows its installed symlink to the original installation folder. For an explicit
 installation use `engaz --dir /absolute/path/to/installation status`. `stop` stops services and
 that installation's local bot computers without deleting data; `start` uses already downloaded
@@ -191,7 +195,7 @@ moving the folder is refused rather than switching to empty storage. `ENGAZ_BIN_
 another absolute command directory during installation; an existing unrelated command is never
 replaced.
 
-`engaz update` resolves the newest stable Git tag (`vX.Y.Z`), downloads its exact source
+`engaz update` resolves the latest published stable GitHub release (`vX.Y.Z`), downloads its exact source
 commit's Compose files and CLI, and pulls the app and computer images for that full commit before
 downtime. To select a reviewed release explicitly, use `engaz update vX.Y.Z`. Keep your original
 `.env`; do not regenerate its encryption keys. See [v0.1.7 release verification](https://github.com/shadynafie/engaz/releases/tag/v0.1.7) for the tested Linux scope.

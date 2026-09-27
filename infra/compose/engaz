@@ -23,7 +23,8 @@ STATE = ".engaz-install.json"
 DOCKER = ["docker"]
 
 
-def run(args, *, capture=False, stdin=None, stdout=None):
+# Commands must not consume the remaining script when setup runs through curl | bash.
+def run(args, *, capture=False, stdin=subprocess.DEVNULL, stdout=None):
     result = subprocess.run(args, stdin=stdin, stdout=subprocess.PIPE if capture else stdout,
                             check=True, text=capture)
     return result.stdout if capture else None
@@ -112,7 +113,7 @@ class Install:
         if not state:
             atomic(state_path, json.dumps(identity, indent=2) + "\n")
 
-    def compose(self, *args, capture=False, stdin=None, stdout=None):
+    def compose(self, *args, capture=False, stdin=subprocess.DEVNULL, stdout=None):
         cmd = [*DOCKER, "compose", "--project-directory", str(self.root), "--env-file", str(self.root / ".env")]
         if self.project:
             cmd += ["-p", self.project]
@@ -124,6 +125,54 @@ class Install:
 
     def refresh(self):
         self.config = json.loads(self.compose("config", "--format", "json", capture=True))
+
+    def status(self):
+        names = {"web": "Browser access", "api": "Workspace", "worker": "Agent tasks",
+                 "postgres": "Database", "supervisor": "Agent computers"}
+        states = {c["Config"]["Labels"].get("com.docker.compose.service"): c["State"]
+                  for c in self.containers()}
+        required = [service for service in names if service in self.config["services"]]
+        problems = []
+        starting = False
+        failed = False
+        for service in required:
+            state = states.get(service, {})
+            health = state.get("Health", {}).get("Status")
+            if state.get("OOMKilled") or state.get("Error"):
+                problems.append(f"{names[service]}: stopped unexpectedly")
+                failed = True
+            elif state.get("Restarting") or (state.get("Running") and health == "unhealthy"):
+                problems.append(f"{names[service]}: needs attention")
+                failed = True
+            elif not state.get("Running"):
+                problems.append(f"{names[service]}: not running")
+            elif health == "starting":
+                starting = True
+        failed_setup = any(states.get(service, {}).get("ExitCode", 0) != 0
+                           for service in ("data-init", "computer"))
+        stopped = not any(states.get(service, {}).get("Running") for service in required)
+        initializing = any(states.get(service, {}).get("Running") for service in ("data-init", "computer"))
+        if failed_setup:
+            problems.append("Initial setup: failed")
+        if initializing and not failed_setup and not failed:
+            print("Engaz is starting. Check again in a moment.")
+        elif stopped and not failed_setup and not failed:
+            print("Engaz is stopped.\nRun engaz start to start it.")
+        elif problems:
+            print("Engaz needs attention.")
+            for problem in problems:
+                print(f"  {problem}")
+            print("Run engaz status --verbose for details.")
+        elif starting:
+            print("Engaz is starting. Check again in a moment.")
+        else:
+            print("Engaz is running.")
+        if not stopped and not problems:
+            print("Open: " + (self.resolved.get("WEB_ORIGIN") or
+                              "http://localhost:" + self.resolved.get("ENGAZ_WEB_PORT", "7791")))
+        if self.resolved.get("ENGAZ_RELEASE"):
+            print("Version: " + self.resolved["ENGAZ_RELEASE"])
+        print("Files: " + str(self.root))
 
     def mount(self, service):
         destination = "/var/lib/postgresql/data" if service == "postgres" else "/data"
@@ -180,7 +229,8 @@ class Install:
         image = self.config["services"]["postgres"]["image"]
         mount = f"type={source['type']},src={source['source']},dst={target}" + (",readonly" if readonly else "")
         docker("run", "--rm", *(["-i"] if stdin else []), "--network", "none", "--security-opt", "no-new-privileges:true",
-               "--mount", mount, "--entrypoint", "tar", image, *args, stdin=stdin, stdout=stdout)
+               "--mount", mount, "--entrypoint", "tar", image, *args,
+               stdin=stdin if stdin is not None else subprocess.DEVNULL, stdout=stdout)
 
     def start(self):
         if self.resolved.get("OWNER_SETUP_KEY", "").strip():
@@ -469,8 +519,9 @@ def main():
     parser = argparse.ArgumentParser(description="Manage a published-image Engaz installation.")
     parser.add_argument("--dir", type=Path, default=Path(__file__).resolve().parent)
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("start", "stop", "status"):
+    for name in ("start", "stop"):
         commands.add_parser(name)
+    commands.add_parser("status").add_argument("--verbose", action="store_true")
     commands.add_parser("update").add_argument("version", nargs="?")
     commands.add_parser("backup").add_argument("destination", nargs="?", type=Path)
     command = commands.add_parser("restore")
@@ -497,7 +548,10 @@ def main():
     with lock(root):
         install = Install(root)
         if args.command == "status":
-            install.compose("ps", "-a")
+            if args.verbose:
+                install.compose("ps", "-a")
+            else:
+                install.status()
         elif args.command == "start":
             install.start()
         elif args.command == "stop":

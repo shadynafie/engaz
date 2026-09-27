@@ -8,6 +8,7 @@ import os
 import shutil
 from pathlib import Path
 import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -41,6 +42,27 @@ def config(root):
 
 
 class RecoveryChecks(unittest.TestCase):
+    def test_commands_leave_piped_installer_input_unread(self):
+        script = """
+import importlib.machinery, importlib.util, os, pathlib, sys
+loader = importlib.machinery.SourceFileLoader('operator', sys.argv[1])
+spec = importlib.util.spec_from_loader(loader.name, loader)
+engaz = importlib.util.module_from_spec(spec)
+loader.exec_module(engaz)
+command = [sys.executable, '-c', 'import sys; assert sys.stdin.read() == ""']
+engaz.run(command)
+engaz.DOCKER = command
+install = engaz.Install.__new__(engaz.Install)
+install.root = pathlib.Path('.')
+install.project = ''
+install.files = []
+install.env = os.environ.copy()
+install.compose('ps')
+assert sys.stdin.read() == 'final setup instructions'
+"""
+        subprocess.run([sys.executable, "-c", script, str(Path(__file__).with_name("engaz"))],
+                       input="final setup instructions", text=True, check=True)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -53,6 +75,59 @@ class RecoveryChecks(unittest.TestCase):
         with patch.object(engaz.Install, "compose", return_value=json.dumps(config(self.root))), \
              patch.object(engaz.Install, "containers", return_value=[]):
             return engaz.Install(self.root)
+
+    def test_status_summarizes_runtime_without_exposing_setup_key(self):
+        install = self.install()
+        install.config["services"].update({"web": {}, "worker": {}, "supervisor": {}})
+        install.resolved = {"WEB_ORIGIN": "http://192.0.2.10:7791", "ENGAZ_RELEASE": "v0.1.10",
+                            "OWNER_SETUP_KEY": "private-owner-key"}
+        states = {name: {"Running": True, "ExitCode": 0, "Health": {"Status": "healthy"}}
+                  for name in ("web", "api", "worker", "postgres", "supervisor")}
+        states["worker"].pop("Health")
+        states.update({name: {"Running": False, "ExitCode": 0} for name in ("computer", "data-init")})
+
+        def output():
+            containers = [{"Config": {"Labels": {"com.docker.compose.service": name}}, "State": state}
+                          for name, state in states.items()]
+            with patch.object(install, "containers", return_value=containers), contextlib.redirect_stdout(io.StringIO()) as stream:
+                install.status()
+            text = stream.getvalue()
+            self.assertNotIn("private-owner-key", text)
+            self.assertNotIn("IMAGE", text)
+            return text
+
+        self.assertIn("Engaz is running.\nOpen: http://192.0.2.10:7791\nVersion: v0.1.10", output())
+        states["web"]["Health"]["Status"] = "starting"
+        self.assertIn("Engaz is starting.", output())
+        states["web"]["Health"]["Status"] = "unhealthy"
+        self.assertIn("Browser access: needs attention", output())
+        states["web"]["Health"]["Status"] = "healthy"
+        states.pop("api")
+        self.assertIn("Workspace: not running", output())
+        for state in states.values():
+            state["Running"] = False
+        for service in ("web", "worker", "supervisor"):
+            states[service]["ExitCode"] = 1 if service in ("web", "worker") else 143
+            states[service]["Health"] = {"Status": "unhealthy"}
+        states["postgres"]["Health"]["Status"] = "unhealthy"
+        self.assertIn("Engaz is stopped.\nRun engaz start", output())
+        states["postgres"]["Running"] = True
+        self.assertIn("Engaz needs attention.", output())
+        states["postgres"]["Health"]["Status"] = "unhealthy"
+        self.assertIn("Database: needs attention", output())
+        states["postgres"]["Health"]["Status"] = "healthy"
+        states["data-init"]["Running"] = True
+        self.assertIn("Engaz is starting.", output())
+        states["data-init"]["Running"] = False
+        states["postgres"]["Running"] = False
+        states["postgres"]["ExitCode"] = 1
+        self.assertIn("Engaz is stopped.", output())
+        states["postgres"]["OOMKilled"] = True
+        self.assertIn("Database: stopped unexpectedly", output())
+        states["postgres"].pop("OOMKilled")
+        states["postgres"]["ExitCode"] = 0
+        states["data-init"]["ExitCode"] = 1
+        self.assertIn("Initial setup: failed", output())
 
     @unittest.skipUnless(shutil.which("node"), "Node is needed to check the API capability probe")
     def test_owner_guard_stops_web_and_checks_image_before_exposure(self):

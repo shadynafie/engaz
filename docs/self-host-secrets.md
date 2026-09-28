@@ -27,7 +27,7 @@ Manual generation (same shapes the installer uses):
 
 ```bash
 openssl rand -hex 16   # POSTGRES_PASSWORD
-openssl rand -hex 32   # BETTER_AUTH_SECRET, ENCRYPTION_KEY, SCREEN_PROXY_SECRET, SANDBOX_SUPERVISOR_TOKEN
+openssl rand -hex 32   # Run separately for BETTER_AUTH_SECRET, ENCRYPTION_KEY, SCREEN_PROXY_SECRET, SANDBOX_SUPERVISOR_TOKEN, OWNER_SETUP_KEY
 ```
 
 Source-checkout `.env.example` also requires `POSTGRES_PASSWORD` (same

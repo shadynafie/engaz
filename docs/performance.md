@@ -4,7 +4,7 @@ Engaz measures the production Vite renderer inside a packaged Electron directory
 disposable Postgres database, the scripted agent runtime, and the fake sandbox. No provider account
 or production data is used.
 
-Run a baseline from a local Conductor workspace with Docker available:
+Run a baseline from a local checkout with Docker available:
 
 ```sh
 pnpm perf:desktop -- --label=before

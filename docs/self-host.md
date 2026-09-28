@@ -35,7 +35,7 @@ Compose bot homes mount only their own subdirectory of the application data. Wit
 
 CI installs the published images anonymously with the commands below and waits for a healthy stack on amd64 and arm64 Linux after every main publish. Linux update and recovery are verified below; real NAS and desktop hosts remain unverified.
 
-[v0.1.8 merged-source installation and recovery checks](https://github.com/shadynafie/engaz/actions/runs/36311807022) pass anonymous image pulls, fresh LAN installation, protected owner setup, localhost sign-in, backup/restore, host-folder persistence, and fresh Docker installation on amd64 and arm64 Linux. [Source images](https://github.com/shadynafie/engaz/actions/runs/36311502453) publish for both architectures. An actual installed v0.1.7 CLI upgraded to v0.1.8 (`f0d27376`) on isolated Linux arm64, preserving original secrets, storage/project identity, account and agent IDs, agent files, and saved encrypted credentials; owner sign-in passed before and after, and one validated recovery backup was created. Representative NAS and desktop-host acceptance remain pending.
+[Linux installation and recovery checks](https://github.com/shadynafie/engaz/actions/runs/36311807022) pass anonymous image pulls, protected owner setup, host-folder persistence, and backup/restore on amd64 and arm64. An isolated Linux arm64 update also preserved accounts, agent files, and encrypted credentials. Representative NAS and desktop-host acceptance remain pending; see the [roadmap](roadmap.md) for release evidence and remaining gates.
 
 No clone or image build is needed. On Linux or macOS, run one command in a terminal:
 
@@ -169,12 +169,6 @@ instead of this host proxy.
 
 ### Manage an image installation
 
-These commands ship in [v0.1.7](https://github.com/shadynafie/engaz/releases/tag/v0.1.7).
-[Published-image installation and recovery pass on amd64 and arm64](https://github.com/shadynafie/engaz/actions/runs/36295389219).
-An isolated Linux arm64 installation upgraded from published commit `722ce74` to v0.1.7 (`19c9c397`),
-then restored into a new folder with owner sign-in, its saved model credential, and an agent computer file intact.
-A representative NAS rehearsal remains required for the phase 1 gate; macOS and Windows recovery are unverified.
-
 ```bash
 engaz status
 engaz stop
@@ -198,7 +192,7 @@ replaced.
 `engaz update` resolves the latest published stable GitHub release (`vX.Y.Z`), downloads its exact source
 commit's Compose files and CLI, and pulls the app and computer images for that full commit before
 downtime. To select a reviewed release explicitly, use `engaz update vX.Y.Z`. Keep your original
-`.env`; do not regenerate its encryption keys. See [v0.1.7 release verification](https://github.com/shadynafie/engaz/releases/tag/v0.1.7) for the tested Linux scope.
+`.env`; do not regenerate its encryption keys. See the [roadmap](roadmap.md) for tested host coverage.
 
 The update makes a recovery backup, stops application services and bot computers, and starts the
 new stack; API startup runs database migrations. A failure after migration leaves application
@@ -326,6 +320,15 @@ certificate; set `ENGAZ_WEB_BIND=127.0.0.1` to keep Engaz listening only on loop
    AUTH_TRUSTED_ORIGINS=
    ```
 
+   Run `engaz status` to find the installation folder on its `Files:` line. Edit the
+   existing `.env` there; keep its other values and secrets. `ENGAZ_HOST` is only
+   the hostname, without `https://` or a path.
+
+If the browser says **Blocked request. This host is not allowed**, the tunnel is
+reaching Engaz but `ENGAZ_HOST` does not match the public hostname. Check that
+setting in the installation's `.env`, run `engaz start`, then reopen the HTTPS URL.
+There is no need to edit `vite.config.ts` or rebuild the image.
+
 From then on, use the HTTPS address, including at home: sign-in cookies are HTTPS-only, and the
 old `http://127.0.0.1:7791` address no longer accepts sign-in. To go back to local-only use, set
 the four values back to `http://127.0.0.1:7791` and `localhost`.
@@ -394,11 +397,13 @@ On a VPS, put TLS in front of `:7791` (or serve the web build behind your proxy)
 BETTER_AUTH_URL=https://app.example.com
 WEB_ORIGIN=https://app.example.com
 API_URL=https://app.example.com
+ENGAZ_HOST=app.example.com
 ```
 
 ### Public signup policy
 
-The first account to register becomes the owner. After that, new accounts need an invitation
+The first account to register becomes the owner. Fresh network installations require the
+private `OWNER_SETUP_KEY` from the installation's `.env` to claim that account. After that, new accounts need an invitation
 link: the owner creates one in **Settings → People**. Each link works for one person and expires
 after 7 days. Set `SIGNUPS_INVITE_ONLY=false` to let anyone who can reach the sign-up page
 register instead.
@@ -777,9 +782,7 @@ your CI cannot publish into someone else's.
 | `edge` | pushes to main | yes, to the newest main build |
 
 Every publish, including `edge` from main merges, is multi-arch (`amd64` + `arm64`): each
-architecture builds natively on its own runner and one manifest is assembled per image. Until a
-stable `vX.Y.Z` has been published, GHCR may only have `edge` and `sha-*` tags; do not pin
-`latest` unless that tag exists in the registry.
+architecture builds natively on its own runner and one manifest is assembled per image.
 
 Building the images yourself does not need QEMU. `docker compose up --build` builds for the host's
 own architecture, and a fork publishing multi-arch images should do what `publish-server-image.yml`
@@ -798,10 +801,9 @@ reduces that boundary by using SHA-pinned actions, read-only pull-request jobs, 
 images, SBOM/provenance output, and a GitHub build attestation. Operators who require registry-level
 content addressing can pin `ENGAZ_IMAGE` outside the automatic updater to a verified digest.
 
-Rollback never contacts the registry: it redeploys the previous tag from the local Docker cache,
-so a later tag move cannot change rollback content. Do not prune the previous application image
-until the next update has been accepted. If it is missing, rollback fails closed instead of pulling
-new content under an old tag.
+The optional updater sidecar rolls back an unsuccessful deployment using the previous image
+from the local Docker cache; it does not pull a moving tag. An image-installer update that has
+migrated the database instead requires restoring its backup into a clean installation.
 
 To populate the registry the first time, run the workflow manually (`workflow_dispatch`) or push a
 `v*` tag. A manual run produces `sha-<full-commit>`; only a stable `vX.Y.Z` tag (no prerelease

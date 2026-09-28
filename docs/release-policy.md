@@ -23,7 +23,6 @@ forks retain their explicit source/branch workflow.
 Use `vMAJOR.MINOR.PATCH`, starting from the latest published version:
 
 - **Patch:** compatible bug fixes, installer corrections, and reliability fixes.
-  The next release after v0.1.8 for these installer fixes is **v0.1.9**.
 - **Minor:** new product capabilities. Before v1.0, breaking changes also increment
   the minor number and require migration/recovery instructions.
 - **Major:** breaking changes after v1.0. Release **v1.0.0** only when the v1

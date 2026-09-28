@@ -4,7 +4,7 @@
 
 Engaz runs on your own computer or NAS, and you use it in the browser. It does not offer a hosted service.
 
-> **Current status:** Engaz is in active development, and the first release is the web app. The installer starts a fresh installation on amd64 and arm64 Linux in CI, and a new owner completes first run there. Linux update, backup, and restore checks pass. The macOS and Windows installer paths pass offline checks; real NAS, macOS, and Windows installation and recovery remain unverified. The desktop and mobile apps come later.
+> **Current status:** Engaz is in active development, and the first public release focuses on the web app. The installer starts a fresh installation on amd64 and arm64 Linux in CI, and a new owner completes first run there. Linux update, backup, and restore checks pass. The macOS and Windows installer paths pass offline checks; real NAS, macOS, and Windows installation and recovery remain unverified. Desktop and mobile distribution comes later.
 
 ## Install
 

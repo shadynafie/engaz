@@ -72,13 +72,10 @@ acceptance test below.
 
 Offline tests cover tool-result images, action parsing, provider conformance (including the page-browser adapter and computer_act fallback), workspace checkpoint/restore, provider SDK translation, lifecycle integration, and multi-screen managed-provider emulators. They never call a model or live sandbox.
 
-The explicit acceptance test requires Docker (for temporary Postgres), `E2B_API_KEY`, `OPENROUTER_API_KEY`, and a vision-capable OpenRouter model id:
-
-```bash
-COMPUTER_E2E_MODEL=<vision-capable-openrouter-model-id> pnpm test:computer
-```
-
-It starts the full API, provisions a real E2B desktop, serves a deterministic page inside the sandbox, and asks a real model to observe and click a button. The button creates a server-side marker; the test then requires the model to use terminal and file tools and verifies both the marker and recorded tool calls. Finally, it destroys the provider machine, boots a replacement through the stale provider reference, and verifies that the external checkpoint restored the model-created file. The command is opt-in and is not run by `pnpm test` or CI unless invoked explicitly.
+The opt-in [live computer acceptance test](agent-verification.md#live-computer-acceptance)
+uses Box by default, or E2B when selected. It requires Docker for temporary Postgres,
+the selected provider's API key, `OPENROUTER_API_KEY`, and a vision-capable model.
+It is not run by `pnpm test` or CI unless invoked explicitly.
 
 ### Docker desktop lifecycle regression
 

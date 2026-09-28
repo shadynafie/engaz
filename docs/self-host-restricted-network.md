@@ -57,14 +57,14 @@ After `--prepare-only`, set image overrides in `.env`. For mirrored Postgres or 
 
 ```env
 ENGAZ_IMAGE=registry.example.com/mirror/engaz/app
-ENGAZ_IMAGE_TAG=edge
+ENGAZ_IMAGE_TAG=vX.Y.Z
 ENGAZ_COMPUTER_IMAGE=registry.example.com/mirror/engaz/computer
-ENGAZ_COMPUTER_IMAGE_TAG=edge
+ENGAZ_COMPUTER_IMAGE_TAG=vX.Y.Z
 POSTGRES_IMAGE=registry.example.com/library/postgres@sha256:<trusted-postgres-digest>
 BUSYBOX_IMAGE=registry.example.com/library/busybox@sha256:<trusted-busybox-digest>
 ```
 
-Mirror both app and computer images and pair their tags to the same published version. Arm64
+Replace `vX.Y.Z` with the same published stable version for both images. Arm64
 hosts need multi-architecture tags; see [published images and tags](./self-host.md#published-images-and-tags).
 Image overrides are defined in [docker-compose.images.yml](../infra/compose/docker-compose.images.yml).
 

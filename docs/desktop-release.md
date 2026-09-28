@@ -1,8 +1,11 @@
 # Desktop releases
 
-The `release-desktop` workflow builds, signs, notarizes, attests, and publishes
-the Electron app from a `vMAJOR.MINOR.PATCH` tag on `main`. Publishing the
-Docker images triggers from the same tag.
+The `release-desktop` workflow is configured to build, sign, notarize, attest,
+and publish the Electron app from a `vMAJOR.MINOR.PATCH` tag on `main`.
+Desktop distribution is deferred. Do not create a tag solely for desktop:
+the same tags drive the [self-hosted release](release-policy.md), whose installer
+assets must be checked before publication. Before the first desktop release,
+align the desktop version and workflow with that shared draft-release gate.
 
 ## Repository secrets
 
@@ -41,15 +44,7 @@ base64 -i devid.p12 | gh secret set DESKTOP_MAC_CSC_LINK
 gh secret set APPLE_API_KEY_P8 < AuthKey_XXXXXXXXXX.p8
 ```
 
-## Cut a release
-
-1. Bump `version` in `apps/desktop/package.json` on `main`.
-2. Tag that commit `v<version>` and push the tag:
-
-```sh
-git tag v0.1.1
-git push origin v0.1.1
-```
-
-The workflow refuses tags that do not match the desktop version, are not on
-`main`, or are not newer than the latest published release.
+The workflow currently refuses tags that do not match
+`apps/desktop/package.json`, are not on `main`, or are not newer than the latest
+published release. It can publish a GitHub release itself, so its release step
+must be reconciled with the installer-asset checks before desktop shipping.

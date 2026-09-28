@@ -19,8 +19,7 @@ store accounts.
    review-account credentials out of Git.
 5. Before a native iOS or Android build, run
    `pnpm --filter @engaz/mobile exec expo install --check`. Attachment pickers
-   and other Expo native modules must match the SDK (SDK 57 needs
-   `expo-image-picker@~57.0.11`, not 17.x). Use `pnpm exec expo install --fix`
+   and other Expo native modules must match the SDK. Use `pnpm exec expo install --fix`
    from `apps/mobile` if that check fails.
 
 From `apps/mobile`:

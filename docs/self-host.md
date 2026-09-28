@@ -35,7 +35,7 @@ Compose bot homes mount only their own subdirectory of the application data. Wit
 
 CI installs the published images anonymously with the commands below and waits for a healthy stack on amd64 and arm64 Linux after every main publish. Linux update and recovery are verified below; real NAS and desktop hosts remain unverified.
 
-[Linux installation and recovery checks](https://github.com/shadynafie/engaz/actions/runs/36311807022) pass anonymous image pulls, protected owner setup, host-folder persistence, and backup/restore on amd64 and arm64. An isolated Linux arm64 update also preserved accounts, agent files, and encrypted credentials. Representative NAS and desktop-host acceptance remain pending; see the [roadmap](roadmap.md) for release evidence and remaining gates.
+[v0.1.10 Linux installation and recovery checks](https://github.com/shadynafie/engaz/actions/runs/36343415418) pass anonymous image pulls, protected owner setup, host-folder persistence, and backup/restore on amd64 and arm64. An isolated Linux arm64 update also preserved accounts, agent files, and encrypted credentials. Representative NAS and desktop-host acceptance remain pending; see the [roadmap](roadmap.md) for release evidence and remaining gates.
 
 No clone or image build is needed. On Linux or macOS, run one command in a terminal:
 
@@ -298,6 +298,8 @@ certificate; set `ENGAZ_WEB_BIND=127.0.0.1` to keep Engaz listening only on loop
 
 1. Open Engaz locally and create your account first. The first account becomes the owner; after
    that, new accounts need an invitation link from **Settings → People**.
+   If you need an email allowlist, configure it and SMTP before the API's first start as described
+   under [public signup policy](#public-signup-policy).
 2. In the Cloudflare dashboard, create a tunnel and add a public hostname (for example
    `engaz.example.com`) whose service is `http://127.0.0.1:7791`.
 3. Run `cloudflared` on the same machine as Engaz. As a container, it needs the host network so
@@ -415,8 +417,10 @@ reapplied on restart, so configure them before that first start.
 With a nonempty signup allowlist, users—including existing accounts—must verify their email to sign
 in. Configure SMTP below before enabling an allowlist or upgrading an allowlisted deployment.
 
-For a public deployment, configure SMTP and an allowlist before the API's first start.
-Keep an installation without email on a trusted local network.
+For a new public deployment that requires an allowlist, configure SMTP and the allowlist before
+the API's first start. If you already created the owner locally, editing `.env` later does not
+change the seeded allowlist; invitation-only signup still applies. Keep an installation without
+email on a trusted local network.
 
 ### Verification and password recovery email
 

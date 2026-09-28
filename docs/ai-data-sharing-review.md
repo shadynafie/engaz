@@ -26,9 +26,10 @@ using their existing controls. This flow is not a global data-access or run-revo
   client. Older servers without the disclosure endpoints cannot supply the new mobile flow;
   existing web/desktop clients and provider execution are unaffected.
 - Self-hosters can set `PRIVACY_POLICY_URL` to their own absolute HTTP(S) policy URL. Otherwise
-  the mobile flow links Engaz's policy, which distinguishes hosted and self-hosted operators.
+  the mobile flow links the repository's `docs/privacy.md` on GitHub. Verify that the link
+  describes the deployed policy; the website's separate policy page does not change it.
   Unknown custom providers have no invented provider-policy link.
-- Deploy the website policy together with the mobile release.
+- Deploy the website policy together with the mobile release and check both policy pages.
 - Review App Store Connect's App Privacy responses against deployed data flows. Specifically
   assess Photos or Videos for retained attachments and Audio Data for voice processing, using
   [Apple's collection definitions](https://developer.apple.com/app-store/app-privacy-details/).

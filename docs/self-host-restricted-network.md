@@ -6,48 +6,30 @@ These settings change downloads; model and remote-computer providers still need 
 | Failure | Setting or action |
 | --- | --- |
 | Cannot fetch the installer | Download it from your mirror or copy it locally |
-| Cannot fetch Compose files | `ENGAZ_DOWNLOAD_BASE`, `--local`, or `ENGAZ_DOWNLOAD_SKIP_EXISTING=1` |
+| Cannot fetch setup files | Pre-copy all four files and use `--local` |
 | Cannot pull app or computer images | `ENGAZ_IMAGE`, `ENGAZ_IMAGE_TAG`, `ENGAZ_COMPUTER_IMAGE`, `ENGAZ_COMPUTER_IMAGE_TAG` |
 | Cannot pull Postgres or busybox | `POSTGRES_IMAGE`, `BUSYBOX_IMAGE`, or Docker daemon `registry-mirrors` |
 
-## Installer script
+## Installer and setup files
 
-When raw GitHub is unreachable, download the installer from your mirror:
+For a stable release, copy its `install-images.sh` release asset and these four files from that
+release's source commit into one empty installation directory: `docker-compose.images.yml`,
+`.env.images.example`, `engaz`, and `docker-compose.data-dir.yml`. Transfer them from a trusted
+workstation or a mirror you control. Keep all five files from the same release.
 
-```bash
-export ENGAZ_INSTALLER_URL=https://example.com/mirror/engaz/infra/compose/install-images.sh
-export ENGAZ_DOWNLOAD_BASE=https://example.com/mirror/engaz/infra/compose
-mkdir -p engaz && cd engaz &&
-curl -fsSL -o install-images.sh "${ENGAZ_INSTALLER_URL}" &&
-bash install-images.sh --prepare-only
-```
-
-`ENGAZ_INSTALLER_URL` selects the script for this curl command; `ENGAZ_DOWNLOAD_BASE` selects
-the Compose files downloaded by that script. Set both when raw GitHub is blocked.
-
-## Compose files
-
-To mirror `docker-compose.images.yml` and `.env.images.example`, point the installer at an HTTPS
-mirror of `infra/compose`:
+Run the copied installer in that directory:
 
 ```bash
-export ENGAZ_DOWNLOAD_BASE=https://example.com/mirror/engaz/infra/compose
-bash install-images.sh --prepare-only
-```
-
-Trailing slashes are trimmed; non-HTTPS bases are rejected. Downloads use bounded retries.
-
-To reuse files already present in the working directory:
-
-```bash
-# Place docker-compose.images.yml and .env.images.example in this directory first.
 bash install-images.sh --local --prepare-only
 # Equivalent environment setting:
 ENGAZ_DOWNLOAD_SKIP_EXISTING=1 bash install-images.sh --prepare-only
 ```
 
-Missing files are still downloaded. `--prepare-only` creates `.env` without starting the stack;
-continue with the image settings and startup instructions below.
+The published installer pins its download source to the release commit and ignores
+`ENGAZ_DOWNLOAD_BASE`. That variable works with the source-checkout installer for development,
+but not with a published release. Missing files are still downloaded, so pre-copy all four when
+GitHub is unreachable. `--prepare-only` creates `.env` without starting the stack; continue
+with the image settings and startup instructions below.
 
 ## Container images
 

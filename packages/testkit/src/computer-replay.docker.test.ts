@@ -139,7 +139,7 @@ describe.skipIf(process.env.RUN_COMPUTER_REPLAY_DOCKER !== "1")(
             computer,
             context,
           );
-          expect(result.modelRequests).toBe(9);
+          expect(result.modelRequests).toBe(10);
           // These reads are independent of the agent's reply and tool-result assertions.
           expect(await waitForReplayFile(sandbox, computer, context, CONTACTS_PATH)).toBe(
             CONTACTS_CSV,

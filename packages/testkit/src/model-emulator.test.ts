@@ -57,6 +57,24 @@ describe("model HTTP emulator contract", () => {
     expect(() => server.assertComplete()).toThrow(/Model routing changed/);
   });
 
+  it("answers the tool-free completion review without consuming an action step", async () => {
+    const server = await startModelEmulator({
+      steps: [{ expect() {}, response: { type: "text", text: "fixture" } }],
+    });
+    servers.push(server);
+    const review = await post(server, {
+      messages: [
+        { role: "system", content: "You check whether an AI agent may finish its current task." },
+        { role: "user", content: "Review the candidate." },
+      ],
+      tools: [],
+    });
+    expect(review.status).toBe(200);
+    expect(await review.text()).toContain('{\\"status\\":\\"complete\\"}');
+    expect((await post(server)).status).toBe(200);
+    server.assertComplete();
+  });
+
   it("requires argument fragments to faithfully represent the scripted tool arguments", async () => {
     const server = await startModelEmulator({
       steps: [

@@ -319,6 +319,37 @@ describe("connector read-only metadata and approval enforcement", () => {
     },
   );
 
+  describe.each(["bot_message", "spawn", "follow_up", "resume"])(
+    "delegated trigger = %s",
+    (trigger) => {
+      it("requires explicit approval when historical origin is unknown despite an allow rule", async () => {
+        const f = fixture({
+          name: "demo_send_message",
+          trigger,
+          rules: [{ effect: "always_allow", matchKind: "tool", matchValue: "demo_send_message" }],
+        });
+        await f.run();
+        expect(f.execute).not.toHaveBeenCalled();
+        expect(f.pauseRunForInput).toHaveBeenCalledOnce();
+        expect(f.effects[0]).toMatchObject({ decisionSource: "mandatory", status: "intended" });
+        expect(reviewMock).not.toHaveBeenCalled();
+      });
+
+      it("retains normal policy when the original human trigger is recorded", async () => {
+        const f = fixture({
+          name: "demo_send_message",
+          trigger,
+          originTrigger: "user",
+          rules: [{ effect: "always_allow", matchKind: "tool", matchValue: "demo_send_message" }],
+        });
+        await f.run();
+        expect(f.execute).toHaveBeenCalledOnce();
+        expect(f.pauseRunForInput).not.toHaveBeenCalled();
+        expect(f.effects[0]).toMatchObject({ decisionSource: "always_allow", status: "completed" });
+      });
+    },
+  );
+
   describe.each([false, true])("catalog = %s", (catalog) => {
     it.each(["tool", "connector"] as const)(
       "honors an explicit %s approval rule",

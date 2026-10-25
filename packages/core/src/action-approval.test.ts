@@ -69,6 +69,28 @@ describe("connectorToolRequiresApproval", () => {
 });
 
 describe("unattendedTriggerToolRequiresApproval", () => {
+  it.each(["bot_message", "spawn", "follow_up", "resume"])(
+    "requires approval for side effects when %s has no resolved origin",
+    (trigger) => {
+      expect(unattendedTriggerToolRequiresApproval(trigger, "shell", false)).toBe(true);
+      expect(unattendedTriggerToolRequiresApproval(trigger, "write_file", false)).toBe(true);
+      expect(unattendedTriggerToolRequiresApproval(trigger, "github_create_issue", true)).toBe(
+        true,
+      );
+      expect(unattendedTriggerToolRequiresApproval(trigger, "read_file", false)).toBe(false);
+      expect(unattendedTriggerToolRequiresApproval(trigger, "github_get_issue", true)).toBe(false);
+    },
+  );
+
+  it("retains normal policy for resolved human and schedule origins", () => {
+    for (const origin of ["user", "routine"]) {
+      expect(unattendedTriggerToolRequiresApproval(origin, "shell", false)).toBe(false);
+      expect(unattendedTriggerToolRequiresApproval(origin, "github_create_issue", true)).toBe(
+        false,
+      );
+    }
+  });
+
   it("forces approval for webhook-triggered local side effects", () => {
     for (const name of ["shell", "write_file", "browser_act", "computer_act"]) {
       expect(unattendedTriggerToolRequiresApproval("webhook", name, false)).toBe(true);

@@ -16,7 +16,7 @@ New routines default to skipping occurrences more than one hour overdue. The edi
 
 Open Details on an Activity row for recorded trigger, original source, account authority, routine and action decisions. New delegated runs preserve their original trigger, including unattended webhook approval and routine tool restrictions. Explicit human approvals/refusals record the answering user. Details are account/space scoped and return selected metadata, not tool arguments, results, credentials or model review prose.
 
-Requested, awaiting approval, approved, attempted, tool completed, failed, refused and unknown states are distinct. A completed tool call does not by itself confirm a real-world outcome. Missing historical decision/provenance context is shown as unavailable rather than reconstructed. The first 100 effects are shown with a truncation indication.
+Requested, awaiting approval, approved, attempted, tool completed, failed, refused and unknown states are distinct. A completed tool call does not by itself confirm a real-world outcome. Missing historical decision/provenance context is shown as unavailable rather than reconstructed. Delegated runs with an unresolved original trigger conservatively require explicit approval for side effects, including when an older allow rule exists. New recorded human-origin delegations retain their normal policy. The first 100 effects are shown with a truncation indication.
 
 ## Save a lesson
 

@@ -1071,7 +1071,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
       } catch (error) {
         // Restore the claim so wakeup retry / routine reconciliation can fire again.
         await deps.prisma.$transaction(async (tx) => {
-          await tx.run.deleteMany({ where: { id: claimed.id, status: "queued" } });
+          const removed = await tx.run.deleteMany({ where: { id: claimed.id, status: "queued" } });
+          // A lost queue response may hide a worker that already claimed this occurrence.
+          if (removed.count !== 1) return;
           await tx.task.deleteMany({ where: { id: claimed.taskId, status: "queued" } });
           await tx.routine.updateMany({
             where: {

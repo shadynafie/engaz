@@ -157,3 +157,71 @@ it("shows who uses a skill and round-trips SKILL.md editing", async () => {
     expect.objectContaining({ skillId: "skill-standup", name: "Daily standup" }),
   );
 });
+
+it("keeps a lesson as an editable draft until explicit save and assignment", async () => {
+  const onClose = vi.fn();
+  const onSaved = vi.fn();
+  const lesson = {
+    botId: "bot-chief",
+    name: "report",
+    description: "For reports",
+    body: "Cite evidence.",
+    modelLabel: "Test",
+    evidence: [],
+    reviewKey: "a".repeat(64),
+  };
+  await act(async () =>
+    root.render(
+      <AgentSkills
+        botId="bot-chief"
+        lesson={lesson}
+        onLessonClose={onClose}
+        onLessonSaved={onSaved}
+        onSkillsChange={onSkillsChange}
+      />,
+    ),
+  );
+  expect(api.agentSkills.create).not.toHaveBeenCalled();
+  const instructions = container.querySelectorAll("textarea")[1];
+  await act(async () =>
+    type(instructions as HTMLTextAreaElement, "Cite evidence. Keep uncertainty."),
+  );
+  await act(async () => button("Save and assign").click());
+  expect(api.agentSkills.create).toHaveBeenCalledWith({
+    name: "report",
+    description: "For reports",
+    body: "Cite evidence. Keep uncertainty.",
+    botId: "bot-chief",
+  });
+  expect(api.agentSkills.update).not.toHaveBeenCalled();
+  expect(onClose).toHaveBeenCalledOnce();
+  expect(onSaved).toHaveBeenCalledOnce();
+});
+
+it("discards lesson drafts without creating, assigning, or updating skills", async () => {
+  const onClose = vi.fn();
+  const lesson = {
+    botId: "bot-chief",
+    name: "report",
+    description: "For reports",
+    body: "Cite evidence.",
+    modelLabel: "Test",
+    evidence: [],
+    reviewKey: "a".repeat(64),
+  };
+  await act(async () =>
+    root.render(
+      <AgentSkills
+        botId="bot-chief"
+        lesson={lesson}
+        onLessonClose={onClose}
+        onSkillsChange={onSkillsChange}
+      />,
+    ),
+  );
+  await act(async () => button("Discard").click());
+  expect(api.agentSkills.create).not.toHaveBeenCalled();
+  expect(api.agentSkills.setAssigned).not.toHaveBeenCalled();
+  expect(api.agentSkills.update).not.toHaveBeenCalled();
+  expect(onClose).toHaveBeenCalledOnce();
+});

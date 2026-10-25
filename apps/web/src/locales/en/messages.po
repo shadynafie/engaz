@@ -133,8 +133,26 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr "A bit of everything"
 
+msgid "A handoff or follow-up"
+msgstr "A handoff or follow-up"
+
+msgid "A person"
+msgstr "A person"
+
+msgid "A remote agent"
+msgstr "A remote agent"
+
+msgid "A schedule"
+msgstr "A schedule"
+
+msgid "A skill"
+msgstr "A skill"
+
 msgid "A skill with that name already exists."
 msgstr "A skill with that name already exists."
+
+msgid "A webhook"
+msgstr "A webhook"
 
 msgid "About groups"
 msgstr "About groups"
@@ -177,6 +195,12 @@ msgstr "Active model"
 
 msgid "Activity"
 msgstr "Activity"
+
+msgid "Activity details"
+msgstr "Activity details"
+
+msgid "Activity details for {title}"
+msgstr "Activity details for {title}"
 
 msgid "Add"
 msgstr "Add"
@@ -301,6 +325,12 @@ msgstr "Always allow this tool"
 msgid "Always allowed"
 msgstr "Always allowed"
 
+msgid "An incoming message"
+msgstr "An incoming message"
+
+msgid "Another agent"
+msgstr "Another agent"
+
 msgid "Answer"
 msgstr "Answer"
 
@@ -389,6 +419,9 @@ msgstr "Attach file"
 
 msgid "Attachment"
 msgstr "Attachment"
+
+msgid "Authority"
+msgstr "Authority"
 
 msgid "Authorization code or callback URL"
 msgstr "Authorization code or callback URL"
@@ -727,6 +760,9 @@ msgstr "Copy"
 msgid "Copy invitation link"
 msgstr "Copy invitation link"
 
+msgid "Corrections (optional)"
+msgstr "Corrections (optional)"
+
 msgid "Could not add"
 msgstr "Could not add"
 
@@ -840,11 +876,17 @@ msgstr "Could not download {0}. Try again."
 msgid "Could not download {name}. Try again."
 msgstr "Could not download {name}. Try again."
 
+msgid "Could not draft a lesson. Try again."
+msgstr "Could not draft a lesson. Try again."
+
 msgid "Could not install connector"
 msgstr "Could not install connector"
 
 msgid "Could not load"
 msgstr "Could not load"
+
+msgid "Could not load activity."
+msgstr "Could not load activity."
 
 msgid "Could not load approval rules"
 msgstr "Could not load approval rules"
@@ -1093,6 +1135,9 @@ msgstr "Day-to-day work"
 msgid "days"
 msgstr "days"
 
+msgid "Decision made by you."
+msgstr "Decision made by you."
+
 msgid "Decline"
 msgstr "Decline"
 
@@ -1155,6 +1200,12 @@ msgstr "Desktop app"
 msgid "Desktop update"
 msgstr "Desktop update"
 
+msgid "Details"
+msgstr "Details"
+
+msgid "Discard"
+msgstr "Discard"
+
 msgid "Disconnect"
 msgstr "Disconnect"
 
@@ -1203,6 +1254,9 @@ msgstr "Downloading…"
 
 msgid "Draft skill"
 msgstr "Draft skill"
+
+msgid "Drafting…"
+msgstr "Drafting…"
 
 msgid "Drag, drop, or paste an image"
 msgstr "Drag, drop, or paste an image"
@@ -1355,6 +1409,13 @@ msgstr "Fullscreen"
 
 msgid "General"
 msgstr "General"
+
+#. placeholder {0}: preview.modelLabel
+msgid "Generate a draft with {0} using this source and your corrections."
+msgstr "Generate a draft with {0} using this source and your corrections."
+
+msgid "Generate draft"
+msgstr "Generate draft"
 
 msgid "Get credentials"
 msgstr "Get credentials"
@@ -1514,6 +1575,12 @@ msgstr "key"
 
 msgid "Language"
 msgstr "Language"
+
+msgid "Last checked"
+msgstr "Last checked"
+
+msgid "Last skipped"
+msgstr "Last skipped"
 
 msgid "Later"
 msgstr "Later"
@@ -1831,6 +1898,9 @@ msgstr "No model catalog is available."
 msgid "No providers found."
 msgstr "No providers found."
 
+msgid "No recorded actions."
+msgstr "No recorded actions."
+
 msgid "No remote MCP servers found"
 msgstr "No remote MCP servers found"
 
@@ -1863,6 +1933,9 @@ msgstr "Not connected"
 
 msgid "Not now"
 msgstr "Not now"
+
+msgid "Not recorded"
+msgstr "Not recorded"
 
 msgid "Nothing is still running"
 msgstr "Nothing is still running"
@@ -2042,6 +2115,9 @@ msgstr "Recall and write"
 msgid "Recall only"
 msgstr "Recall only"
 
+msgid "Received through"
+msgstr "Received through"
+
 msgid "Recent"
 msgstr "Recent"
 
@@ -2191,6 +2267,9 @@ msgstr "Restore the last saved workspace. Unsaved work on the computer is lost."
 msgid "Restoring your workspace"
 msgstr "Restoring your workspace"
 
+msgid "Resumed work"
+msgstr "Resumed work"
+
 msgid "Retry now"
 msgstr "Retry now"
 
@@ -2203,6 +2282,9 @@ msgstr "Return to Engaz"
 #. placeholder {0}: doc.revision
 msgid "rev {0}"
 msgstr "rev {0}"
+
+msgid "Review the new skill before giving it to this agent."
+msgstr "Review the new skill before giving it to this agent."
 
 msgid "Revoke"
 msgstr "Revoke"
@@ -2255,6 +2337,12 @@ msgstr "Runs when this bot receives a verified message from this provider."
 msgid "Save"
 msgstr "Save"
 
+msgid "Save a lesson"
+msgstr "Save a lesson"
+
+msgid "Save and assign"
+msgstr "Save and assign"
+
 msgid "Saved"
 msgstr "Saved"
 
@@ -2281,6 +2369,12 @@ msgstr "Say something. Silence sends it."
 
 msgid "Say yes or no, or answer in a sentence."
 msgstr "Say yes or no, or answer in a sentence."
+
+msgid "Scheduler check unavailable"
+msgstr "Scheduler check unavailable"
+
+msgid "Scheduler checking"
+msgstr "Scheduler checking"
 
 msgid "Search"
 msgstr "Search"
@@ -2378,6 +2472,12 @@ msgstr "Show password"
 msgid "Show settings"
 msgstr "Show settings"
 
+msgid "Showing part of this run."
+msgstr "Showing part of this run."
+
+msgid "Showing the first 100 actions."
+msgstr "Showing the first 100 actions."
+
 msgid "Sign in"
 msgstr "Sign in"
 
@@ -2412,6 +2512,9 @@ msgstr "Skip"
 msgid "Skip or deploy key"
 msgstr "Skip or deploy key"
 
+msgid "Skip scheduled work more than an hour overdue"
+msgstr "Skip scheduled work more than an hour overdue"
+
 #. placeholder {0}: skipped.join(", ")
 msgid "Skipped {0}"
 msgstr "Skipped {0}"
@@ -2424,6 +2527,12 @@ msgstr "Slack not enabled"
 
 msgid "Software update"
 msgstr "Software update"
+
+msgid "Source"
+msgstr "Source"
+
+msgid "Source evidence"
+msgstr "Source evidence"
 
 msgid "Space default"
 msgstr "Space default"
@@ -2451,6 +2560,9 @@ msgstr "Speaking…"
 
 msgid "Start recording"
 msgstr "Start recording"
+
+msgid "Started by"
+msgstr "Started by"
 
 msgid "Starting"
 msgstr "Starting"
@@ -2500,6 +2612,9 @@ msgstr "Switching…"
 
 msgid "System"
 msgstr "System"
+
+msgid "Task"
+msgstr "Task"
 
 msgid "Taught"
 msgstr "Taught"
@@ -2590,6 +2705,9 @@ msgstr "Title"
 
 msgid "To:"
 msgstr "To:"
+
+msgid "Tool completed"
+msgstr "Tool completed"
 
 msgid "Tool sources"
 msgstr "Tool sources"
@@ -2766,6 +2884,9 @@ msgstr "You can close this window."
 
 msgid "You have control"
 msgstr "You have control"
+
+msgid "Your account"
+msgstr "Your account"
 
 msgid "Your email address"
 msgstr "Your email address"

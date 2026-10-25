@@ -1,4 +1,10 @@
-import type { AgentSkill, AgentSkillCatalogEntry, Bot, TaughtSkill } from "@engaz/contracts";
+import type {
+  AgentSkill,
+  AgentSkillCatalogEntry,
+  Bot,
+  LessonDraft,
+  TaughtSkill,
+} from "@engaz/contracts";
 import { buildSkillMd, parseSkillMd } from "@engaz/core";
 import { Button, Input, Switch, Textarea } from "@engaz/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -21,8 +27,14 @@ type Draft = {
 export function AgentSkills({
   botId,
   onSkillsChange,
+  lesson,
+  onLessonClose,
+  onLessonSaved,
 }: {
   botId: string;
+  lesson?: LessonDraft;
+  onLessonClose?: () => void;
+  onLessonSaved?: () => void;
   /** The skills this agent receives, for the composer's / picker. */
   onSkillsChange: (skills: AgentSkillCatalogEntry[]) => void;
 }) {
@@ -31,7 +43,17 @@ export function AgentSkills({
   const [skills, setSkills] = useState<AgentSkillCatalogEntry[] | null>(null);
   const [taught, setTaught] = useState<TaughtSkill[]>([]);
   const [bots, setBots] = useState<Bot[]>([]);
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(() =>
+    lesson
+      ? {
+          skill: null,
+          name: lesson.name,
+          description: lesson.description,
+          body: lesson.body,
+          raw: null,
+        }
+      : null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -124,6 +146,7 @@ export function AgentSkills({
     setDraft(null);
     setConfirmingDelete(false);
     setError(null);
+    onLessonClose?.();
   }
 
   function toggleRaw() {
@@ -166,6 +189,7 @@ export function AgentSkills({
     try {
       if (draft.skill) await rpc.agentSkills.update({ skillId: draft.skill.id, ...fields });
       else await rpc.agentSkills.create({ ...fields, botId });
+      if (lesson) onLessonSaved?.();
       close();
       await refresh();
     } catch (cause) {
@@ -345,11 +369,17 @@ export function AgentSkills({
                 disabled={busy || !canSave}
                 onClick={() => void save()}
               >
-                <Trans>Save</Trans>
+                {lesson ? <Trans>Save and assign</Trans> : <Trans>Save</Trans>}
               </Button>
             ) : null}
             <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={close}>
-              {readOnly ? <Trans>Close</Trans> : <Trans>Cancel</Trans>}
+              {lesson ? (
+                <Trans>Discard</Trans>
+              ) : readOnly ? (
+                <Trans>Close</Trans>
+              ) : (
+                <Trans>Cancel</Trans>
+              )}
             </Button>
             {!readOnly ? (
               <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={toggleRaw}>

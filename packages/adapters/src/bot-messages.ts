@@ -183,7 +183,7 @@ export async function messageBot(
             userId: run.userId,
             status: options?.allowTerminalSource ? { in: ["completed", "failed"] } : "running",
           },
-          select: { id: true },
+          select: { id: true, trigger: true, originRunId: true, originTrigger: true },
         });
         if (!senderStillRunning)
           return { ok: false as const, error: "source run is no longer active" };
@@ -251,6 +251,8 @@ export async function messageBot(
             userId: run.userId,
             status: "queued",
             trigger: "bot_message",
+            originRunId: senderStillRunning.originRunId ?? senderStillRunning.id,
+            originTrigger: senderStillRunning.originTrigger ?? senderStillRunning.trigger,
             sourceMessageId: inbound.id,
           },
           select: { id: true },

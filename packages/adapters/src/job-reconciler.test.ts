@@ -32,6 +32,7 @@ function fakePrisma(
   }> = [],
 ) {
   return {
+    schedulerHealth: { upsert: vi.fn(async () => ({})) },
     run: { findMany: vi.fn(async () => runs) },
     routine: { findMany: vi.fn(async () => routines) },
     computer: { findMany: vi.fn(async () => controls) },
@@ -61,6 +62,16 @@ describe("createJobReconciler", () => {
     expect(prisma.routine.findMany).toHaveBeenCalled();
     expect(prisma.computer.findMany).toHaveBeenCalled();
     expect(prisma.messagingOutbound.findFirst).toHaveBeenCalled();
+  });
+
+  it("does not report a successful check when queue reconciliation fails", async () => {
+    const prisma = fakePrisma([], [{ id: "routine-1", nextRunAt: new Date() }]);
+    const { jobs, enqueue } = publisher();
+    enqueue.mockRejectedValue(new Error("queue unavailable"));
+    await expect(createJobReconciler({ prisma, jobs }).reconcileOnce()).rejects.toThrow(
+      "queue unavailable",
+    );
+    expect(prisma.schedulerHealth.upsert).not.toHaveBeenCalled();
   });
 
   it("restores a due pending messaging outbox drain", async () => {
@@ -225,6 +236,7 @@ describe("createJobReconciler", () => {
         },
       ]);
     const prisma = {
+      schedulerHealth: { upsert: vi.fn(async () => ({})) },
       run: { findMany: vi.fn(async () => []) },
       routine: { findMany: vi.fn(async () => []) },
       computer: { findMany: computerFindMany },
@@ -288,6 +300,7 @@ describe("createJobReconciler", () => {
       .mockResolvedValueOnce(routines.slice(2, 4))
       .mockResolvedValueOnce(routines.slice(4));
     const prisma = {
+      schedulerHealth: { upsert: vi.fn(async () => ({})) },
       run: { findMany: runFindMany },
       routine: { findMany: routineFindMany },
       computer: { findMany: vi.fn(async () => []) },
@@ -385,6 +398,7 @@ describe("createJobReconciler", () => {
       return [];
     });
     const prisma = {
+      schedulerHealth: { upsert: vi.fn(async () => ({})) },
       run: { findMany: runFindMany, updateMany: vi.fn(async () => ({ count: 1 })) },
       routine: { findMany: vi.fn(async () => []) },
       computer: { findMany: vi.fn(async () => []) },
@@ -450,6 +464,7 @@ describe("createJobReconciler", () => {
       return [];
     });
     const prisma = {
+      schedulerHealth: { upsert: vi.fn(async () => ({})) },
       run: { findMany: runFindMany, updateMany: vi.fn(async () => ({ count: 1 })) },
       routine: { findMany: vi.fn(async () => []) },
       computer: { findMany: vi.fn(async () => []) },
@@ -501,6 +516,7 @@ describe("createJobReconciler", () => {
       return [];
     });
     const prisma = {
+      schedulerHealth: { upsert: vi.fn(async () => ({})) },
       run: { findMany: runFindMany, updateMany: vi.fn(async () => ({ count: 1 })) },
       routine: { findMany: vi.fn(async () => []) },
       computer: { findMany: vi.fn(async () => []) },
@@ -552,6 +568,7 @@ describe("createJobReconciler", () => {
       return [];
     });
     const prisma = {
+      schedulerHealth: { upsert: vi.fn(async () => ({})) },
       run: { findMany: runFindMany, updateMany: vi.fn(async () => ({ count: 1 })) },
       routine: { findMany: vi.fn(async () => []) },
       computer: { findMany: vi.fn(async () => []) },

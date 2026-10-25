@@ -48,6 +48,13 @@ import {
 } from "./computer-spec.js";
 import { assertComputerHomeWritable } from "./home-ownership.js";
 import {
+  computerHomeBelongsToInstallation,
+  enforceComputerNetworkPolicy,
+  NETWORK_POLICY_LABEL,
+  networkPolicyFingerprint,
+  readComputerNetworkPolicies,
+} from "./network-policy.js";
+import {
   assertRequestIdentity,
   attemptComputerControl,
   browserProfilePathForScreen,
@@ -99,6 +106,56 @@ const teamScreenLimit = resolveTeamScreenLimit();
 // IPs, so computer control must use a published loopback port instead.
 const controlViaLoopback = process.env.SANDBOX_CONTROL_VIA_LOOPBACK === "true";
 const computerScreens = new Map<string, Map<string, ScreenAssignment>>();
+const networkPolicyFile = process.env.ENGAZ_COMPUTER_NETWORK_POLICY_FILE;
+const appliedNetworkPolicies = new Map<string, string>();
+const computerNetworkLocks = new Map<string, Promise<void>>();
+let networkPolicyMonitoringRequired = true;
+
+async function applyNetworkPolicy(container: Docker.Container, info: Docker.ContainerInspectInfo) {
+  if (!networkPolicyFile && !info.Config.Labels?.[NETWORK_POLICY_LABEL]) return;
+  return withKeyedLock(computerNetworkLocks, container.id, async () => {
+    info = await container.inspect();
+    try {
+      if (!networkPolicyFile)
+        throw new Error("Computer network policy file is not configured; computer stopped");
+      if (!info.Config.Labels?.[NETWORK_POLICY_LABEL]) {
+        throw new Error("Restart this computer to enable network restrictions");
+      }
+      const policies = await readComputerNetworkPolicies(networkPolicyFile, dataDir);
+      const policy = policies.agents[info.Config.Labels["engaz.botId"] ?? ""] ?? policies.default;
+      const fingerprint = `${info.State.StartedAt}:${networkPolicyFingerprint(policy)}`;
+      if (!info.State.Running || appliedNetworkPolicies.get(info.Id) === fingerprint) return;
+      await enforceComputerNetworkPolicy(container, policy);
+      appliedNetworkPolicies.set(info.Id, fingerprint);
+    } catch (error) {
+      await container.stop({ t: 0 }).catch(() => undefined);
+      throw error;
+    }
+  });
+}
+
+async function refreshNetworkPolicies() {
+  const runtime = await inspectSupervisorContainer();
+  if (existsSync("/.dockerenv") && !runtime)
+    throw new Error("Cannot discover computer home ownership");
+  const mount = runtime?.Mounts.find((entry) => entry.Destination === dataDir);
+  const computers = await docker.listContainers();
+  let needsMonitoring = Boolean(networkPolicyFile);
+  const outcomes = await Promise.allSettled(
+    computers
+      .filter((item) => item.Labels?.["engaz.managed"] === "true" || item.Image === COMPUTER_IMAGE)
+      .map(async (item) => {
+        const container = docker.getContainer(item.Id);
+        const info = await container.inspect();
+        if (computerHomeBelongsToInstallation(info, dataDir, mount)) {
+          if (info.Config.Labels?.[NETWORK_POLICY_LABEL]) needsMonitoring = true;
+          await applyNetworkPolicy(container, info);
+        }
+      }),
+  );
+  networkPolicyMonitoringRequired =
+    needsMonitoring || outcomes.some((outcome) => outcome.status === "rejected");
+}
 
 export const MAX_SUPERVISOR_REQUEST_BYTES = 1024 * 1024;
 export const MAX_SUPERVISOR_FILE_REQUEST_BYTES = 16 * 1024 * 1024 + 64 * 1024;
@@ -164,6 +221,8 @@ app.post("/computers", async (c) => {
       spaceId: body.spaceId,
     });
     return await withBotLifecycleLock(body.botId, async () => {
+      const networkPolicies = await readComputerNetworkPolicies(networkPolicyFile, dataDir);
+      const networkPolicy = networkPolicies.agents[body.botId] ?? networkPolicies.default;
       await ensureComputerImage();
       const runtimeInfo = await inspectSupervisorContainer();
       const networkMode = computerNetworkName(body.botId, runtimeInfo);
@@ -183,6 +242,9 @@ app.post("/computers", async (c) => {
       const existing = await findBotContainer(body.botId, body.spaceId);
       if (existing) {
         const info = await existing.inspect();
+        if (!networkPolicyFile && info.Config.Labels?.[NETWORK_POLICY_LABEL]) {
+          await applyNetworkPolicy(existing, info);
+        }
         const desired = await docker.getImage(COMPUTER_IMAGE).inspect();
         const controlPublishOk = controlPortPublicationMatches(
           info.HostConfig.PortBindings,
@@ -193,9 +255,11 @@ app.post("/computers", async (c) => {
           (!networkMode || info.HostConfig.NetworkMode === networkMode) &&
           info.Config.User === computerUser &&
           controlPublishOk &&
+          (!networkPolicyFile || Boolean(info.Config.Labels?.[NETWORK_POLICY_LABEL])) &&
           (!storage.homeVolume || homeVolumeMatches(info.HostConfig.Mounts, storage.homeVolume))
         ) {
           if (!info.State.Running) await existing.start();
+          await applyNetworkPolicy(existing, await existing.inspect());
           return c.json({
             id: existing.id,
             image: COMPUTER_IMAGE,
@@ -252,9 +316,15 @@ app.post("/computers", async (c) => {
               networkMode,
               controlToken: randomUUID(),
               publishControlPort: controlViaLoopback,
+              ...(networkPolicyFile
+                ? {
+                    networkPolicyFingerprint: networkPolicyFingerprint(networkPolicy),
+                  }
+                : {}),
             }),
           );
           await container.start();
+          if (networkPolicyFile) await applyNetworkPolicy(container, await container.inspect());
         } catch (error) {
           // Never force removal: a lost start response may hide a running computer.
           // Docker also refuses network removal while any endpoint is attached.
@@ -802,10 +872,24 @@ function startSupervisor() {
   const server = serve({ fetch: app.fetch, hostname, port }, () => {
     logger.info("supervisor listening", { "http.host": hostname, "http.port": port });
   });
+  void refreshNetworkPolicies().catch(() => undefined);
+  // Rules stay in the computer namespace if the supervisor is unavailable. No agent can change them.
+  let refreshingNetworkPolicies = false;
+  const networkTimer = setInterval(() => {
+    if (!networkPolicyMonitoringRequired || refreshingNetworkPolicies) return;
+    refreshingNetworkPolicies = true;
+    void refreshNetworkPolicies()
+      .catch(() => undefined)
+      .finally(() => {
+        refreshingNetworkPolicies = false;
+      });
+  }, 1_000);
+  networkTimer.unref();
   let stopping = false;
   const shutdown = async () => {
     if (stopping) return;
     stopping = true;
+    clearInterval(networkTimer);
     await closeListeningServer(server);
     await logger.flush({ timeoutMs: 2_000 });
     process.exit(0);
@@ -936,6 +1020,7 @@ async function managedContainer(id: string, botId?: string, spaceId?: string) {
   const info = await container.inspect();
   if (!isEngazContainer(info, botId, spaceId))
     throw new ComputerIdentityError("computer identity mismatch");
+  await applyNetworkPolicy(container, info);
   return { container, info };
 }
 

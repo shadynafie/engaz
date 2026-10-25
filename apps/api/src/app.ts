@@ -422,6 +422,7 @@ export async function createApp(
   reconciler?.start();
 
   const router = createRouter({
+    lessonModel: { runtime, resolveModel: (scope) => executor.resolveModel(scope) },
     cloudAgent,
     verifyModel: (model, signal) => runtime.verifyModel(model, signal),
     checkMcpServer: (server, context, preview) => mcp.check(server, context, preview),

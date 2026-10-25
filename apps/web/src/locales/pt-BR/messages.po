@@ -133,7 +133,25 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr ""
 
+msgid "A handoff or follow-up"
+msgstr ""
+
+msgid "A person"
+msgstr ""
+
+msgid "A remote agent"
+msgstr ""
+
+msgid "A schedule"
+msgstr ""
+
+msgid "A skill"
+msgstr ""
+
 msgid "A skill with that name already exists."
+msgstr ""
+
+msgid "A webhook"
 msgstr ""
 
 msgid "About groups"
@@ -177,6 +195,12 @@ msgstr "Modelo ativo"
 
 msgid "Activity"
 msgstr "Atividade"
+
+msgid "Activity details"
+msgstr ""
+
+msgid "Activity details for {title}"
+msgstr ""
 
 msgid "Add"
 msgstr "Adicionar"
@@ -301,6 +325,12 @@ msgstr "Permitir sempre esta ferramenta"
 msgid "Always allowed"
 msgstr "Sempre permitido"
 
+msgid "An incoming message"
+msgstr ""
+
+msgid "Another agent"
+msgstr ""
+
 msgid "Answer"
 msgstr "Resposta"
 
@@ -389,6 +419,9 @@ msgstr "Escolher arquivo"
 
 msgid "Attachment"
 msgstr "Anexo"
+
+msgid "Authority"
+msgstr ""
 
 msgid "Authorization code or callback URL"
 msgstr "Código de autorização ou URL de retorno de chamada"
@@ -727,6 +760,9 @@ msgstr "Copiar"
 msgid "Copy invitation link"
 msgstr ""
 
+msgid "Corrections (optional)"
+msgstr ""
+
 msgid "Could not add"
 msgstr "Não foi possível adicionar."
 
@@ -840,11 +876,17 @@ msgstr "Não foi possível baixar o {0}. Tente novamente."
 msgid "Could not download {name}. Try again."
 msgstr "Não foi possível baixar o {name}. Tente novamente."
 
+msgid "Could not draft a lesson. Try again."
+msgstr ""
+
 msgid "Could not install connector"
 msgstr "Não foi possível instalar o conector"
 
 msgid "Could not load"
 msgstr "Não foi possível carregar"
+
+msgid "Could not load activity."
+msgstr ""
 
 msgid "Could not load approval rules"
 msgstr "Não foi possível carregar as regras de aprovação"
@@ -1093,6 +1135,9 @@ msgstr ""
 msgid "days"
 msgstr "dias"
 
+msgid "Decision made by you."
+msgstr ""
+
 msgid "Decline"
 msgstr ""
 
@@ -1155,6 +1200,12 @@ msgstr ""
 msgid "Desktop update"
 msgstr ""
 
+msgid "Details"
+msgstr ""
+
+msgid "Discard"
+msgstr ""
+
 msgid "Disconnect"
 msgstr "Desconectar"
 
@@ -1203,6 +1254,9 @@ msgstr ""
 
 msgid "Draft skill"
 msgstr "Habilidade de rascunho"
+
+msgid "Drafting…"
+msgstr ""
 
 msgid "Drag, drop, or paste an image"
 msgstr "Arraste, solte ou cole uma imagem"
@@ -1355,6 +1409,13 @@ msgstr "Tela Cheia"
 
 msgid "General"
 msgstr "Geral"
+
+#. placeholder {0}: preview.modelLabel
+msgid "Generate a draft with {0} using this source and your corrections."
+msgstr ""
+
+msgid "Generate draft"
+msgstr ""
 
 msgid "Get credentials"
 msgstr ""
@@ -1514,6 +1575,12 @@ msgstr ""
 
 msgid "Language"
 msgstr "Idioma"
+
+msgid "Last checked"
+msgstr ""
+
+msgid "Last skipped"
+msgstr ""
 
 msgid "Later"
 msgstr ""
@@ -1831,6 +1898,9 @@ msgstr "Nenhum catálogo de modelos está disponível."
 msgid "No providers found."
 msgstr "Nenhum provedor encontrado"
 
+msgid "No recorded actions."
+msgstr ""
+
 msgid "No remote MCP servers found"
 msgstr ""
 
@@ -1863,6 +1933,9 @@ msgstr "Não Conectado"
 
 msgid "Not now"
 msgstr "Agora não"
+
+msgid "Not recorded"
+msgstr ""
 
 msgid "Nothing is still running"
 msgstr "Nada ainda está em execução"
@@ -2042,6 +2115,9 @@ msgstr ""
 msgid "Recall only"
 msgstr ""
 
+msgid "Received through"
+msgstr ""
+
 msgid "Recent"
 msgstr "Recente"
 
@@ -2191,6 +2267,9 @@ msgstr "Restaure o último espaço de trabalho salvo. O trabalho não salvo no c
 msgid "Restoring your workspace"
 msgstr ""
 
+msgid "Resumed work"
+msgstr ""
+
 msgid "Retry now"
 msgstr "Nova tentativa agora"
 
@@ -2203,6 +2282,9 @@ msgstr "Retorno a Engaz"
 #. placeholder {0}: doc.revision
 msgid "rev {0}"
 msgstr "rev {0}"
+
+msgid "Review the new skill before giving it to this agent."
+msgstr ""
 
 msgid "Revoke"
 msgstr ""
@@ -2255,6 +2337,12 @@ msgstr ""
 msgid "Save"
 msgstr "Salvar"
 
+msgid "Save a lesson"
+msgstr ""
+
+msgid "Save and assign"
+msgstr ""
+
 msgid "Saved"
 msgstr "Salva"
 
@@ -2281,6 +2369,12 @@ msgstr "Diga alguma coisa. O silêncio manda."
 
 msgid "Say yes or no, or answer in a sentence."
 msgstr "Diga sim ou não, ou responda em uma frase."
+
+msgid "Scheduler check unavailable"
+msgstr ""
+
+msgid "Scheduler checking"
+msgstr ""
 
 msgid "Search"
 msgstr "Pesquisar"
@@ -2378,6 +2472,12 @@ msgstr ""
 msgid "Show settings"
 msgstr "Mostrar configurações"
 
+msgid "Showing part of this run."
+msgstr ""
+
+msgid "Showing the first 100 actions."
+msgstr ""
+
 msgid "Sign in"
 msgstr "Entrar"
 
@@ -2412,6 +2512,9 @@ msgstr "Pular"
 msgid "Skip or deploy key"
 msgstr "Ignorar ou implantar chave"
 
+msgid "Skip scheduled work more than an hour overdue"
+msgstr ""
+
 #. placeholder {0}: skipped.join(", ")
 msgid "Skipped {0}"
 msgstr "{0} ignorado"
@@ -2423,6 +2526,12 @@ msgid "Slack not enabled"
 msgstr ""
 
 msgid "Software update"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "Source evidence"
 msgstr ""
 
 msgid "Space default"
@@ -2451,6 +2560,9 @@ msgstr "Falando…"
 
 msgid "Start recording"
 msgstr "Começar a gravar"
+
+msgid "Started by"
+msgstr ""
 
 msgid "Starting"
 msgstr "Iniciando"
@@ -2500,6 +2612,9 @@ msgstr "Alternando…"
 
 msgid "System"
 msgstr "Sistema"
+
+msgid "Task"
+msgstr ""
 
 msgid "Taught"
 msgstr ""
@@ -2590,6 +2705,9 @@ msgstr "Título"
 
 msgid "To:"
 msgstr "Para:"
+
+msgid "Tool completed"
+msgstr ""
 
 msgid "Tool sources"
 msgstr "Fontes de ferramentas"
@@ -2766,6 +2884,9 @@ msgstr "Você pode fechar esta janela."
 
 msgid "You have control"
 msgstr "Você tem o controle"
+
+msgid "Your account"
+msgstr ""
 
 msgid "Your email address"
 msgstr "Seu endereço de e-mail"

@@ -133,7 +133,25 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr ""
 
+msgid "A handoff or follow-up"
+msgstr ""
+
+msgid "A person"
+msgstr ""
+
+msgid "A remote agent"
+msgstr ""
+
+msgid "A schedule"
+msgstr ""
+
+msgid "A skill"
+msgstr ""
+
 msgid "A skill with that name already exists."
+msgstr ""
+
+msgid "A webhook"
 msgstr ""
 
 msgid "About groups"
@@ -177,6 +195,12 @@ msgstr "Активная модель"
 
 msgid "Activity"
 msgstr "Активность"
+
+msgid "Activity details"
+msgstr ""
+
+msgid "Activity details for {title}"
+msgstr ""
 
 msgid "Add"
 msgstr "Добавить"
@@ -301,6 +325,12 @@ msgstr "Всегда разрешать этот инструмент"
 msgid "Always allowed"
 msgstr "Всегда разрешено"
 
+msgid "An incoming message"
+msgstr ""
+
+msgid "Another agent"
+msgstr ""
+
 msgid "Answer"
 msgstr "Ответ"
 
@@ -389,6 +419,9 @@ msgstr "Прикрепить файл"
 
 msgid "Attachment"
 msgstr "Вложение"
+
+msgid "Authority"
+msgstr ""
 
 msgid "Authorization code or callback URL"
 msgstr "Код авторизации или URL обратного вызова"
@@ -727,6 +760,9 @@ msgstr "Копировать"
 msgid "Copy invitation link"
 msgstr ""
 
+msgid "Corrections (optional)"
+msgstr ""
+
 msgid "Could not add"
 msgstr "Не удалось добавить"
 
@@ -840,11 +876,17 @@ msgstr "Не удалось загрузить {0}. Попробуйте еще 
 msgid "Could not download {name}. Try again."
 msgstr "Не удалось загрузить {name}. Попробуйте еще раз."
 
+msgid "Could not draft a lesson. Try again."
+msgstr ""
+
 msgid "Could not install connector"
 msgstr "Не удалось установить коннектор"
 
 msgid "Could not load"
 msgstr "Не удалось загрузить"
+
+msgid "Could not load activity."
+msgstr ""
 
 msgid "Could not load approval rules"
 msgstr "Не удалось загрузить правила одобрения."
@@ -1093,6 +1135,9 @@ msgstr ""
 msgid "days"
 msgstr "дни"
 
+msgid "Decision made by you."
+msgstr ""
+
 msgid "Decline"
 msgstr "Отклонить"
 
@@ -1155,6 +1200,12 @@ msgstr "Настольное приложение"
 msgid "Desktop update"
 msgstr "Обновление настольного приложения"
 
+msgid "Details"
+msgstr ""
+
+msgid "Discard"
+msgstr ""
+
 msgid "Disconnect"
 msgstr "Отключить"
 
@@ -1203,6 +1254,9 @@ msgstr "Скачивание…"
 
 msgid "Draft skill"
 msgstr "Черновик навыка"
+
+msgid "Drafting…"
+msgstr ""
 
 msgid "Drag, drop, or paste an image"
 msgstr "Перетащите или вставьте изображение"
@@ -1355,6 +1409,13 @@ msgstr "Полноэкранный"
 
 msgid "General"
 msgstr "Общие"
+
+#. placeholder {0}: preview.modelLabel
+msgid "Generate a draft with {0} using this source and your corrections."
+msgstr ""
+
+msgid "Generate draft"
+msgstr ""
 
 msgid "Get credentials"
 msgstr "Получить учетные данные"
@@ -1514,6 +1575,12 @@ msgstr "ключ"
 
 msgid "Language"
 msgstr "Язык"
+
+msgid "Last checked"
+msgstr ""
+
+msgid "Last skipped"
+msgstr ""
 
 msgid "Later"
 msgstr "Позже"
@@ -1831,6 +1898,9 @@ msgstr "Каталога моделей нет."
 msgid "No providers found."
 msgstr "Поставщики не найдены."
 
+msgid "No recorded actions."
+msgstr ""
+
 msgid "No remote MCP servers found"
 msgstr "Удаленные MCP-серверы не найдены"
 
@@ -1863,6 +1933,9 @@ msgstr "Не подключено"
 
 msgid "Not now"
 msgstr "Не сейчас"
+
+msgid "Not recorded"
+msgstr ""
 
 msgid "Nothing is still running"
 msgstr ""
@@ -2042,6 +2115,9 @@ msgstr ""
 msgid "Recall only"
 msgstr ""
 
+msgid "Received through"
+msgstr ""
+
 msgid "Recent"
 msgstr "Недавние"
 
@@ -2191,6 +2267,9 @@ msgstr "Восстановите последнее сохраненное ра�
 msgid "Restoring your workspace"
 msgstr "Восстановление вашего рабочего пространства"
 
+msgid "Resumed work"
+msgstr ""
+
 msgid "Retry now"
 msgstr "Повторить попытку сейчас"
 
@@ -2203,6 +2282,9 @@ msgstr "Вернуться в Engaz"
 #. placeholder {0}: doc.revision
 msgid "rev {0}"
 msgstr "версия {0}"
+
+msgid "Review the new skill before giving it to this agent."
+msgstr ""
 
 msgid "Revoke"
 msgstr "Отозвать"
@@ -2255,6 +2337,12 @@ msgstr "Запускается, когда этот бот получает пр
 msgid "Save"
 msgstr "Сохранить"
 
+msgid "Save a lesson"
+msgstr ""
+
+msgid "Save and assign"
+msgstr ""
+
 msgid "Saved"
 msgstr "Сохранено"
 
@@ -2281,6 +2369,12 @@ msgstr "Скажите что-нибудь. После паузы сообщен
 
 msgid "Say yes or no, or answer in a sentence."
 msgstr "Скажите «да» или «нет» или ответьте предложением."
+
+msgid "Scheduler check unavailable"
+msgstr ""
+
+msgid "Scheduler checking"
+msgstr ""
 
 msgid "Search"
 msgstr "Поиск"
@@ -2378,6 +2472,12 @@ msgstr "Показать пароль"
 msgid "Show settings"
 msgstr "Показать настройки"
 
+msgid "Showing part of this run."
+msgstr ""
+
+msgid "Showing the first 100 actions."
+msgstr ""
+
 msgid "Sign in"
 msgstr "Войти"
 
@@ -2412,6 +2512,9 @@ msgstr "Пропустить"
 msgid "Skip or deploy key"
 msgstr "Пропустить или добавить ключ"
 
+msgid "Skip scheduled work more than an hour overdue"
+msgstr ""
+
 #. placeholder {0}: skipped.join(", ")
 msgid "Skipped {0}"
 msgstr "Пропущен {0}"
@@ -2424,6 +2527,12 @@ msgstr "Slack не включен"
 
 msgid "Software update"
 msgstr "Обновление программного обеспечения"
+
+msgid "Source"
+msgstr ""
+
+msgid "Source evidence"
+msgstr ""
 
 msgid "Space default"
 msgstr "Пространство по умолчанию"
@@ -2451,6 +2560,9 @@ msgstr "Озвучивание…"
 
 msgid "Start recording"
 msgstr "Начать запись"
+
+msgid "Started by"
+msgstr ""
 
 msgid "Starting"
 msgstr "Запуск"
@@ -2500,6 +2612,9 @@ msgstr "Переключение…"
 
 msgid "System"
 msgstr "Системная"
+
+msgid "Task"
+msgstr ""
 
 msgid "Taught"
 msgstr ""
@@ -2590,6 +2705,9 @@ msgstr "Заголовок"
 
 msgid "To:"
 msgstr "К:"
+
+msgid "Tool completed"
+msgstr ""
 
 msgid "Tool sources"
 msgstr "Источники инструментов"
@@ -2766,6 +2884,9 @@ msgstr "Вы можете закрыть это окно."
 
 msgid "You have control"
 msgstr "Вы управляете"
+
+msgid "Your account"
+msgstr ""
 
 msgid "Your email address"
 msgstr "Ваш адрес электронной почты"

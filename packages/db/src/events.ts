@@ -22,6 +22,7 @@ import {
   createThreadMessageInTransaction,
   RunHistoryWriteError,
 } from "./messages.js";
+import { recordRoutineOutcome } from "./routine-safety.js";
 import { withTransactionRetry } from "./transaction-retry.js";
 
 const EVENT_BATCH_SIZE = 200;
@@ -99,6 +100,7 @@ export interface ClaimedSteeringMessage {
 
 export interface FinalizeRunResult {
   continuationRunId: string | null;
+  routineFailureNotification?: boolean;
 }
 
 interface FinalizeRunBase {
@@ -412,6 +414,7 @@ export async function sendUserMessage(
             userId: input.userId,
             status: "queued",
             trigger: input.trigger,
+            ...(input.trigger === "follow_up" ? { originTrigger: "user" } : {}),
             clientNonce: input.clientNonce ? `send:${message.id}` : undefined,
             sourceMessageId: message.id,
           },
@@ -613,7 +616,11 @@ async function commitAnswerRunInput(
     const allowed = input.answer === "allow" || input.answer === "always";
     await tx.externalEffect.update({
       where: { id: approvalEffect!.id },
-      data: { status: allowed ? "approved" : "denied" },
+      data: {
+        status: allowed ? "approved" : "denied",
+        decisionSource: allowed ? "user_allow" : "user_deny",
+        decisionByUserId: input.answeredByUserId,
+      },
     });
     if (input.answer === "always") {
       await tx.actionApprovalRule.upsert({
@@ -1008,7 +1015,12 @@ export async function finalizeRun(
   const committed = await withTransactionRetry(() => finalizeRunOnce(prisma, input));
   if (!committed) return false;
   await notifyRealtime(realtime, committed.threadId, committed.seq);
-  return { continuationRunId: committed.continuationRunId };
+  return {
+    continuationRunId: committed.continuationRunId,
+    ...(committed.routineFailureNotification === undefined
+      ? {}
+      : { routineFailureNotification: committed.routineFailureNotification }),
+  };
 }
 
 /** Stamps one turn-level wall-clock duration on the final tool block. */
@@ -1032,7 +1044,12 @@ export function completedRunBlocks(
 async function finalizeRunOnce(
   prisma: PrismaClient,
   input: FinalizeRunInput,
-): Promise<{ threadId: string; seq: number; continuationRunId: string | null } | null> {
+): Promise<{
+  threadId: string;
+  seq: number;
+  continuationRunId: string | null;
+  routineFailureNotification?: boolean;
+} | null> {
   return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.$queryRaw`SELECT id FROM threads WHERE id = ${input.threadId} FOR UPDATE`;
     let writableRun: { startedAt: Date | null } | undefined;
@@ -1111,6 +1128,26 @@ async function finalizeRunOnce(
         });
       }
     }
+    const routineNotice = await recordRoutineOutcome(tx, input.runId, input.outcome);
+    if (routineNotice) {
+      const blocks: MessageBlock[] = [{ kind: "text", text: routineNotice.text }];
+      const message = await createThreadMessageInTransaction(tx, {
+        threadId: input.threadId,
+        role: "bot",
+        botId: input.botId,
+        runId: input.runId,
+        blocks,
+        markUnread: true,
+      });
+      await appendEventInTransaction(tx, {
+        spaceId: input.spaceId,
+        threadId: input.threadId,
+        botId: input.botId,
+        type: "thread.message.created",
+        runId: input.runId,
+        payload: { messageId: message.id, role: "bot", blocks },
+      });
+    }
     const lastEvent = await appendEventInTransaction(tx, {
       spaceId: input.spaceId,
       threadId: input.threadId,
@@ -1145,7 +1182,12 @@ async function finalizeRunOnce(
     }
     const continuationRunId = await createSteeringContinuation(tx, input);
     await tx.bot.update({ where: { id: input.botId }, data: { updatedAt: now } });
-    return { threadId: lastEvent.threadId, seq: lastEvent.seq, continuationRunId };
+    return {
+      threadId: lastEvent.threadId,
+      seq: lastEvent.seq,
+      continuationRunId,
+      ...(routineNotice ? { routineFailureNotification: routineNotice.notify } : {}),
+    };
   });
 }
 
@@ -1192,6 +1234,7 @@ async function createSteeringContinuation(
       userId: pending[0]!.userId,
       status: "queued",
       trigger: "follow_up",
+      originTrigger: "user",
       sourceMessageId: last.message.id,
     },
   });

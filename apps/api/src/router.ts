@@ -134,6 +134,7 @@ import {
   parseComputerMode,
   releaseSpaceDeletionClaim,
   renewSpaceDeletionClaim,
+  SCHEDULER_HEALTH_WINDOW_MS,
   SPACE_DELETION_CLAIM_TIMEOUT_MS,
   SpaceDeletionInProgressError,
   SpaceLimitError,
@@ -156,6 +157,8 @@ import {
   toComputerStatus,
 } from "./computer-status.js";
 import { searchIntegrationCatalog } from "./integration-catalog.js";
+import type { LessonModel } from "./lesson-proposals.js";
+import { previewLesson, proposeLesson } from "./lesson-proposals.js";
 import { buildMcpUpdateMaterial } from "./mcp-material.js";
 import {
   disconnectMemoryProvider,
@@ -171,7 +174,7 @@ import {
   promptFocus,
   startOnboarding,
 } from "./onboarding.js";
-import { listSpaceRuns } from "./runs.js";
+import { getRunActivityDetails, listSpaceRuns } from "./runs.js";
 import { addScreenProxyCapability } from "./screen-proxy.js";
 import { querySpaceSearch } from "./search.js";
 import { withSerializableRetry } from "./serializable-retry.js";
@@ -441,6 +444,7 @@ function mcpAssignmentDto(row: {
 }
 
 export interface RouterDeps {
+  lessonModel?: LessonModel;
   cloudAgent?: CloudAgentConnection | null;
   /** Sends one test request with a new model connection before it is saved. */
   verifyModel: AgentRuntime["verifyModel"];
@@ -1715,6 +1719,7 @@ export function createRouter(deps: RouterDeps) {
                 userId: context.actor.userId,
                 status: "queued",
                 trigger: "follow_up",
+                originTrigger: "user",
                 sourceMessageId: message.id,
               },
               select: { id: true },
@@ -2455,6 +2460,15 @@ export function createRouter(deps: RouterDeps) {
       ),
     },
     routines: {
+      health: authed.routines.health.handler(async () => {
+        const health = await deps.prisma.schedulerHealth.findUnique({ where: { id: "routines" } });
+        return {
+          lastCheckedAt: health?.lastCheckedAt.toISOString() ?? null,
+          checking: Boolean(
+            health && Date.now() - health.lastCheckedAt.getTime() <= SCHEDULER_HEALTH_WINDOW_MS,
+          ),
+        };
+      }),
       list: authed.routines.list.handler(async ({ context, input }) => {
         await repos.getBot(context.actor, input.botId);
         return listRoutinesDto(deps, context.actor, input.botId);
@@ -2484,6 +2498,7 @@ export function createRouter(deps: RouterDeps) {
             userId: context.actor.userId,
             name: input.name,
             prompt: input.prompt,
+            skipStale: input.skipStale,
             crons: input.crons,
             timezone: input.timezone,
             notify: input.notify,
@@ -2509,94 +2524,114 @@ export function createRouter(deps: RouterDeps) {
         return mapRoutine(row);
       }),
       update: authed.routines.update.handler(async ({ context, input }) => {
-        const existing = await deps.prisma.routine.findFirst({
-          where: {
-            id: input.routineId,
-            spaceId: context.actor.spaceId,
-            userId: context.actor.userId,
-          },
-        });
-        if (!existing) throw new IsolationError();
-        const active = input.active ?? existing.active;
-        const crons = input.crons ?? existing.crons;
-        const timezone = input.timezone ?? existing.timezone;
-        const webhookEnabled = input.webhookEnabled ?? existing.webhookEnabled;
-        const githubEnabled = input.githubEnabled ?? existing.githubEnabled;
-        const messageProvider =
-          input.messageProvider === undefined ? existing.messageProvider : input.messageProvider;
-        if (crons.length === 0 && !webhookEnabled && !githubEnabled && !messageProvider) {
-          throw new ORPCError("BAD_REQUEST", {
-            message: "Add a schedule, webhook, GitHub, or message trigger",
+        const { existing, row, scheduleChanged } = await deps.prisma.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM routines WHERE id = ${input.routineId} FOR UPDATE`;
+          const existing = await tx.routine.findFirst({
+            where: {
+              id: input.routineId,
+              spaceId: context.actor.spaceId,
+              userId: context.actor.userId,
+            },
           });
-        }
-        if (hasMixedOneShotSchedule(crons)) {
-          throw new ORPCError("BAD_REQUEST", {
-            message: "A one-time schedule can't be combined with other schedules.",
-          });
-        }
-        if (active && isOneShotRoutineCrons(crons)) {
-          if (!isOneShotRoutineCrons(existing.crons)) {
+          if (!existing) throw new IsolationError();
+          const active = input.active ?? existing.active;
+          const crons = input.crons ?? existing.crons;
+          const timezone = input.timezone ?? existing.timezone;
+          const webhookEnabled = input.webhookEnabled ?? existing.webhookEnabled;
+          const githubEnabled = input.githubEnabled ?? existing.githubEnabled;
+          const messageProvider =
+            input.messageProvider === undefined ? existing.messageProvider : input.messageProvider;
+          if (crons.length === 0 && !webhookEnabled && !githubEnabled && !messageProvider) {
             throw new ORPCError("BAD_REQUEST", {
-              message: "One-shot schedules must be created from chat.",
+              message: "Add a schedule, webhook, GitHub, or message trigger",
             });
           }
-          if (!existing.nextRunAt && existing.lastRunAt) {
+          if (hasMixedOneShotSchedule(crons)) {
             throw new ORPCError("BAD_REQUEST", {
-              message: "This one-shot already ran.",
+              message: "A one-time schedule can't be combined with other schedules.",
             });
           }
-        }
-        const scheduleChanged =
-          (!existing.active && active) ||
-          (input.crons !== undefined &&
-            JSON.stringify(input.crons) !== JSON.stringify(existing.crons)) ||
-          (input.timezone !== undefined && input.timezone !== existing.timezone);
-        const recalculatedNextRunAt =
-          crons.length > 0 &&
-          !isOneShotRoutineCrons(crons) &&
-          (scheduleChanged || (active && !existing.nextRunAt))
-            ? nextRoutineDate(crons, timezone)
-            : null;
-        let armedOneShotAt: Date | null = null;
-        if (active && isOneShotRoutineCrons(crons) && !existing.nextRunAt && !existing.lastRunAt) {
-          if (!input.runAt) {
+          if (active && isOneShotRoutineCrons(crons)) {
+            if (!isOneShotRoutineCrons(existing.crons)) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: "One-shot schedules must be created from chat.",
+              });
+            }
+            if (!existing.nextRunAt && existing.lastRunAt) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: "This one-shot already ran.",
+              });
+            }
+          }
+          const scheduleChanged =
+            (!existing.active && active) ||
+            (input.crons !== undefined &&
+              JSON.stringify(input.crons) !== JSON.stringify(existing.crons)) ||
+            (input.timezone !== undefined && input.timezone !== existing.timezone);
+          const recalculatedNextRunAt =
+            crons.length > 0 &&
+            !isOneShotRoutineCrons(crons) &&
+            (scheduleChanged || (active && !existing.nextRunAt))
+              ? nextRoutineDate(crons, timezone)
+              : null;
+          let armedOneShotAt: Date | null = null;
+          if (
+            active &&
+            isOneShotRoutineCrons(crons) &&
+            !existing.nextRunAt &&
+            !existing.lastRunAt
+          ) {
+            if (!input.runAt) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: "Add a run time for this one-shot.",
+              });
+            }
+            const parsed = new Date(input.runAt);
+            if (!Number.isFinite(parsed.getTime()) || parsed.getTime() <= Date.now()) {
+              throw new ORPCError("BAD_REQUEST", {
+                message: "Run time must be in the future.",
+              });
+            }
+            armedOneShotAt = parsed;
+          } else if (input.runAt !== undefined) {
             throw new ORPCError("BAD_REQUEST", {
-              message: "Add a run time for this one-shot.",
+              message: "A run time is only for one-shots that have not run yet.",
             });
           }
-          const parsed = new Date(input.runAt);
-          if (!Number.isFinite(parsed.getTime()) || parsed.getTime() <= Date.now()) {
-            throw new ORPCError("BAD_REQUEST", {
-              message: "Run time must be in the future.",
-            });
-          }
-          armedOneShotAt = parsed;
-        } else if (input.runAt !== undefined) {
-          throw new ORPCError("BAD_REQUEST", {
-            message: "A run time is only for one-shots that have not run yet.",
-          });
-        }
-        const nextRunAt = !active
-          ? null
-          : crons.length === 0
+          const nextRunAt = !active
             ? null
-            : isOneShotRoutineCrons(crons)
-              ? (armedOneShotAt ?? existing.nextRunAt)
-              : (recalculatedNextRunAt ?? existing.nextRunAt);
-        const row = await deps.prisma.routine.update({
-          where: { id: existing.id },
-          data: {
-            name: input.name,
-            prompt: input.prompt,
-            crons: input.crons,
-            timezone: input.timezone,
-            active: input.active,
-            notify: input.notify,
-            webhookEnabled: input.webhookEnabled,
-            githubEnabled: input.githubEnabled,
-            messageProvider: input.messageProvider,
-            nextRunAt,
-          },
+            : crons.length === 0
+              ? null
+              : isOneShotRoutineCrons(crons)
+                ? (armedOneShotAt ?? existing.nextRunAt)
+                : (recalculatedNextRunAt ?? existing.nextRunAt);
+          const row = await tx.routine.update({
+            where: { id: existing.id },
+            data: {
+              name: input.name,
+              prompt: input.prompt,
+              skipStale: input.skipStale,
+              crons: input.crons,
+              timezone: input.timezone,
+              active: input.active,
+              notify: input.notify,
+              webhookEnabled: input.webhookEnabled,
+              githubEnabled: input.githubEnabled,
+              messageProvider: input.messageProvider,
+              nextRunAt,
+              // An explicit enable/pause or schedule edit starts a new failure generation.
+              ...((input.active !== undefined && input.active !== existing.active) ||
+              scheduleChanged ||
+              (input.skipStale !== undefined && input.skipStale !== existing.skipStale)
+                ? {
+                    generation: { increment: 1 },
+                    failureStreak: 0,
+                    pauseReason: null,
+                  }
+                : {}),
+            },
+          });
+          return { existing, row, scheduleChanged };
         });
         const bot = await repos.getBot(context.actor, row.botId);
         if (bot.thread) {
@@ -2806,6 +2841,12 @@ export function createRouter(deps: RouterDeps) {
       ),
     },
     agentSkills: {
+      previewLesson: authed.agentSkills.previewLesson.handler(({ context, input }) =>
+        previewLesson(deps, context.actor, input.runId),
+      ),
+      proposeLesson: authed.agentSkills.proposeLesson.handler(({ context, input }) =>
+        proposeLesson(deps, context.actor, input),
+      ),
       list: authed.agentSkills.list.handler(async ({ context, input }) =>
         agentSkills.list(context.actor, input.botId),
       ),
@@ -4852,6 +4893,9 @@ export function createRouter(deps: RouterDeps) {
       })),
     },
     runs: {
+      details: authed.runs.details.handler(async ({ context, input }) =>
+        getRunActivityDetails(deps.prisma, context.actor, input.runId),
+      ),
       list: authed.runs.list.handler(async ({ context, input }) => ({
         runs: await listSpaceRuns(deps.prisma, context.actor, input.filter),
       })),
@@ -5569,6 +5613,10 @@ function mapRoutine(row: {
   lastRunAt: Date | null;
   nextRunAt: Date | null;
   createdAt: Date;
+  failureStreak?: number;
+  pauseReason?: string | null;
+  skipStale?: boolean;
+  lastSkippedAt?: Date | null;
 }) {
   return {
     id: row.id,
@@ -5582,6 +5630,10 @@ function mapRoutine(row: {
     webhookEnabled: row.webhookEnabled,
     githubEnabled: row.githubEnabled,
     messageProvider: row.messageProvider,
+    failureStreak: row.failureStreak ?? 0,
+    pauseReason: row.pauseReason ?? null,
+    skipStale: row.skipStale ?? false,
+    lastSkippedAt: row.lastSkippedAt?.toISOString() ?? null,
     lastRunAt: row.lastRunAt?.toISOString() ?? null,
     nextRunAt: row.nextRunAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),

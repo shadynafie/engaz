@@ -323,6 +323,13 @@ export function createJobReconciler(
         ...unmirroredMessagingRuns.map((run) => deps.jobs.enqueue(messagingDeliverJob(run.id))),
       ]);
 
+      // Persist only after a successful scan and queue reconciliation, never just process startup.
+      await deps.prisma.schedulerHealth.upsert({
+        where: { id: "routines" },
+        create: { id: "routines", lastCheckedAt: now },
+        update: { lastCheckedAt: now },
+      });
+
       const lastRun = runs.at(-1);
       runCursor =
         runs.length === batchSize && lastRun

@@ -81,8 +81,9 @@ import {
   IntegrationProviderConfigSchema,
   IntegrationSetupStateSchema,
 } from "./integration-settings.js";
+import { LessonDraftSchema, LessonPreviewSchema } from "./lessons.js";
 import { MessageReactionSchema } from "./reactions.js";
-import { RunsListOutputSchema } from "./runs.js";
+import { RunActivityDetailsSchema, RunsListOutputSchema } from "./runs.js";
 import { SearchQueryOutputSchema } from "./search.js";
 
 const botId = z.object({ botId: Id });
@@ -408,6 +409,7 @@ export const appContract = {
     disconnectProvider: oc.output(z.object({ ok: z.literal(true) })),
   },
   routines: {
+    health: oc.output(z.object({ lastCheckedAt: z.string().nullable(), checking: z.boolean() })),
     list: oc.input(botId).output(z.array(RoutineSchema)),
     create: oc.input(CreateRoutineInput).output(RoutineSchema),
     update: oc
@@ -415,6 +417,7 @@ export const appContract = {
         z
           .object({
             routineId: Id,
+            skipStale: z.boolean().optional(),
             name: z.string().optional(),
             prompt: z.string().optional(),
             crons: z.array(z.string().min(1)).optional(),
@@ -513,6 +516,16 @@ export const appContract = {
   },
   /** Claude Agent Skills (SKILL.md recipes) shared across assistants (not taught/demo skills). Pi already understands this format; we persist and inject them. */
   agentSkills: {
+    previewLesson: oc.input(z.object({ runId: Id })).output(LessonPreviewSchema),
+    proposeLesson: oc
+      .input(
+        z.object({
+          runId: Id,
+          reviewKey: z.string().length(64),
+          corrections: z.string().max(4_000).optional(),
+        }),
+      )
+      .output(LessonDraftSchema),
     /** With botId, only the skills that agent receives. */
     list: oc
       .input(z.object({ botId: Id.optional() }).default({}))
@@ -767,6 +780,7 @@ export const appContract = {
     query: oc.input(z.object({ q: z.string().max(200) })).output(SearchQueryOutputSchema),
   },
   runs: {
+    details: oc.input(z.object({ runId: Id })).output(RunActivityDetailsSchema),
     list: oc.input(z.object({ filter: z.enum(["active", "recent"]) })).output(RunsListOutputSchema),
   },
   voice: {

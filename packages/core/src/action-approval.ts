@@ -95,13 +95,13 @@ export function toolRequiresExplicitApproval(toolName: string): boolean {
   return EXPLICIT_APPROVAL_BUILTIN_TOOLS.has(toolName);
 }
 
-/** External webhook runs may inspect state unattended, but side effects always need the owner. */
+/** Webhooks and delegations with unresolved origins may read unattended; side effects need the owner. */
 export function unattendedTriggerToolRequiresApproval(
   trigger: string,
   toolName: string,
   viaConnector: boolean,
 ): boolean {
-  if (trigger !== "webhook") return false;
+  if (!["webhook", "bot_message", "spawn", "follow_up", "resume"].includes(trigger)) return false;
   return viaConnector
     ? connectorToolRequiresApproval(toolName)
     : !UNATTENDED_SAFE_BUILTIN_TOOLS.has(toolName);

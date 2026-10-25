@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { MAX_DESKTOP_DISPLAY, screenPorts } from "@engaz/core/node/desktop-runtime";
 import type Docker from "dockerode";
+import { NETWORK_POLICY_LABEL, NETWORK_READY_PATH } from "./network-policy.js";
 
 export const COMPUTER_IMAGE = process.env.ENGAZ_COMPUTER_IMAGE ?? "engaz/computer:local";
 export const COMPUTER_UID = 1000;
@@ -225,6 +226,7 @@ export interface ComputerCreateInput {
   controlToken?: string;
   networkMode?: string;
   publishControlPort?: boolean;
+  networkPolicyFingerprint?: string;
 }
 
 interface PointerInput {
@@ -247,6 +249,15 @@ export function containerCreateOptions(input: ComputerCreateInput) {
     name: input.name,
     User: input.user ?? COMPUTER_USER,
     Tty: true,
+    ...(input.networkPolicyFingerprint
+      ? {
+          Cmd: [
+            "/bin/bash",
+            "-c",
+            `while [ ! -f ${NETWORK_READY_PATH} ]; do sleep 0.1; done; exec /usr/local/bin/engaz-computer`,
+          ],
+        }
+      : {}),
     Env: [
       "DISPLAY=:1",
       "HOME=/home/engaz",
@@ -259,6 +270,11 @@ export function containerCreateOptions(input: ComputerCreateInput) {
       "engaz.managed": "true",
       "engaz.botId": input.botId,
       "engaz.spaceId": input.spaceId,
+      ...(input.networkPolicyFingerprint
+        ? {
+            [NETWORK_POLICY_LABEL]: input.networkPolicyFingerprint,
+          }
+        : {}),
     },
     ExposedPorts: ports.ExposedPorts,
     HostConfig: {
@@ -280,6 +296,9 @@ export function containerCreateOptions(input: ComputerCreateInput) {
           }
         : { Binds: [`${input.homePath}:/home/engaz`], Mounts: undefined }),
       PortBindings: ports.PortBindings,
+      ...(input.networkPolicyFingerprint
+        ? { Tmpfs: { "/run/engaz-network": "rw,noexec,nosuid,nodev,size=64k,mode=0755" } }
+        : {}),
       ShmSize: 256 * 1024 * 1024,
       CapDrop: ["ALL"],
       SecurityOpt: ["no-new-privileges:true"],

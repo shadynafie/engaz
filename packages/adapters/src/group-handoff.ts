@@ -53,7 +53,13 @@ export async function handoffToGroupBot(
           userId: run.userId,
           status: "running",
         },
-        select: { id: true, sourceMessage: { select: { blocks: true } } },
+        select: {
+          id: true,
+          trigger: true,
+          originRunId: true,
+          originTrigger: true,
+          sourceMessage: { select: { blocks: true } },
+        },
       }),
     ]);
     if (!group || !activeSource) return { error: "source run is no longer active" } as const;
@@ -152,6 +158,8 @@ export async function handoffToGroupBot(
         userId: run.userId,
         status: "queued",
         trigger: "follow_up",
+        originRunId: activeSource.originRunId ?? activeSource.id,
+        originTrigger: activeSource.originTrigger ?? activeSource.trigger,
         sourceMessageId: message.id,
       },
     });

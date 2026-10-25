@@ -59,7 +59,7 @@ import {
   spaceInboxItems,
 } from "../lib/inbox-spaces";
 import { dismissThreadNotifications, resumeLiveNotifications } from "../lib/live-notifications";
-import { native, useThemedStyles } from "../lib/native";
+import { native, useMobileTokens, useThemedStyles } from "../lib/native";
 import { previewSnippet } from "../lib/preview";
 import { registerPushToken } from "../lib/push";
 import { querySpaceSearch } from "../lib/search";
@@ -753,20 +753,37 @@ function ActivityRow({
   bot?: MobileBot;
   onPress: () => void;
 }) {
+  const router = useRouter();
+  const { t } = useI18n();
+  const tokens = useMobileTokens();
   const title = run.groupName ? `${run.botName} · ${run.groupName}` : run.botName;
   const status = activityStatusLabel(run.status);
   const preview = run.promptSnippet ? `${run.promptSnippet} · ${status}` : status;
   return (
-    <ConversationRow
-      title={title}
-      preview={preview}
-      time={formatActivityRelativeTime(run.updatedAt)}
-      accessibilityLabel={`${title}, ${status}`}
-      onPress={onPress}
-      avatar={
-        <BotAvatar identity={run.botId} color={bot?.color ?? FALLBACK_COLOR} status={run.status} />
-      }
-    />
+    <View>
+      <ConversationRow
+        title={title}
+        preview={preview}
+        time={formatActivityRelativeTime(run.updatedAt)}
+        accessibilityLabel={`${title}, ${status}`}
+        onPress={onPress}
+        avatar={
+          <BotAvatar
+            identity={run.botId}
+            color={bot?.color ?? FALLBACK_COLOR}
+            status={run.status}
+          />
+        }
+      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("Activity details")}
+        onPress={() => router.push({ pathname: "/activity-details", params: { runId: run.runId } })}
+        style={{ paddingHorizontal: 24, paddingVertical: 10 }}
+      >
+        <Text style={{ color: tokens.mutedForeground }}>{t("Details")}</Text>
+      </Pressable>
+    </View>
   );
 }
 

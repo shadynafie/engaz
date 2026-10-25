@@ -133,7 +133,25 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr ""
 
+msgid "A handoff or follow-up"
+msgstr ""
+
+msgid "A person"
+msgstr ""
+
+msgid "A remote agent"
+msgstr ""
+
+msgid "A schedule"
+msgstr ""
+
+msgid "A skill"
+msgstr ""
+
 msgid "A skill with that name already exists."
+msgstr ""
+
+msgid "A webhook"
 msgstr ""
 
 msgid "About groups"
@@ -177,6 +195,12 @@ msgstr "सक्रिय मॉडल"
 
 msgid "Activity"
 msgstr "गतिविधि"
+
+msgid "Activity details"
+msgstr ""
+
+msgid "Activity details for {title}"
+msgstr ""
 
 msgid "Add"
 msgstr "जोड़ें"
@@ -301,6 +325,12 @@ msgstr "इस टूल को हमेशा अनुमति दें"
 msgid "Always allowed"
 msgstr "हमेशा अनुमत"
 
+msgid "An incoming message"
+msgstr ""
+
+msgid "Another agent"
+msgstr ""
+
 msgid "Answer"
 msgstr "उत्तर"
 
@@ -389,6 +419,9 @@ msgstr "फ़ाइल संलग्न करें"
 
 msgid "Attachment"
 msgstr "अटैचमेंट"
+
+msgid "Authority"
+msgstr ""
 
 msgid "Authorization code or callback URL"
 msgstr "ऑथराइज़ेशन कोड या कॉलबैक URL"
@@ -727,6 +760,9 @@ msgstr "कॉपी करें"
 msgid "Copy invitation link"
 msgstr ""
 
+msgid "Corrections (optional)"
+msgstr ""
+
 msgid "Could not add"
 msgstr "जोड़ा नहीं जा सका"
 
@@ -840,11 +876,17 @@ msgstr "{0} डाउनलोड नहीं हो सका। पुनः 
 msgid "Could not download {name}. Try again."
 msgstr "{name} डाउनलोड नहीं हो सका। पुनः प्रयास करें।"
 
+msgid "Could not draft a lesson. Try again."
+msgstr ""
+
 msgid "Could not install connector"
 msgstr "कनेक्टर इंस्टॉल नहीं हो सका"
 
 msgid "Could not load"
 msgstr "लोड नहीं हो सका"
+
+msgid "Could not load activity."
+msgstr ""
 
 msgid "Could not load approval rules"
 msgstr "अनुमोदन नियम लोड नहीं हो सके"
@@ -1093,6 +1135,9 @@ msgstr ""
 msgid "days"
 msgstr "दिन"
 
+msgid "Decision made by you."
+msgstr ""
+
 msgid "Decline"
 msgstr ""
 
@@ -1155,6 +1200,12 @@ msgstr ""
 msgid "Desktop update"
 msgstr ""
 
+msgid "Details"
+msgstr ""
+
+msgid "Discard"
+msgstr ""
+
 msgid "Disconnect"
 msgstr "डिस्कनेक्ट करें"
 
@@ -1203,6 +1254,9 @@ msgstr ""
 
 msgid "Draft skill"
 msgstr "ड्राफ़्ट स्किल"
+
+msgid "Drafting…"
+msgstr ""
 
 msgid "Drag, drop, or paste an image"
 msgstr "छवि खींचें, छोड़ें या पेस्ट करें"
@@ -1355,6 +1409,13 @@ msgstr "फ़ुलस्क्रीन"
 
 msgid "General"
 msgstr "सामान्य"
+
+#. placeholder {0}: preview.modelLabel
+msgid "Generate a draft with {0} using this source and your corrections."
+msgstr ""
+
+msgid "Generate draft"
+msgstr ""
 
 msgid "Get credentials"
 msgstr ""
@@ -1514,6 +1575,12 @@ msgstr ""
 
 msgid "Language"
 msgstr "भाषा"
+
+msgid "Last checked"
+msgstr ""
+
+msgid "Last skipped"
+msgstr ""
 
 msgid "Later"
 msgstr ""
@@ -1831,6 +1898,9 @@ msgstr "कोई मॉडल कैटलॉग उपलब्ध नही�
 msgid "No providers found."
 msgstr "कोई प्रोवाइडर नहीं मिला।"
 
+msgid "No recorded actions."
+msgstr ""
+
 msgid "No remote MCP servers found"
 msgstr ""
 
@@ -1863,6 +1933,9 @@ msgstr "कनेक्टेड नहीं"
 
 msgid "Not now"
 msgstr "अभी नहीं"
+
+msgid "Not recorded"
+msgstr ""
 
 msgid "Nothing is still running"
 msgstr "कुछ भी नहीं चल रहा"
@@ -2042,6 +2115,9 @@ msgstr ""
 msgid "Recall only"
 msgstr ""
 
+msgid "Received through"
+msgstr ""
+
 msgid "Recent"
 msgstr "हाल के"
 
@@ -2191,6 +2267,9 @@ msgstr "अंतिम सहेजे गए वर्कस्पेस क�
 msgid "Restoring your workspace"
 msgstr ""
 
+msgid "Resumed work"
+msgstr ""
+
 msgid "Retry now"
 msgstr "अभी पुनः प्रयास करें"
 
@@ -2203,6 +2282,9 @@ msgstr "Engaz पर लौटें"
 #. placeholder {0}: doc.revision
 msgid "rev {0}"
 msgstr "रिवीज़न {0}"
+
+msgid "Review the new skill before giving it to this agent."
+msgstr ""
 
 msgid "Revoke"
 msgstr ""
@@ -2255,6 +2337,12 @@ msgstr ""
 msgid "Save"
 msgstr "सहेजें"
 
+msgid "Save a lesson"
+msgstr ""
+
+msgid "Save and assign"
+msgstr ""
+
 msgid "Saved"
 msgstr "सहेजा गया"
 
@@ -2281,6 +2369,12 @@ msgstr "कुछ बोलें। चुप्पी होते ही भ�
 
 msgid "Say yes or no, or answer in a sentence."
 msgstr "हां या ना कहें, या एक वाक्य में उत्तर दें।"
+
+msgid "Scheduler check unavailable"
+msgstr ""
+
+msgid "Scheduler checking"
+msgstr ""
 
 msgid "Search"
 msgstr "खोजें"
@@ -2378,6 +2472,12 @@ msgstr ""
 msgid "Show settings"
 msgstr "सेटिंग्स दिखाएं"
 
+msgid "Showing part of this run."
+msgstr ""
+
+msgid "Showing the first 100 actions."
+msgstr ""
+
 msgid "Sign in"
 msgstr "साइन इन करें"
 
@@ -2412,6 +2512,9 @@ msgstr "छोड़ें"
 msgid "Skip or deploy key"
 msgstr "छोड़ें या डिप्लॉय कुंजी दें"
 
+msgid "Skip scheduled work more than an hour overdue"
+msgstr ""
+
 #. placeholder {0}: skipped.join(", ")
 msgid "Skipped {0}"
 msgstr "{0} को छोड़ा गया"
@@ -2423,6 +2526,12 @@ msgid "Slack not enabled"
 msgstr ""
 
 msgid "Software update"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "Source evidence"
 msgstr ""
 
 msgid "Space default"
@@ -2451,6 +2560,9 @@ msgstr "बोल रहा है…"
 
 msgid "Start recording"
 msgstr "रिकॉर्डिंग शुरू करें"
+
+msgid "Started by"
+msgstr ""
 
 msgid "Starting"
 msgstr "शुरू हो रहा है"
@@ -2500,6 +2612,9 @@ msgstr "बदला जा रहा है…"
 
 msgid "System"
 msgstr "सिस्टम"
+
+msgid "Task"
+msgstr ""
 
 msgid "Taught"
 msgstr ""
@@ -2590,6 +2705,9 @@ msgstr "शीर्षक"
 
 msgid "To:"
 msgstr "प्रति:"
+
+msgid "Tool completed"
+msgstr ""
 
 msgid "Tool sources"
 msgstr "टूल स्रोत"
@@ -2766,6 +2884,9 @@ msgstr "आप यह विंडो बंद कर सकते हैं।
 
 msgid "You have control"
 msgstr "नियंत्रण आपके पास है"
+
+msgid "Your account"
+msgstr ""
 
 msgid "Your email address"
 msgstr "आपका ईमेल पता"

@@ -42,9 +42,16 @@ function deps(
   const tx = {
     $queryRaw: vi.fn().mockResolvedValue([{ id: "thread" }]),
     run: {
-      findFirst: vi
-        .fn()
-        .mockResolvedValue(options.senderRunning === false ? null : { id: "run-1" }),
+      findFirst: vi.fn().mockResolvedValue(
+        options.senderRunning === false
+          ? null
+          : {
+              id: "run-1",
+              trigger: "bot_message",
+              originRunId: "run-origin",
+              originTrigger: "webhook",
+            },
+      ),
       findUnique: vi.fn().mockResolvedValue({ status: "running" }),
       create: vi.fn().mockResolvedValue({ id: "run-2" }),
     },
@@ -111,6 +118,11 @@ describe("messaging another bot", () => {
           threadId: "thread-target",
           prompt: expect.stringMatching(/not the user typing[\s\S]*untrusted peer content/),
         }),
+      }),
+    );
+    expect(harness.tx.run.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ originRunId: "run-origin", originTrigger: "webhook" }),
       }),
     );
     expect(harness.tx.run.create).toHaveBeenCalledWith(

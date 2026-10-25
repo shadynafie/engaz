@@ -10,6 +10,7 @@ import {
 } from "@engaz/core";
 import {
   Button,
+  Checkbox,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -23,7 +24,8 @@ import {
 import { t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { ChevronLeft, Clock, GitBranch, Globe, MessageSquare, Pause, Plus, X } from "lucide-react";
-import { useId } from "react";
+import { useEffect, useId, useState } from "react";
+import { rpc } from "../lib/rpc";
 import { RoutineSchedule } from "./RoutineSchedule";
 
 function toDatetimeLocalValue(date: Date): string {
@@ -67,6 +69,7 @@ export type RoutineDraftState = {
   githubEnabled: boolean;
   messageProvider: string | null;
   active: boolean;
+  skipStale: boolean;
   runAtLocal: string;
 };
 
@@ -79,6 +82,7 @@ export function emptyRoutineDraft(): RoutineDraftState {
     githubEnabled: false,
     messageProvider: null,
     active: true,
+    skipStale: true,
     runAtLocal: "",
   };
 }
@@ -92,6 +96,7 @@ export function draftFromRoutine(routine: Routine): RoutineDraftState {
     githubEnabled: routine.githubEnabled,
     messageProvider: routine.messageProvider,
     active: routine.active,
+    skipStale: routine.skipStale,
     runAtLocal: routineNeedsOneShotArm(routine, routine.crons) ? defaultArmRunAtLocal() : "",
   };
 }
@@ -305,6 +310,30 @@ export function RoutineEditor({
           </Button>
         </div>
       </div>
+
+      {editing?.pauseReason ? (
+        <p role="status" className="mb-4 text-sm text-warning">
+          {editing.pauseReason}
+        </p>
+      ) : null}
+      {draft.schedules.length > 0 ? (
+        <div className="mb-5 space-y-2 text-sm text-muted-foreground">
+          <SchedulerStatus />
+          <label htmlFor={`${fieldId}-skip-stale`} className="flex items-start gap-2">
+            <Checkbox
+              id={`${fieldId}-skip-stale`}
+              checked={draft.skipStale}
+              onCheckedChange={(checked) => onChange({ ...draft, skipStale: checked })}
+            />
+            <Trans>Skip scheduled work more than an hour overdue</Trans>
+          </label>
+          {editing?.lastSkippedAt ? (
+            <p>
+              <Trans>Last skipped</Trans>: {new Date(editing.lastSkippedAt).toLocaleString()}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <label htmlFor={`${fieldId}-name`} className="block text-sm text-muted-foreground">
         <Trans>Name</Trans>
@@ -657,4 +686,38 @@ function comingSoonColor(id: string): string {
     default:
       return "#06AC38";
   }
+}
+
+function SchedulerStatus() {
+  const { t } = useLingui();
+  const [health, setHealth] = useState<{ lastCheckedAt: string | null; checking: boolean } | null>(
+    null,
+  );
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      void rpc.routines
+        .health()
+        .then((value) => {
+          if (!cancelled) setHealth(value);
+        })
+        .catch(() => {
+          if (!cancelled) setHealth(null);
+        });
+    };
+    refresh();
+    const timer = setInterval(refresh, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
+  return (
+    <p role="status">
+      {health?.checking ? t`Scheduler checking` : t`Scheduler check unavailable`}
+      {health?.lastCheckedAt
+        ? ` · ${t`Last checked`}: ${new Date(health.lastCheckedAt).toLocaleString()}`
+        : ""}
+    </p>
+  );
 }

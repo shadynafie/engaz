@@ -32,3 +32,44 @@ export const RunsListOutputSchema = z.object({
   runs: z.array(RunActivityRowSchema),
 });
 export type RunsListOutput = z.infer<typeof RunsListOutputSchema>;
+
+export const RunActivityDetailsSchema = z.object({
+  runId: Id,
+  taskId: Id,
+  trigger: z.string(),
+  originalTrigger: z.string().nullable(),
+  originRunId: Id.nullable(),
+  source: z
+    .object({
+      runId: Id,
+      threadId: Id,
+      botId: Id,
+      botName: z.string(),
+      groupId: Id.nullable(),
+      groupName: z.string().nullable(),
+    })
+    .nullable(),
+  routine: z.object({ id: Id, name: z.string() }).nullable(),
+  authority: z.literal("Your account"),
+  effects: z.array(
+    z.object({
+      id: Id,
+      tool: z.string(),
+      outcome: z.enum([
+        "requested",
+        "awaiting_approval",
+        "approved",
+        "attempted",
+        "succeeded",
+        "failed",
+        "refused",
+        "unknown",
+      ]),
+      reason: z.string(),
+      decidedByYou: z.boolean(),
+      updatedAt: z.string(),
+    }),
+  ),
+  moreEffects: z.boolean(),
+});
+export type RunActivityDetails = z.infer<typeof RunActivityDetailsSchema>;

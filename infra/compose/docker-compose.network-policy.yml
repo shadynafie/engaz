@@ -1,0 +1,13 @@
+# Optional operator-owned computer egress policy. Mount a directory so atomic policy-file updates are visible.
+# Add this override to the same Compose command/project already used by the installation.
+services:
+  supervisor:
+    environment:
+      ENGAZ_COMPUTER_NETWORK_POLICY_FILE: /etc/engaz/network-policy/policy.json
+    volumes:
+      - type: bind
+        source: ${ENGAZ_NETWORK_POLICY_DIR:?Set an absolute operator-owned policy directory}
+        target: /etc/engaz/network-policy
+        read_only: true
+        bind:
+          create_host_path: false

@@ -113,3 +113,23 @@ jobs:
     uses: ./.github/workflows/playwright.yml
     with:
       upload_artifacts: true
+
+  computer-network-policy:
+    name: Computer network enforcement
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm sandbox:build
+      - name: Verify real shell and browser restrictions
+        run: pnpm exec vitest run infra/sandboxes/supervisor/src/network-policy.docker.test.ts infra/sandboxes/supervisor/src/network-policy-lifecycle.docker.test.ts --maxWorkers=1
+        env:
+          VERIFY_DOCKER_NETWORK_POLICY: "1"

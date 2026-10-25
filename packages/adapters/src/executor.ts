@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type {
   AdapterContext,
   AgentHomeStore,
@@ -96,6 +96,7 @@ import {
   type Prisma,
   type PrismaClient,
   parseComputerMode,
+  routineIsStale,
   SpaceLimitError,
   type ThreadEvents,
 } from "@engaz/db";
@@ -993,6 +994,29 @@ export function createRunExecutor(deps: ExecutorDeps) {
             new Date(Math.max(Date.now(), scheduledAt.getTime())),
             routine.timezone,
           );
+      if (routineIsStale(routine, scheduledAt)) {
+        const skipped = await deps.prisma.routine.updateMany({
+          where: {
+            id: routine.id,
+            active: true,
+            generation: routine.generation,
+            nextRunAt: scheduledAt,
+          },
+          data: { nextRunAt, lastSkippedAt: scheduledAt, ...(nextRunAt ? {} : { active: false }) },
+        });
+        if (skipped.count !== 1) return;
+        await deps.events
+          .append({
+            spaceId: routine.spaceId,
+            threadId: thread.id,
+            botId: bot.id,
+            type: "routine.skipped",
+            payload: { routineId: routine.id, scheduledFor, reason: "overdue" },
+          })
+          .catch(() => undefined);
+        if (nextRunAt) await deps.jobs.enqueue(routineWakeupJob(routine.id, nextRunAt));
+        return;
+      }
       const previousLastRunAt = routine.lastRunAt;
       const skillRecords = await listAgentSkillRecords(deps.prisma, {
         spaceId: routine.spaceId,
@@ -1002,7 +1026,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
       const routinePrompt = expandSkillReferencesInPrompt(routine.prompt, skillRecords);
       const claimed = await deps.prisma.$transaction(async (tx) => {
         const updated = await tx.routine.updateMany({
-          where: { id: routine.id, active: true, nextRunAt: scheduledAt },
+          where: {
+            id: routine.id,
+            active: true,
+            generation: routine.generation,
+            nextRunAt: scheduledAt,
+          },
           data: {
             lastRunAt: new Date(),
             nextRunAt,
@@ -1030,6 +1059,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
             status: "queued",
             trigger: "routine",
             routineId: routine.id,
+            routineGeneration: routine.generation,
+            routineScheduledFor: scheduledAt,
           },
         });
       });
@@ -1045,6 +1076,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           await tx.routine.updateMany({
             where: {
               id: routine.id,
+              generation: routine.generation,
               nextRunAt,
               ...(nextRunAt ? {} : { active: false }),
             },
@@ -1084,6 +1116,56 @@ export function createRunExecutor(deps: ExecutorDeps) {
       const run = await deps.prisma.run.findUnique({ where: { id: runId } });
       if (!run) return;
       if (isTerminal(run.status as RunStatus)) return;
+      if (
+        run.routineGeneration != null &&
+        run.routineScheduledFor &&
+        !run.startedAt &&
+        run.status === "queued"
+      ) {
+        const skipped = await deps.prisma.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM threads WHERE id = ${run.threadId} FOR UPDATE`;
+          if (run.routineId)
+            await tx.$queryRaw`SELECT id FROM routines WHERE id = ${run.routineId} FOR UPDATE`;
+          const routine = run.routineId
+            ? await tx.routine.findUnique({ where: { id: run.routineId } })
+            : null;
+          const stale = Boolean(routine && routineIsStale(routine, run.routineScheduledFor!));
+          if (routine && routine.generation === run.routineGeneration && !stale) return null;
+          await tx.$queryRaw`SELECT id FROM runs WHERE id = ${run.id} FOR UPDATE`;
+          const current = await tx.run.findUnique({ where: { id: run.id } });
+          if (current?.status !== "queued" || current.startedAt) return null;
+          const cancelledEvent = await appendEventInTransaction(tx, {
+            spaceId: run.spaceId,
+            botId: run.botId,
+            threadId: run.threadId,
+            runId: run.id,
+            type: "run.cancelled",
+            payload: { reason: stale ? "overdue" : "routine_changed" },
+          });
+          const cancelled = await tx.run.updateMany({
+            where: { id: run.id, status: "queued", startedAt: null },
+            data: {
+              status: "cancelled",
+              completedAt: new Date(),
+              leaseOwner: null,
+              leaseExpiresAt: null,
+            },
+          });
+          if (cancelled.count !== 1) throw new Error("Scheduled run changed during cancellation");
+          await tx.task.updateMany({ where: { id: run.taskId }, data: { status: "cancelled" } });
+          if (stale && routine?.generation === run.routineGeneration) {
+            await tx.routine.update({
+              where: { id: routine.id },
+              data: { lastSkippedAt: run.routineScheduledFor },
+            });
+          }
+          return cancelledEvent;
+        });
+        if (skipped) {
+          await deps.events.notify(skipped.threadId, skipped.seq).catch(() => undefined);
+          return;
+        }
+      }
       let { resumeCheckpoint, heldForTakeover, resumeHeldLease, takeoverResume } =
         takeoverContinuePlan(run);
 
@@ -1458,7 +1540,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
               "status",
             ).catch((error) => getLogger().error("bot message failure return", error));
           }
-          if (!failed.continuationRunId) {
+          if (
+            !failed.continuationRunId &&
+            (run.routineGeneration == null || failed.routineFailureNotification)
+          ) {
             await notifyRun(deps, run, {
               kind: "failure",
               title: `${bot.name} failed`,
@@ -1551,7 +1636,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             graphicalToolsAllowed,
             pageBrowserAllowed,
             groupId: thread.groupId,
-            trigger: run.trigger,
+            trigger: run.originTrigger ?? run.trigger,
             semanticMemoryEnabled,
             cloudAgentEnabled: cloudAgentsEnabled(cloudAgent, run.spaceId),
             messagingChannelRun,
@@ -1763,7 +1848,25 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (handedOff) {
             return { error: "This stage was handed off. End the turn without more tool calls." };
           }
-          if (!knownToolNames.has(name)) return { error: `unknown tool ${name}` };
+          if (!knownToolNames.has(name)) {
+            const idempotencyKey = `refused:${createHash("sha256")
+              .update(JSON.stringify([runId, executionId, name]))
+              .digest("hex")}`;
+            await deps.prisma.externalEffect.upsert({
+              where: { idempotencyKey },
+              create: {
+                spaceId: run.spaceId,
+                runId,
+                idempotencyKey,
+                kind: redactSecrets(name, runSecrets).slice(0, 160),
+                status: "denied",
+                decisionSource: "not_offered",
+                request: {},
+              },
+              update: {},
+            });
+            return { error: `unknown tool ${name}` };
+          }
           if (PAGE_BROWSER_TOOL_NAMES.has(name) && !pageBrowserAllowed) {
             return { error: "Page browser is unavailable on this computer." };
           }
@@ -1949,7 +2052,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           }
           const viaConnector = !BUILTIN_AGENT_TOOL_NAMES.has(name);
           const requiresUnattendedApproval = unattendedTriggerToolRequiresApproval(
-            run.trigger,
+            run.originTrigger ?? run.trigger,
             name,
             viaConnector,
           );
@@ -2161,6 +2264,20 @@ export function createRunExecutor(deps: ExecutorDeps) {
           }
           if (context.signal.aborted) return pauseForApproval();
 
+          if (applied && !applied.duplicate) {
+            await deps.prisma.externalEffect.update({
+              where: { id: applied.effect.id },
+              data: {
+                decisionSource: requiresMandatoryApproval
+                  ? "mandatory"
+                  : plan === "judge"
+                    ? gateDecision === "ask"
+                      ? "auto_review_ask"
+                      : "auto_review_allow"
+                    : approvalResolved.source,
+              },
+            });
+          }
           const needsApproval = gateDecision === "ask";
           const bypassApproval = gateDecision === "allow" && requiresApprovalByDefault;
           let claimedEffect = false;
@@ -4297,7 +4414,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
               "status",
             ).catch((returnError) => getLogger().error("bot message failure return", returnError));
           }
-          if (!failed.continuationRunId) {
+          if (
+            !failed.continuationRunId &&
+            (run.routineGeneration == null || failed.routineFailureNotification)
+          ) {
             await notifyRun(deps, run, {
               kind: "failure",
               title: `${bot.name} failed`,

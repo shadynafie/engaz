@@ -88,6 +88,13 @@ test("sidebar Now and Recent surface active and terminal runs", async ({ page },
   await expect(activityRow(page, "Chief")).toContainText(/Cancelled|keep working/i);
   await expect(aside.getByText("Now", { exact: true })).toHaveCount(0);
   await captureActivitySidebar(page, testInfo, "59-activity-recent");
+  await aside.getByRole("button", { name: "Activity details for Chief", exact: true }).click();
+  const details = page.getByRole("dialog");
+  await expect(details.getByRole("heading", { name: "Activity details" })).toBeVisible();
+  await expect(details.getByText("A person", { exact: true })).toBeVisible();
+  await expect(details.getByText("Your account", { exact: true })).toBeVisible();
+  await captureScreenshot(page, testInfo, "59-activity-decision-details");
+  await page.keyboard.press("Escape");
 
   await page.getByPlaceholder("Search").fill("Chief");
   await expect(aside.getByText("Recent", { exact: true })).toHaveCount(0);

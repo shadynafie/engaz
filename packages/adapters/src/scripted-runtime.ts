@@ -36,6 +36,17 @@ export class ScriptedAgentRuntime implements AgentRuntime {
     running.set(request.runId, controller);
     const signal = context?.signal ?? controller.signal;
     try {
+      if (request.runId.startsWith("lesson:")) {
+        yield {
+          type: "done",
+          text: JSON.stringify({
+            name: "evidence-led-report",
+            description: "When preparing a report from completed work",
+            body: "Check the source evidence, apply the user's corrections, and distinguish confirmed results from uncertainty.",
+          }),
+        };
+        return;
+      }
       if (shouldFail(request.prompt)) {
         throw new Error("Scripted run failure");
       }

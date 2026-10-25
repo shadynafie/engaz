@@ -244,6 +244,7 @@ import {
   ChoiceCard,
   McpApprovalCard,
 } from "./shell/message-cards";
+import { SaveLesson } from "./shell/SaveLesson";
 import { WindowChrome } from "./WindowChrome";
 
 const BotContextMenu = lazy(() =>
@@ -3426,6 +3427,7 @@ export function ShellPage() {
             peerBot={resolveTranscriptBot}
             onRefresh={refreshActiveThread}
             onBotChanged={refreshBots}
+            onLessonSaved={refreshAgentSkills}
             onAddRoutine={addSkillRoutine}
             voiceReady={Boolean(voiceStatus?.ready)}
             speakingMessageId={speakingMessageId}
@@ -3789,6 +3791,7 @@ export function ShellPage() {
                         prompt: routineDraft.prompt || t`Check in.`,
                         crons,
                         active: armOneShot ? true : routineDraft.active,
+                        skipStale: routineDraft.skipStale,
                         webhookEnabled: routineDraft.webhookEnabled,
                         githubEnabled: routineDraft.githubEnabled,
                         messageProvider: routineDraft.messageProvider,
@@ -3802,6 +3805,7 @@ export function ShellPage() {
                         crons,
                         timezone: localTimezone(),
                         active: routineDraft.active,
+                        skipStale: routineDraft.skipStale,
                         notify: true,
                         webhookEnabled: routineDraft.webhookEnabled,
                         githubEnabled: routineDraft.githubEnabled,
@@ -4483,6 +4487,7 @@ const Transcript = memo(function Transcript({
   peerBot,
   onRefresh,
   onBotChanged,
+  onLessonSaved,
   onAddRoutine,
   voiceReady,
   speakingMessageId,
@@ -4509,6 +4514,7 @@ const Transcript = memo(function Transcript({
   peerBot: (botId: string) => { color: string; status?: string } | undefined;
   onRefresh: () => Promise<void>;
   onBotChanged: () => Promise<void>;
+  onLessonSaved: () => void;
   onAddRoutine: (name: string, prompt: string) => void;
   voiceReady: boolean;
   speakingMessageId: string | null;
@@ -4758,6 +4764,7 @@ const Transcript = memo(function Transcript({
                       side={message.role === "user" ? "start" : "end"}
                       onReply={onReply}
                       onReact={onReact}
+                      onLessonSaved={onLessonSaved}
                     />
                   )}
                   <MessageView
@@ -5710,15 +5717,18 @@ function MessageHoverActions({
   side,
   onReply,
   onReact,
+  onLessonSaved,
 }: {
   message: ThreadMessage;
   side: "start" | "end";
   onReply: (message: ThreadMessage) => void;
   onReact: (message: ThreadMessage, reaction: MessageReaction) => Promise<void>;
+  onLessonSaved: () => void;
 }) {
   const { t } = useLingui();
   const [moreOpen, setMoreOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
+  const [lessonOpen, setLessonOpen] = useState(false);
 
   // Streaming progress bubbles keep hover free for selection / stop clicks.
   if (message.id.startsWith("progress:")) return null;
@@ -5798,8 +5808,20 @@ function MessageHoverActions({
               <Copy size={14} strokeWidth={1.7} />
               <Trans>Copy</Trans>
             </DropdownMenuItem>
+            {message.role === "bot" && message.runId ? (
+              <DropdownMenuItem onClick={() => setLessonOpen(true)}>
+                <Trans>Save a lesson</Trans>
+              </DropdownMenuItem>
+            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
+        {lessonOpen && message.runId ? (
+          <SaveLesson
+            runId={message.runId}
+            onClose={() => setLessonOpen(false)}
+            onSaved={onLessonSaved}
+          />
+        ) : null}
       </div>
     </MessageHoverMetadata>
   );

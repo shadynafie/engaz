@@ -133,7 +133,25 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr "什么都做一点"
 
+msgid "A handoff or follow-up"
+msgstr ""
+
+msgid "A person"
+msgstr ""
+
+msgid "A remote agent"
+msgstr ""
+
+msgid "A schedule"
+msgstr ""
+
+msgid "A skill"
+msgstr ""
+
 msgid "A skill with that name already exists."
+msgstr ""
+
+msgid "A webhook"
 msgstr ""
 
 msgid "About groups"
@@ -177,6 +195,12 @@ msgstr "当前模型"
 
 msgid "Activity"
 msgstr "动态"
+
+msgid "Activity details"
+msgstr ""
+
+msgid "Activity details for {title}"
+msgstr ""
 
 msgid "Add"
 msgstr "添加"
@@ -301,6 +325,12 @@ msgstr "始终允许此工具"
 msgid "Always allowed"
 msgstr "始终允许"
 
+msgid "An incoming message"
+msgstr ""
+
+msgid "Another agent"
+msgstr ""
+
 msgid "Answer"
 msgstr "回答"
 
@@ -389,6 +419,9 @@ msgstr "附加文件"
 
 msgid "Attachment"
 msgstr "附件"
+
+msgid "Authority"
+msgstr ""
 
 msgid "Authorization code or callback URL"
 msgstr "授权码或回调 URL"
@@ -727,6 +760,9 @@ msgstr "复制"
 msgid "Copy invitation link"
 msgstr ""
 
+msgid "Corrections (optional)"
+msgstr ""
+
 msgid "Could not add"
 msgstr "无法添加"
 
@@ -840,11 +876,17 @@ msgstr "无法下载 {0}。请重试。"
 msgid "Could not download {name}. Try again."
 msgstr "无法下载 {name}。请重试。"
 
+msgid "Could not draft a lesson. Try again."
+msgstr ""
+
 msgid "Could not install connector"
 msgstr "无法安装连接器"
 
 msgid "Could not load"
 msgstr "无法加载"
+
+msgid "Could not load activity."
+msgstr ""
 
 msgid "Could not load approval rules"
 msgstr "无法加载审批规则"
@@ -1093,6 +1135,9 @@ msgstr "日常工作"
 msgid "days"
 msgstr "天"
 
+msgid "Decision made by you."
+msgstr ""
+
 msgid "Decline"
 msgstr "拒绝"
 
@@ -1155,6 +1200,12 @@ msgstr ""
 msgid "Desktop update"
 msgstr ""
 
+msgid "Details"
+msgstr ""
+
+msgid "Discard"
+msgstr ""
+
 msgid "Disconnect"
 msgstr "断开"
 
@@ -1203,6 +1254,9 @@ msgstr ""
 
 msgid "Draft skill"
 msgstr "技能草稿"
+
+msgid "Drafting…"
+msgstr ""
 
 msgid "Drag, drop, or paste an image"
 msgstr "拖放或粘贴图片"
@@ -1355,6 +1409,13 @@ msgstr "全屏"
 
 msgid "General"
 msgstr "通用"
+
+#. placeholder {0}: preview.modelLabel
+msgid "Generate a draft with {0} using this source and your corrections."
+msgstr ""
+
+msgid "Generate draft"
+msgstr ""
 
 msgid "Get credentials"
 msgstr ""
@@ -1514,6 +1575,12 @@ msgstr "密钥"
 
 msgid "Language"
 msgstr "语言"
+
+msgid "Last checked"
+msgstr ""
+
+msgid "Last skipped"
+msgstr ""
 
 msgid "Later"
 msgstr ""
@@ -1831,6 +1898,9 @@ msgstr "没有可用的模型目录。"
 msgid "No providers found."
 msgstr "未找到提供方。"
 
+msgid "No recorded actions."
+msgstr ""
+
 msgid "No remote MCP servers found"
 msgstr ""
 
@@ -1863,6 +1933,9 @@ msgstr "未连接"
 
 msgid "Not now"
 msgstr "暂不"
+
+msgid "Not recorded"
+msgstr ""
 
 msgid "Nothing is still running"
 msgstr "没有仍在运行的任务"
@@ -2042,6 +2115,9 @@ msgstr ""
 msgid "Recall only"
 msgstr ""
 
+msgid "Received through"
+msgstr ""
+
 msgid "Recent"
 msgstr "最近"
 
@@ -2191,6 +2267,9 @@ msgstr "还原上次保存的工作区。电脑上未保存的工作会丢失。
 msgid "Restoring your workspace"
 msgstr ""
 
+msgid "Resumed work"
+msgstr ""
+
 msgid "Retry now"
 msgstr "立即重试"
 
@@ -2203,6 +2282,9 @@ msgstr "返回 Engaz"
 #. placeholder {0}: doc.revision
 msgid "rev {0}"
 msgstr "版本 {0}"
+
+msgid "Review the new skill before giving it to this agent."
+msgstr ""
 
 msgid "Revoke"
 msgstr "撤销"
@@ -2255,6 +2337,12 @@ msgstr ""
 msgid "Save"
 msgstr "保存"
 
+msgid "Save a lesson"
+msgstr ""
+
+msgid "Save and assign"
+msgstr ""
+
 msgid "Saved"
 msgstr "已保存"
 
@@ -2281,6 +2369,12 @@ msgstr "说点什么。静音即发送。"
 
 msgid "Say yes or no, or answer in a sentence."
 msgstr "回答是或否，或一句话说明。"
+
+msgid "Scheduler check unavailable"
+msgstr ""
+
+msgid "Scheduler checking"
+msgstr ""
 
 msgid "Search"
 msgstr "搜索"
@@ -2378,6 +2472,12 @@ msgstr "显示密码"
 msgid "Show settings"
 msgstr "显示设置"
 
+msgid "Showing part of this run."
+msgstr ""
+
+msgid "Showing the first 100 actions."
+msgstr ""
+
 msgid "Sign in"
 msgstr "登录"
 
@@ -2412,6 +2512,9 @@ msgstr "跳过"
 msgid "Skip or deploy key"
 msgstr "跳过或使用部署密钥"
 
+msgid "Skip scheduled work more than an hour overdue"
+msgstr ""
+
 #. placeholder {0}: skipped.join(", ")
 msgid "Skipped {0}"
 msgstr "已跳过 {0}"
@@ -2424,6 +2527,12 @@ msgstr ""
 
 msgid "Software update"
 msgstr "软件更新"
+
+msgid "Source"
+msgstr ""
+
+msgid "Source evidence"
+msgstr ""
 
 msgid "Space default"
 msgstr "工作区默认"
@@ -2451,6 +2560,9 @@ msgstr "正在朗读…"
 
 msgid "Start recording"
 msgstr "开始录制"
+
+msgid "Started by"
+msgstr ""
 
 msgid "Starting"
 msgstr "正在开始"
@@ -2500,6 +2612,9 @@ msgstr "正在切换…"
 
 msgid "System"
 msgstr "系统"
+
+msgid "Task"
+msgstr ""
 
 msgid "Taught"
 msgstr ""
@@ -2590,6 +2705,9 @@ msgstr "标题"
 
 msgid "To:"
 msgstr "至:"
+
+msgid "Tool completed"
+msgstr ""
 
 msgid "Tool sources"
 msgstr "工具源"
@@ -2766,6 +2884,9 @@ msgstr "可以关闭此窗口。"
 
 msgid "You have control"
 msgstr "你已接管"
+
+msgid "Your account"
+msgstr ""
 
 msgid "Your email address"
 msgstr "你的邮箱"

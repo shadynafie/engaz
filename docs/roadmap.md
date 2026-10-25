@@ -96,6 +96,17 @@ V1 is a web release. The desktop and mobile apps keep working against the same i
 
 **V1 release gate:** a fresh owner completes setup and first conversation in the web app on supported hosts; data survives restart, recreate, backup, restore, and upgrade; plugin and skill access is understandable and enforced; CI is green; the documented commands and published artifacts match the tested release.
 
+## Agent reliability and reviewable learning
+
+**In progress; not released or deployed.** [Implementation notes and migration behavior](agent-reliability.md) describe four independent slices based on existing Engaz systems:
+
+1. Scheduled occurrence identity, scheduler check health, first-failure notice, pausing after three consecutive terminal failures, and opt-in legacy stale-work protection.
+2. On-demand Activity decisions and original trigger/authority through delegation, with historical unknowns and metadata-only responses.
+3. Explicit completed-run lesson preview, configured-model draft generation, and reviewed new-skill save/assignment. Updating existing skills is deferred; taught demonstrations are retained.
+4. **Partial:** optional operator-owned Docker computer egress restrictions. [The network policy guide](computer-network-policy.md) records the supported modes, real enforcement checks and unverified platforms; approved destinations use literal IP addresses. API-side plugins are outside this computer boundary. Public-IP filtering cannot guarantee explicit grants for globally numbered owner/LAN services; that part of the original network requirement remains open. Use approved-IP or no-network mode when that boundary is required.
+
+Local deterministic and isolated PostgreSQL/browser checks are recorded with the review. Real disposable Linux-engine shell/Chromium enforcement checks pass; representative NAS and Docker Desktop acceptance are still unverified. No live installation or release channel is changed. CI and review completion remain required before marking this work verified.
+
 ## How to maintain this roadmap
 
 - Mark each slice **planned**, **in progress**, or **verified** in its PR or linked issue; add the commit, test run, and user journey that prove verification. Do not convert a plan into a shipped claim because code merged.

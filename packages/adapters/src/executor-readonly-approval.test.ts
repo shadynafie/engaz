@@ -38,14 +38,17 @@ type Effect = {
   result?: unknown;
   reviewDecision?: string;
   runId?: string;
+  decisionSource?: string;
 };
 
 function fixture({
   name = "demo_get_item",
   catalog = false,
+  offered = true,
   rules = [] as ActionApprovalRule[],
   autoReview = false,
   trigger = "user",
+  originTrigger,
   secrets = [] as string[],
   prompt = "Read the item",
   bot = {
@@ -57,9 +60,11 @@ function fixture({
 }: {
   name?: string;
   catalog?: boolean;
+  offered?: boolean;
   rules?: ActionApprovalRule[];
   autoReview?: boolean;
   trigger?: string;
+  originTrigger?: string;
   secrets?: string[];
   prompt?: string;
   bot?: { name: string; title: string; description: string };
@@ -87,9 +92,25 @@ function fixture({
     userId: "user-1",
     status: "queued",
     trigger,
+    originTrigger,
     leaseFence: 0,
   };
   const externalEffect = {
+    upsert: vi.fn(
+      async ({
+        where,
+        create,
+      }: {
+        where: { idempotencyKey: string };
+        create: Omit<Effect, "id">;
+      }) => {
+        const existing = effects.find((effect) => effect.idempotencyKey === where.idempotencyKey);
+        if (existing) return existing;
+        const effect = { ...create, id: `effect-${effects.length + 1}` };
+        effects.push(effect);
+        return effect;
+      },
+    ),
     findMany: vi.fn(
       async ({
         where,
@@ -200,16 +221,18 @@ function fixture({
     runtime: { describe: () => ({ capabilities: { scripted: false } }), run: runtimeRun },
     connector: {
       discoverTools: async () =>
-        catalog
-          ? [
-              {
-                name: "demo_execute_tool",
-                description: "Execute a catalog tool",
-                inputSchema: { type: "object" },
-                route: { connectorId: "demo", toolName: "__catalog_execute" },
-              },
-            ]
-          : [tool],
+        !offered
+          ? []
+          : catalog
+            ? [
+                {
+                  name: "demo_execute_tool",
+                  description: "Execute a catalog tool",
+                  inputSchema: { type: "object" },
+                  route: { connectorId: "demo", toolName: "__catalog_execute" },
+                },
+              ]
+            : [tool],
       resolveCall: async (call: ConnectorCall) =>
         catalog ? resolveCatalogCall(call, catalogEntries([tool])) : undefined,
       execute,
@@ -246,6 +269,25 @@ describe("connector read-only metadata and approval enforcement", () => {
     reviewMock.mockReset();
   });
 
+  it("records an unavailable tool refusal without arguments, unbounded names or known secrets", async () => {
+    const secret = "private-token-example";
+    const f = fixture({ name: `${secret}_${"x".repeat(200)}`, offered: false, secrets: [secret] });
+    await f.run();
+    await f.run();
+    expect(f.execute).not.toHaveBeenCalled();
+    expect(f.pauseRunForInput).not.toHaveBeenCalled();
+    expect(f.effects).toHaveLength(1);
+    expect(f.effects[0]).toMatchObject({
+      status: "denied",
+      decisionSource: "not_offered",
+      request: {},
+    });
+    expect(f.effects[0]!.kind.length).toBeLessThanOrEqual(160);
+    expect(f.effects[0]!.idempotencyKey).toMatch(/^refused:[a-f0-9]{64}$/);
+    expect(JSON.stringify(f.effects)).not.toContain(secret);
+    expect(JSON.stringify(f.effects)).not.toContain("item-1");
+  });
+
   it.each(["shell", "write_file"])(
     "forces owner approval for webhook-triggered %s despite an allow rule",
     async (name) => {
@@ -258,6 +300,22 @@ describe("connector read-only metadata and approval enforcement", () => {
       expect(f.pauseRunForInput).toHaveBeenCalledOnce();
       expect(isApprovalPausedResult(f.results[0])).toBe(true);
       expect(reviewMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["bot_message", "spawn", "follow_up"])(
+    "keeps webhook approval mandatory after %s delegation",
+    async (trigger) => {
+      const f = fixture({
+        name: "demo_send_message",
+        trigger,
+        originTrigger: "webhook",
+        rules: [{ effect: "always_allow", matchKind: "tool", matchValue: "demo_send_message" }],
+      });
+      await f.run();
+      expect(f.execute).not.toHaveBeenCalled();
+      expect(f.pauseRunForInput).toHaveBeenCalledOnce();
+      expect(f.effects[0]).toMatchObject({ decisionSource: "mandatory", status: "intended" });
     },
   );
 

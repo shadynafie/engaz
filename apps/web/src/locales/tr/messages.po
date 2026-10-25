@@ -133,7 +133,25 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr ""
 
+msgid "A handoff or follow-up"
+msgstr ""
+
+msgid "A person"
+msgstr ""
+
+msgid "A remote agent"
+msgstr ""
+
+msgid "A schedule"
+msgstr ""
+
+msgid "A skill"
+msgstr ""
+
 msgid "A skill with that name already exists."
+msgstr ""
+
+msgid "A webhook"
 msgstr ""
 
 msgid "About groups"
@@ -177,6 +195,12 @@ msgstr "Etkin model"
 
 msgid "Activity"
 msgstr "Etkinlik"
+
+msgid "Activity details"
+msgstr ""
+
+msgid "Activity details for {title}"
+msgstr ""
 
 msgid "Add"
 msgstr "Ekle"
@@ -301,6 +325,12 @@ msgstr "Bu araca her zaman izin ver"
 msgid "Always allowed"
 msgstr "Her zaman izinli"
 
+msgid "An incoming message"
+msgstr ""
+
+msgid "Another agent"
+msgstr ""
+
 msgid "Answer"
 msgstr "Yanıtla"
 
@@ -389,6 +419,9 @@ msgstr "Dosya ekle"
 
 msgid "Attachment"
 msgstr "Ek"
+
+msgid "Authority"
+msgstr ""
 
 msgid "Authorization code or callback URL"
 msgstr "Yetkilendirme kodu veya callback URL'si"
@@ -727,6 +760,9 @@ msgstr "Kopyala"
 msgid "Copy invitation link"
 msgstr ""
 
+msgid "Corrections (optional)"
+msgstr ""
+
 msgid "Could not add"
 msgstr "Eklenemedi"
 
@@ -840,11 +876,17 @@ msgstr "{0} indirilemedi. Tekrar dene."
 msgid "Could not download {name}. Try again."
 msgstr "{name} indirilemedi. Tekrar dene."
 
+msgid "Could not draft a lesson. Try again."
+msgstr ""
+
 msgid "Could not install connector"
 msgstr "Bağlayıcı kurulamadı"
 
 msgid "Could not load"
 msgstr "Yüklenemedi"
+
+msgid "Could not load activity."
+msgstr ""
 
 msgid "Could not load approval rules"
 msgstr "Onay kuralları yüklenemedi"
@@ -1093,6 +1135,9 @@ msgstr ""
 msgid "days"
 msgstr "gün"
 
+msgid "Decision made by you."
+msgstr ""
+
 msgid "Decline"
 msgstr ""
 
@@ -1155,6 +1200,12 @@ msgstr ""
 msgid "Desktop update"
 msgstr ""
 
+msgid "Details"
+msgstr ""
+
+msgid "Discard"
+msgstr ""
+
 msgid "Disconnect"
 msgstr "Bağlantıyı kes"
 
@@ -1203,6 +1254,9 @@ msgstr ""
 
 msgid "Draft skill"
 msgstr "Taslak beceri"
+
+msgid "Drafting…"
+msgstr ""
 
 msgid "Drag, drop, or paste an image"
 msgstr "Görüntüyü sürükleyip bırakın veya yapıştırın"
@@ -1355,6 +1409,13 @@ msgstr "Tam ekran"
 
 msgid "General"
 msgstr "Genel"
+
+#. placeholder {0}: preview.modelLabel
+msgid "Generate a draft with {0} using this source and your corrections."
+msgstr ""
+
+msgid "Generate draft"
+msgstr ""
 
 msgid "Get credentials"
 msgstr ""
@@ -1514,6 +1575,12 @@ msgstr ""
 
 msgid "Language"
 msgstr "Dil"
+
+msgid "Last checked"
+msgstr ""
+
+msgid "Last skipped"
+msgstr ""
 
 msgid "Later"
 msgstr ""
@@ -1831,6 +1898,9 @@ msgstr "Kullanılabilir model kataloğu yok."
 msgid "No providers found."
 msgstr "Sağlayıcı bulunamadı."
 
+msgid "No recorded actions."
+msgstr ""
+
 msgid "No remote MCP servers found"
 msgstr ""
 
@@ -1863,6 +1933,9 @@ msgstr "Bağlı değil"
 
 msgid "Not now"
 msgstr "Şimdi değil"
+
+msgid "Not recorded"
+msgstr ""
 
 msgid "Nothing is still running"
 msgstr "Hâlâ çalışan bir şey yok"
@@ -2042,6 +2115,9 @@ msgstr ""
 msgid "Recall only"
 msgstr ""
 
+msgid "Received through"
+msgstr ""
+
 msgid "Recent"
 msgstr "Son"
 
@@ -2191,6 +2267,9 @@ msgstr ""
 msgid "Restoring your workspace"
 msgstr ""
 
+msgid "Resumed work"
+msgstr ""
+
 msgid "Retry now"
 msgstr "Şimdi tekrar dene"
 
@@ -2203,6 +2282,9 @@ msgstr "Engaz'ya dön"
 #. placeholder {0}: doc.revision
 msgid "rev {0}"
 msgstr "rev {0}"
+
+msgid "Review the new skill before giving it to this agent."
+msgstr ""
 
 msgid "Revoke"
 msgstr "İptal et"
@@ -2255,6 +2337,12 @@ msgstr ""
 msgid "Save"
 msgstr "Kaydet"
 
+msgid "Save a lesson"
+msgstr ""
+
+msgid "Save and assign"
+msgstr ""
+
 msgid "Saved"
 msgstr "Kaydedildi"
 
@@ -2281,6 +2369,12 @@ msgstr "Bir şey söyle. Sessiz kalınca gönderilir."
 
 msgid "Say yes or no, or answer in a sentence."
 msgstr "Evet ya da hayır de veya bir cümleyle yanıtla."
+
+msgid "Scheduler check unavailable"
+msgstr ""
+
+msgid "Scheduler checking"
+msgstr ""
 
 msgid "Search"
 msgstr "Ara"
@@ -2378,6 +2472,12 @@ msgstr ""
 msgid "Show settings"
 msgstr "Ayarları göster"
 
+msgid "Showing part of this run."
+msgstr ""
+
+msgid "Showing the first 100 actions."
+msgstr ""
+
 msgid "Sign in"
 msgstr "Oturum aç"
 
@@ -2412,6 +2512,9 @@ msgstr "Atla"
 msgid "Skip or deploy key"
 msgstr "Atla veya dağıtım anahtarı kullan"
 
+msgid "Skip scheduled work more than an hour overdue"
+msgstr ""
+
 #. placeholder {0}: skipped.join(", ")
 msgid "Skipped {0}"
 msgstr "{0} atlandı"
@@ -2423,6 +2526,12 @@ msgid "Slack not enabled"
 msgstr ""
 
 msgid "Software update"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "Source evidence"
 msgstr ""
 
 msgid "Space default"
@@ -2451,6 +2560,9 @@ msgstr "Konuşuyor…"
 
 msgid "Start recording"
 msgstr "Kaydı başlat"
+
+msgid "Started by"
+msgstr ""
 
 msgid "Starting"
 msgstr "Başlıyor"
@@ -2500,6 +2612,9 @@ msgstr "Geçiliyor…"
 
 msgid "System"
 msgstr "Sistem"
+
+msgid "Task"
+msgstr ""
 
 msgid "Taught"
 msgstr ""
@@ -2590,6 +2705,9 @@ msgstr "Başlık"
 
 msgid "To:"
 msgstr "Kime:"
+
+msgid "Tool completed"
+msgstr ""
 
 msgid "Tool sources"
 msgstr "Araç kaynakları"
@@ -2766,6 +2884,9 @@ msgstr "Bu pencereyi kapatabilirsin."
 
 msgid "You have control"
 msgstr "Kontrol sende"
+
+msgid "Your account"
+msgstr ""
 
 msgid "Your email address"
 msgstr "E-posta adresin"

@@ -317,3 +317,37 @@ function localSchedule(iso: string, timezone: string) {
     minute: Number(value("minute")),
   };
 }
+
+test("scheduled routines show scheduler health and preserve the stale-work choice", async ({
+  page,
+}, testInfo) => {
+  await signup(page, `routine-safety-${Date.now()}@engaz.test`, "password12", "Routine Safety");
+  await completeOnboarding(page);
+  const botId = activeBotId(page);
+  await page.getByTitle("Agent computer").click();
+  await page.getByRole("button", { name: "Create Routine" }).click();
+  await page.getByPlaceholder("Name this routine").fill("Safe hourly review");
+  await page
+    .getByPlaceholder("What should this routine do each time it runs?")
+    .fill("Review recent work");
+  await addScheduleTrigger(page, "Every hour");
+  const protection = page.getByRole("checkbox", {
+    name: "Skip scheduled work more than an hour overdue",
+  });
+  await expect(protection).toBeChecked();
+  await expect(page.getByText(/Scheduler checking|Scheduler check unavailable/)).toBeVisible();
+  await captureScreenshot(page, testInfo, "routine-safety-desktop");
+  await protection.uncheck();
+  await saveAndReturn(page, "routines/create");
+  const routines = await rpc<Routine[]>(page, "routines/list", { botId });
+  expect(routines.find((routine) => routine.name === "Safe hourly review")).toMatchObject({
+    skipStale: false,
+    failureStreak: 0,
+    pauseReason: null,
+  });
+  await page.getByText("Safe hourly review", { exact: true }).click();
+  await expect(protection).not.toBeChecked();
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await captureScreenshot(page, testInfo, "routine-safety-narrow-dark");
+});

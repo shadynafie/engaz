@@ -36,6 +36,65 @@ function noGroupMemberships() {
 }
 
 describe("spawned bot creation", () => {
+  it("preserves the original unattended trigger when starting a spawned agent", async () => {
+    const createReposSpy = vi.spyOn(await import("@engaz/db"), "createRepos").mockReturnValue({
+      createBot: vi
+        .fn()
+        .mockResolvedValue({ id: "child-1", name: "Scout", title: "", threadId: "child-thread" }),
+    } as unknown as ReturnType<typeof createRepos>);
+    const createRun = vi.fn().mockResolvedValue({ id: "child-run" });
+    const tx = {
+      run: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "parent-run",
+          trigger: "bot_message",
+          originRunId: "root-run",
+          originTrigger: "webhook",
+        }),
+        findUnique: vi.fn().mockResolvedValue({ status: "running" }),
+        create: createRun,
+      },
+      thread: { update: vi.fn().mockResolvedValue({ nextMessageSeq: 1 }) },
+      message: { create: vi.fn().mockResolvedValue({ id: "source-message" }) },
+      task: { create: vi.fn().mockResolvedValue({ id: "child-task" }) },
+    };
+    const prisma = {
+      run: { findUnique: vi.fn().mockResolvedValue(null) },
+      $transaction: vi.fn(async (callback: (value: typeof tx) => unknown) => callback(tx)),
+    } as unknown as PrismaClient;
+    try {
+      await spawnBot(
+        {
+          prisma,
+          jobs: { enqueue: vi.fn().mockResolvedValue(undefined) } as unknown as JobPublisher,
+        },
+        {
+          spawnedBy: { id: "parent-bot", name: "Chief", spaceId: "space-1", userId: "user-1" },
+          runId: "parent-run",
+          spawnKey: "spawn-1",
+          name: "Scout",
+          prompt: "Complete the next stage",
+        },
+      );
+      expect(createRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            trigger: "spawn",
+            originRunId: "root-run",
+            originTrigger: "webhook",
+          }),
+        }),
+      );
+      expect(tx.run.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "parent-run", userId: "user-1", spaceId: "space-1" },
+        }),
+      );
+    } finally {
+      createReposSpy.mockRestore();
+    }
+  });
+
   it("returns the existing child when a spawn is retried", async () => {
     const findUnique = vi.fn().mockResolvedValue({
       id: "child-1",

@@ -133,7 +133,25 @@ msgstr "@{0}"
 msgid "A bit of everything"
 msgstr ""
 
+msgid "A handoff or follow-up"
+msgstr ""
+
+msgid "A person"
+msgstr ""
+
+msgid "A remote agent"
+msgstr ""
+
+msgid "A schedule"
+msgstr ""
+
+msgid "A skill"
+msgstr ""
+
 msgid "A skill with that name already exists."
+msgstr ""
+
+msgid "A webhook"
 msgstr ""
 
 msgid "About groups"
@@ -177,6 +195,12 @@ msgstr "현재 모델"
 
 msgid "Activity"
 msgstr "활동"
+
+msgid "Activity details"
+msgstr ""
+
+msgid "Activity details for {title}"
+msgstr ""
 
 msgid "Add"
 msgstr "추가"
@@ -301,6 +325,12 @@ msgstr "이 도구 항상 허용"
 msgid "Always allowed"
 msgstr "항상 허용됨"
 
+msgid "An incoming message"
+msgstr ""
+
+msgid "Another agent"
+msgstr ""
+
 msgid "Answer"
 msgstr "답변"
 
@@ -389,6 +419,9 @@ msgstr "파일 첨부"
 
 msgid "Attachment"
 msgstr "첨부 파일"
+
+msgid "Authority"
+msgstr ""
 
 msgid "Authorization code or callback URL"
 msgstr "인증 코드 또는 돌아온 페이지 주소"
@@ -727,6 +760,9 @@ msgstr "복사"
 msgid "Copy invitation link"
 msgstr ""
 
+msgid "Corrections (optional)"
+msgstr ""
+
 msgid "Could not add"
 msgstr "추가하지 못했습니다."
 
@@ -840,11 +876,17 @@ msgstr "{0}을 다운로드하지 못했습니다. 다시 시도해 주세요."
 msgid "Could not download {name}. Try again."
 msgstr "{name}을 다운로드하지 못했습니다. 다시 시도해 주세요."
 
+msgid "Could not draft a lesson. Try again."
+msgstr ""
+
 msgid "Could not install connector"
 msgstr "도구 연결을 추가하지 못했습니다."
 
 msgid "Could not load"
 msgstr "불러올 수 없음"
+
+msgid "Could not load activity."
+msgstr ""
 
 msgid "Could not load approval rules"
 msgstr "확인 규칙을 불러오지 못했습니다."
@@ -1093,6 +1135,9 @@ msgstr ""
 msgid "days"
 msgstr "일"
 
+msgid "Decision made by you."
+msgstr ""
+
 msgid "Decline"
 msgstr "거절"
 
@@ -1155,6 +1200,12 @@ msgstr ""
 msgid "Desktop update"
 msgstr ""
 
+msgid "Details"
+msgstr ""
+
+msgid "Discard"
+msgstr ""
+
 msgid "Disconnect"
 msgstr "연결 해제"
 
@@ -1203,6 +1254,9 @@ msgstr ""
 
 msgid "Draft skill"
 msgstr "작업 기술 초안"
+
+msgid "Drafting…"
+msgstr ""
 
 msgid "Drag, drop, or paste an image"
 msgstr "이미지를 끌어다 놓거나 붙여넣으세요"
@@ -1355,6 +1409,13 @@ msgstr "전체 화면"
 
 msgid "General"
 msgstr "일반"
+
+#. placeholder {0}: preview.modelLabel
+msgid "Generate a draft with {0} using this source and your corrections."
+msgstr ""
+
+msgid "Generate draft"
+msgstr ""
 
 msgid "Get credentials"
 msgstr ""
@@ -1514,6 +1575,12 @@ msgstr "key"
 
 msgid "Language"
 msgstr "언어"
+
+msgid "Last checked"
+msgstr ""
+
+msgid "Last skipped"
+msgstr ""
 
 msgid "Later"
 msgstr ""
@@ -1831,6 +1898,9 @@ msgstr "사용 가능한 모델 목록이 없습니다."
 msgid "No providers found."
 msgstr "검색된 AI 서비스가 없습니다."
 
+msgid "No recorded actions."
+msgstr ""
+
 msgid "No remote MCP servers found"
 msgstr ""
 
@@ -1863,6 +1933,9 @@ msgstr "연결되지 않음"
 
 msgid "Not now"
 msgstr "나중에"
+
+msgid "Not recorded"
+msgstr ""
 
 msgid "Nothing is still running"
 msgstr "실행 중인 작업 없음"
@@ -2042,6 +2115,9 @@ msgstr ""
 msgid "Recall only"
 msgstr ""
 
+msgid "Received through"
+msgstr ""
+
 msgid "Recent"
 msgstr "최근"
 
@@ -2191,6 +2267,9 @@ msgstr "마지막으로 저장된 작업 공간을 복원합니다. 컴퓨터에
 msgid "Restoring your workspace"
 msgstr ""
 
+msgid "Resumed work"
+msgstr ""
+
 msgid "Retry now"
 msgstr "지금 다시 시도"
 
@@ -2203,6 +2282,9 @@ msgstr "Engaz로 돌아가기"
 #. placeholder {0}: doc.revision
 msgid "rev {0}"
 msgstr "리비전 {0}"
+
+msgid "Review the new skill before giving it to this agent."
+msgstr ""
 
 msgid "Revoke"
 msgstr "연결 해제"
@@ -2255,6 +2337,12 @@ msgstr ""
 msgid "Save"
 msgstr "저장"
 
+msgid "Save a lesson"
+msgstr ""
+
+msgid "Save and assign"
+msgstr ""
+
 msgid "Saved"
 msgstr "저장됨"
 
@@ -2281,6 +2369,12 @@ msgstr "말씀하세요. 잠시 멈추면 자동으로 전송됩니다."
 
 msgid "Say yes or no, or answer in a sentence."
 msgstr "예 또는 아니요로 답하거나 문장으로 답해 주세요."
+
+msgid "Scheduler check unavailable"
+msgstr ""
+
+msgid "Scheduler checking"
+msgstr ""
 
 msgid "Search"
 msgstr "검색"
@@ -2378,6 +2472,12 @@ msgstr "비밀번호 표시"
 msgid "Show settings"
 msgstr "설정 보기"
 
+msgid "Showing part of this run."
+msgstr ""
+
+msgid "Showing the first 100 actions."
+msgstr ""
+
 msgid "Sign in"
 msgstr "로그인"
 
@@ -2412,6 +2512,9 @@ msgstr "건너뛰기"
 msgid "Skip or deploy key"
 msgstr "건너뛰거나 배포 키"
 
+msgid "Skip scheduled work more than an hour overdue"
+msgstr ""
+
 #. placeholder {0}: skipped.join(", ")
 msgid "Skipped {0}"
 msgstr "{0} 건너뜀"
@@ -2424,6 +2527,12 @@ msgstr ""
 
 msgid "Software update"
 msgstr "소프트웨어 업데이트"
+
+msgid "Source"
+msgstr ""
+
+msgid "Source evidence"
+msgstr ""
 
 msgid "Space default"
 msgstr "스페이스 기본값"
@@ -2451,6 +2560,9 @@ msgstr "말하는 중…"
 
 msgid "Start recording"
 msgstr "작업 녹화 시작"
+
+msgid "Started by"
+msgstr ""
 
 msgid "Starting"
 msgstr "시작 중"
@@ -2500,6 +2612,9 @@ msgstr "전환 중…"
 
 msgid "System"
 msgstr "시스템"
+
+msgid "Task"
+msgstr ""
 
 msgid "Taught"
 msgstr ""
@@ -2590,6 +2705,9 @@ msgstr "역할"
 
 msgid "To:"
 msgstr "받는 사람:"
+
+msgid "Tool completed"
+msgstr ""
 
 msgid "Tool sources"
 msgstr "도구 소스"
@@ -2766,6 +2884,9 @@ msgstr "이 창을 닫아도 됩니다."
 
 msgid "You have control"
 msgstr "직접 조작 중"
+
+msgid "Your account"
+msgstr ""
 
 msgid "Your email address"
 msgstr "이메일 주소"

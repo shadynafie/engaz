@@ -154,6 +154,11 @@ async function ensureSpawnRun(
 
   try {
     return await prisma.$transaction(async (tx) => {
+      const source = await tx.run.findFirst({
+        where: { id: input.sourceRunId, userId: input.userId, spaceId: input.spaceId },
+        select: { id: true, trigger: true, originRunId: true, originTrigger: true },
+      });
+      if (!source) throw new Error("The source run is unavailable.");
       await createThreadMessageInTransaction(tx, {
         threadId: input.threadId,
         role: "user",
@@ -179,6 +184,8 @@ async function ensureSpawnRun(
           userId: input.userId,
           status: "queued",
           trigger: "spawn",
+          originRunId: source.originRunId ?? source.id,
+          originTrigger: source.originTrigger ?? source.trigger,
           clientNonce,
         },
       });

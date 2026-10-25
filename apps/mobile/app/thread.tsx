@@ -1340,6 +1340,19 @@ function Thread() {
       ...(message.role === "bot" && blockText(message)
         ? [{ name: "speak", text: t("Speak message"), onPress: () => void speak(message) }]
         : []),
+      ...(message.role === "bot" && message.runId && !message.id.startsWith("progress:")
+        ? [
+            {
+              name: "lesson",
+              text: t("Save a lesson"),
+              onPress: () =>
+                Alert.alert(
+                  t("Save a lesson"),
+                  t("Open this conversation in web or desktop to review and save a lesson."),
+                ),
+            },
+          ]
+        : []),
       {
         name: "copy",
         text: t("Copy"),

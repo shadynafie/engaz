@@ -370,6 +370,10 @@ export const RoutineSchema = z.object({
     .nullable(),
   lastRunAt: z.string().nullable(),
   nextRunAt: z.string().nullable(),
+  failureStreak: z.number().int().nonnegative().default(0),
+  pauseReason: z.string().nullable().default(null),
+  skipStale: z.boolean().default(false),
+  lastSkippedAt: z.string().nullable().default(null),
   createdAt: z.string(),
 });
 export type Routine = z.infer<typeof RoutineSchema>;
@@ -377,6 +381,7 @@ export type Routine = z.infer<typeof RoutineSchema>;
 export const CreateRoutineInput = z
   .object({
     botId: Id,
+    skipStale: z.boolean().default(true),
     name: z.string().min(1).max(80),
     prompt: z.string().min(1),
     crons: z.array(z.string().min(1)).default([]),

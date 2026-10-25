@@ -94,6 +94,24 @@ export default function RoutineDetail() {
               ].join(" · ")}
             </Text>
           </View>
+          {routine.pauseReason ? (
+            <Text style={{ color: tokens.warning }}>{routine.pauseReason}</Text>
+          ) : null}
+          {routine.crons.length ? (
+            <View style={{ gap: 8 }}>
+              <Text style={{ color: tokens.mutedForeground }}>
+                {routine.skipStale
+                  ? t("Skips scheduled work more than an hour overdue")
+                  : t("Runs overdue scheduled work")}
+              </Text>
+              {routine.lastSkippedAt ? (
+                <Text style={{ color: tokens.mutedForeground }}>
+                  {t("Last skipped")}: {new Date(routine.lastSkippedAt).toLocaleString()}
+                </Text>
+              ) : null}
+              <SchedulerStatus />
+            </View>
+          ) : null}
           <View style={{ gap: 8 }}>
             <Text
               style={{ color: tokens.mutedForeground, fontSize: 13, textTransform: "uppercase" }}
@@ -136,5 +154,39 @@ export default function RoutineDetail() {
         </>
       ) : null}
     </ScrollView>
+  );
+}
+
+function SchedulerStatus() {
+  const tokens = useMobileTokens();
+  const { t } = useI18n();
+  const [health, setHealth] = useState<{ lastCheckedAt: string | null; checking: boolean } | null>(
+    null,
+  );
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      void rpc<{ lastCheckedAt: string | null; checking: boolean }>("routines/health", {})
+        .then((value) => {
+          if (!cancelled) setHealth(value);
+        })
+        .catch(() => {
+          if (!cancelled) setHealth(null);
+        });
+    };
+    refresh();
+    const timer = setInterval(refresh, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
+  return (
+    <Text style={{ color: tokens.mutedForeground }}>
+      {health?.checking ? t("Scheduler checking") : t("Scheduler check unavailable")}
+      {health?.lastCheckedAt
+        ? ` · ${t("Last checked")}: ${new Date(health.lastCheckedAt).toLocaleString()}`
+        : ""}
+    </Text>
   );
 }

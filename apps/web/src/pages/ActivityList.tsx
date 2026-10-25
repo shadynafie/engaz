@@ -1,4 +1,5 @@
-import type { RunActivityRow } from "@engaz/contracts";
+import type { RunActivityDetails, RunActivityRow } from "@engaz/contracts";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@engaz/ui-web";
 import { i18n } from "@lingui/core";
 import { t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -21,6 +22,7 @@ export function ActivityList({ onOpenRun }: ActivityListProps) {
   const [activeRuns, setActiveRuns] = useState<RunActivityRow[]>([]);
   const [recentRuns, setRecentRuns] = useState<RunActivityRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detailRun, setDetailRun] = useState<RunActivityRow | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,13 +68,21 @@ export function ActivityList({ onOpenRun }: ActivityListProps) {
 
   return (
     <div className="mb-2 border-b border-border pb-2">
+      {detailRun ? (
+        <ActivityDetails run={detailRun} onClose={() => setDetailRun(null)} onOpenRun={onOpenRun} />
+      ) : null}
       {activeRuns.length > 0 ? (
         <section>
           <div className="px-2.5 pb-1 pt-1 text-[12.5px] font-medium text-muted-foreground/80">
             <Trans>Now</Trans>
           </div>
           {activeRuns.map((run) => (
-            <ActivityRow key={run.runId} run={run} onOpen={() => onOpenRun(run)} />
+            <ActivityRow
+              key={run.runId}
+              run={run}
+              onOpen={() => onOpenRun(run)}
+              onDetails={() => setDetailRun(run)}
+            />
           ))}
         </section>
       ) : null}
@@ -82,7 +92,12 @@ export function ActivityList({ onOpenRun }: ActivityListProps) {
             <Trans>Recent</Trans>
           </div>
           {recentRuns.map((run) => (
-            <ActivityRow key={run.runId} run={run} onOpen={() => onOpenRun(run)} />
+            <ActivityRow
+              key={run.runId}
+              run={run}
+              onOpen={() => onOpenRun(run)}
+              onDetails={() => setDetailRun(run)}
+            />
           ))}
         </section>
       ) : null}
@@ -90,40 +105,192 @@ export function ActivityList({ onOpenRun }: ActivityListProps) {
   );
 }
 
-function ActivityRow({ run, onOpen }: { run: RunActivityRow; onOpen: () => void }) {
+function ActivityRow({
+  run,
+  onOpen,
+  onDetails,
+}: {
+  run: RunActivityRow;
+  onOpen: () => void;
+  onDetails: () => void;
+}) {
   const { t } = useLingui();
   const title = run.groupName ? `${run.botName} · ${run.groupName}` : run.botName;
   const label = statusLabel(run.status);
   const activityLabel = t`${title}, ${label}`;
   const tone = statusTone(run.status);
   return (
-    <button
-      type="button"
-      aria-label={activityLabel}
-      onClick={onOpen}
-      className="flex w-full gap-3 rounded-xl px-2.5 py-[9px] text-left hover:bg-accent"
-    >
-      <span
-        className={`mt-1.5 size-2 shrink-0 rounded-full bg-current ${tone}`}
-        aria-hidden="true"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="truncate text-sm font-medium text-foreground">{title}</span>
-          <span className="shrink-0 text-xs text-muted-foreground/80">
-            {formatRelativeTime(run.updatedAt)}
-          </span>
-        </div>
-        <div className="mt-0.5 flex items-baseline gap-2">
-          {run.promptSnippet ? (
-            <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
-              {run.promptSnippet}
+    <div className="flex items-center">
+      <button
+        type="button"
+        aria-label={activityLabel}
+        onClick={onOpen}
+        className="flex min-w-0 flex-1 gap-3 rounded-xl px-2.5 py-[9px] text-left hover:bg-accent"
+      >
+        <span
+          className={`mt-1.5 size-2 shrink-0 rounded-full bg-current ${tone}`}
+          aria-hidden="true"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="truncate text-sm font-medium text-foreground">{title}</span>
+            <span className="shrink-0 text-xs text-muted-foreground/80">
+              {formatRelativeTime(run.updatedAt)}
             </span>
-          ) : null}
-          <span className={`ms-auto shrink-0 text-xs ${tone}`}>{label}</span>
+          </div>
+          <div className="mt-0.5 flex items-baseline gap-2">
+            {run.promptSnippet ? (
+              <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
+                {run.promptSnippet}
+              </span>
+            ) : null}
+            <span className={`ms-auto shrink-0 text-xs ${tone}`}>{label}</span>
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onDetails}
+        aria-label={t`Activity details for ${title}`}
+      >
+        <Trans>Details</Trans>
+      </Button>
+    </div>
+  );
+}
+
+function ActivityDetails({
+  run,
+  onClose,
+  onOpenRun,
+}: {
+  run: RunActivityRow;
+  onClose: () => void;
+  onOpenRun: (run: RunActivityRow) => void;
+}) {
+  const [details, setDetails] = useState<RunActivityDetails | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void rpc.runs
+      .details({ runId: run.runId })
+      .then((value) => {
+        if (!cancelled) setDetails(value);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [run.runId]);
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            <Trans>Activity details</Trans>
+          </DialogTitle>
+        </DialogHeader>
+        {failed ? (
+          <p role="alert">
+            <Trans>Could not load activity.</Trans>
+          </p>
+        ) : !details ? (
+          <p>
+            <Trans>Loading activity…</Trans>
+          </p>
+        ) : (
+          <div className="space-y-4 text-sm">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+              <dt className="text-muted-foreground">
+                <Trans>Started by</Trans>
+              </dt>
+              <dd>{triggerLabel(details.originalTrigger)}</dd>
+              {details.trigger !== details.originalTrigger ? (
+                <>
+                  <dt className="text-muted-foreground">
+                    <Trans>Received through</Trans>
+                  </dt>
+                  <dd>{triggerLabel(details.trigger)}</dd>
+                </>
+              ) : null}
+              <dt className="text-muted-foreground">
+                <Trans>Authority</Trans>
+              </dt>
+              <dd>
+                <Trans>Your account</Trans>
+              </dd>
+              {details.routine ? (
+                <>
+                  <dt className="text-muted-foreground">
+                    <Trans>Routine</Trans>
+                  </dt>
+                  <dd>{details.routine.name}</dd>
+                </>
+              ) : null}
+              <dt className="text-muted-foreground">
+                <Trans>Task</Trans>
+              </dt>
+              <dd>{run.promptSnippet}</dd>
+              {details.source ? (
+                <>
+                  <dt className="text-muted-foreground">
+                    <Trans>Source</Trans>
+                  </dt>
+                  <dd>
+                    <Button
+                      variant="link"
+                      onClick={() => {
+                        onOpenRun({ ...run, ...details.source! });
+                        onClose();
+                      }}
+                    >
+                      {details.source.botName}
+                    </Button>
+                  </dd>
+                </>
+              ) : null}
+            </dl>
+            {details.effects.length === 0 ? (
+              <p className="text-muted-foreground">
+                <Trans>No recorded actions.</Trans>
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {details.effects.map((effect) => (
+                  <li key={effect.id} className="border-t border-border pt-3">
+                    <div className="flex justify-between gap-3">
+                      <span className="break-all font-medium">{effect.tool}</span>
+                      <span>
+                        {effect.outcome === "succeeded"
+                          ? t`Tool completed`
+                          : effect.outcome.replaceAll("_", " ")}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-muted-foreground">
+                      {effect.reason}
+                      {effect.decidedByYou ? ` ${t`Decision made by you.`}` : ""}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {details.moreEffects ? (
+              <p className="text-muted-foreground">
+                <Trans>Showing the first 100 actions.</Trans>
+              </p>
+            ) : null}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -161,5 +328,32 @@ function statusLabel(status: RunActivityRow["status"]): string {
       return t`Cancelled`;
     default:
       return status;
+  }
+}
+
+function triggerLabel(trigger: string | null): string {
+  switch (trigger) {
+    case "user":
+    case "reaction":
+      return t`A person`;
+    case "routine":
+      return t`A schedule`;
+    case "webhook":
+      return t`A webhook`;
+    case "bot_message":
+    case "spawn":
+      return t`Another agent`;
+    case "messaging":
+      return t`An incoming message`;
+    case "cloud_agent":
+      return t`A remote agent`;
+    case "follow_up":
+      return t`A handoff or follow-up`;
+    case "resume":
+      return t`Resumed work`;
+    case "skill":
+      return t`A skill`;
+    default:
+      return t`Not recorded`;
   }
 }

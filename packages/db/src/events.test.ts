@@ -1234,7 +1234,7 @@ describe("answerRunInput", () => {
     });
     expect(tx.externalEffect.update).toHaveBeenCalledWith({
       where: { id: "effect-1" },
-      data: { status: "approved" },
+      data: { status: "approved", decisionSource: "user_allow", decisionByUserId: "user-1" },
     });
   });
 
@@ -1306,7 +1306,7 @@ describe("answerRunInput", () => {
     expect(tx.task.updateMany).not.toHaveBeenCalled();
     expect(tx.externalEffect.update).toHaveBeenCalledWith({
       where: { id: "effect-1" },
-      data: { status: "approved" },
+      data: { status: "approved", decisionSource: "user_allow", decisionByUserId: "user-1" },
     });
     expect(tx.actionApprovalRule.upsert).toHaveBeenCalledWith({
       where: {

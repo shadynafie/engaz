@@ -17,9 +17,11 @@ test("account settings avatar style previews differ for robot and organic", asyn
   await expect(organic).toBeVisible();
   await expect(robot).toHaveAttribute("aria-pressed", "true");
   await expect(robot.locator(".engaz-bot-avatar")).toBeVisible();
-  await expect(organic.locator(".engaz-organic-avatar")).toBeVisible();
+  await expect(organic.locator(".engaz-bot-avatar .engaz-organic-avatar")).toBeVisible();
   await expect(robot.locator(".engaz-organic-avatar")).toHaveCount(0);
-  await expect(organic.locator(".engaz-bot-avatar")).toHaveCount(0);
+  await expect(organic.locator(".engaz-bot-avatar")).toHaveCount(1);
+  await expect(robot.locator(".grok-avatar-container")).toBeVisible();
+  await expect(organic.locator(".grok-avatar-container")).toHaveCount(0);
 
   const robotMarkup = await robot
     .locator("svg")

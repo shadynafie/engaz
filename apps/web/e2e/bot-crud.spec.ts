@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import {
   captureScreenshot,
   completeOnboarding,
@@ -62,7 +62,7 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
   expect(new URL(page.url()).pathname).toBe(deletedBotPath);
   await captureScreenshot(page, testInfo, "27-created-bot");
 
-  await page.locator("main").getByRole("button", { name: "New Bot", exact: true }).click();
+  await openBotSettings(page);
   await expect(page.getByText("Settings", { exact: true })).toBeVisible();
   const nameInput = page.locator("label:has-text('Name') input");
   const titleInput = page.locator("label:has-text('Title') input");
@@ -84,7 +84,7 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
   await expect(botList.getByRole("button", { name: /^Researcher/ })).toBeVisible();
   await expect(page.getByPlaceholder("Message Researcher")).toBeVisible();
 
-  await page.locator("main").getByRole("button", { name: "Researcher", exact: true }).click();
+  await openBotSettings(page);
   await expect(nameInput).toHaveValue("Researcher");
   await expect(titleInput).toHaveValue(normalizedLongTitle);
   await expect(descriptionInput).toHaveValue(
@@ -142,7 +142,7 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
   await page.reload();
   await expect(botList.getByRole("button", { name: /^Atlas/ })).toBeVisible();
   await expect(page.getByPlaceholder("Message Atlas")).toBeVisible();
-  await page.locator("main").getByRole("button", { name: "Atlas", exact: true }).click();
+  await openBotSettings(page);
   await expect(nameInput).toHaveValue("Atlas");
   await expect(titleInput).toHaveValue("Research lead");
   await expect(descriptionInput).toHaveValue("Builds durable, source-backed research briefs.");
@@ -179,3 +179,9 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
   await expect(page.getByPlaceholder("Message Chief")).toBeVisible();
   await captureScreenshot(page, testInfo, "31-deleted-bot-fallback");
 });
+
+async function openBotSettings(page: Page) {
+  const trigger = page.getByTestId("bot-settings-trigger");
+  if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
+  await expect(page.getByTestId("bot-settings")).toBeVisible();
+}

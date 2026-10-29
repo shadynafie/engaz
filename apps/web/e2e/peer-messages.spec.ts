@@ -62,11 +62,22 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
   await expect(transcript.getByText("peer-exchange-alpha")).toHaveCount(1);
   const assertChipLeftAligned = async () => {
     const transcriptBox = await transcript.boundingBox();
+    const columnContent = await transcript.getByTestId("chat-column").evaluate((column) => {
+      const box = column.getBoundingClientRect();
+      const style = getComputedStyle(column);
+      return {
+        left: box.x + Number.parseFloat(style.paddingLeft),
+        right: box.right - Number.parseFloat(style.paddingRight),
+      };
+    });
     const chipBox = await chip.boundingBox();
     expect(transcriptBox).not.toBeNull();
     expect(chipBox).not.toBeNull();
-    // Transcript padding is 16px mobile / 28px desktop; centering must fail this assertion.
-    expect(chipBox!.x - transcriptBox!.x).toBeLessThanOrEqual(32);
+    // The bounded chat column is centred; the chip starts at its padded content edge.
+    expect(Math.abs(chipBox!.x - columnContent.left)).toBeLessThanOrEqual(1);
+    expect(chipBox!.x + chipBox!.width / 2).toBeLessThan(
+      (columnContent.left + columnContent.right) / 2,
+    );
     expect(chipBox!.width).toBeLessThan(transcriptBox!.width / 2);
   };
 

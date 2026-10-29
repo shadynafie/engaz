@@ -4,6 +4,10 @@
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
+    "./activity": "./src/activity.ts",
+    "./spacing": "./src/message-spacing.ts",
+    "./bubble/web": "./src/bubble.web.tsx",
+    "./bubble/native": "./src/bubble.native.tsx",
     "./native": "./src/markdown.native.tsx",
     "./web": "./src/markdown.web.tsx"
   },

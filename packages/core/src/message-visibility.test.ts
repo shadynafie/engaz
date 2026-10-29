@@ -33,6 +33,27 @@ const peerExchange = [
 ];
 
 describe("user-visible messages", () => {
+  it("removes dismissed onboarding rows without hiding remaining message content", () => {
+    const dismissed = {
+      kind: "choice",
+      question: "Choose a focus",
+      options: [],
+      answerId: "_dismissed",
+    } as const;
+    const hidden = message("dismissed", "run", [{ ...dismissed, options: [] }]);
+    const mixed = message("mixed", "run", [
+      { ...dismissed, options: [] },
+      { kind: "text", text: "Still visible" },
+    ]);
+    const pending = message("pending", "run", [
+      { kind: "choice", question: "Choose a focus", options: [] },
+    ]);
+    expect(userVisibleMessages([hidden, mixed, pending]).map((item) => item.id)).toEqual([
+      "mixed",
+      "pending",
+    ]);
+  });
+
   it("hides peer activity but keeps the bot's text reply to the user", () => {
     expect(userVisibleMessages(peerExchange).map((item) => item.id)).toEqual([
       "user",

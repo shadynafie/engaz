@@ -128,3 +128,61 @@ test("a covered run error is not remembered until it is presented", async ({ pag
   await expect(page.getByTestId("shell-root")).toHaveAttribute("data-ready", "true");
   await expect(error).toBeHidden();
 });
+
+for (const scenario of [
+  {
+    name: "credit limit",
+    width: 390,
+    error: "Your credit balance is too low",
+    action: "Choose a model",
+    destination: "bot",
+  },
+  {
+    name: "rejected key",
+    width: 1280,
+    error: "invalid_api_key",
+    action: "Replace key",
+    destination: "connections",
+  },
+] as const) {
+  test(`a ${scenario.name} offers one working recovery action`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: scenario.width, height: 844 });
+    const stamp = Date.now();
+    await signup(page, `model-recovery-${stamp}@engaz.test`, "password12", "Model Recovery");
+    await completeOnboarding(page);
+    await page.getByPlaceholder(/^Message /).fill("fail this run");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(page.getByTestId("composer-error")).toBeVisible({ timeout: 30_000 });
+    // Initial chat state comes from bootstrap; later syncs use threads/get.
+    await page.route(/\/rpc\/(?:bootstrap|threads\/get)$/, async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      const snapshot = route.request().url().endsWith("/bootstrap") ? body.json?.thread : body.json;
+      if (snapshot?.run?.status === "failed") {
+        snapshot.run = { ...snapshot.run, id: `recovery-${stamp}`, error: scenario.error };
+      }
+      await route.fulfill({ response, json: body });
+    });
+    await page.reload();
+    const error = page.getByTestId("composer-error");
+    const recovery = error.getByTestId("run-error-recovery");
+    await expect(recovery).toHaveCount(1);
+    await expect(recovery).toHaveText(scenario.action);
+    await expect(error.getByText(scenario.error, { exact: true })).toBeHidden();
+    const overflow = await error.evaluate((notice) => notice.scrollWidth - notice.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+    await captureScreenshot(page, testInfo, `${scenario.destination}-model-error-recovery`);
+    await error.getByText("Details", { exact: true }).click();
+    await expect(error.getByText(scenario.error, { exact: true })).toBeVisible();
+    await recovery.click();
+    if (scenario.destination === "connections") {
+      await expect(page.getByTestId("model-settings")).toBeVisible();
+    } else {
+      await expect(page.getByTestId("bot-settings-trigger")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      await expect(page.getByTestId("side-panel")).toHaveCSS("width", "384px");
+    }
+  });
+}

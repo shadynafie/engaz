@@ -2,7 +2,8 @@
 @import "@engaz/ui-web/styles.css";
 @import "@fontsource-variable/geist/wght.css";
 
-@source "../../packages/ui-web/src/**/*.{ts,tsx}";
+@source "../../../packages/ui-web/src/**/*.{ts,tsx}";
+@source "../../../packages/chat-ui/src/**/*.{ts,tsx}";
 @source "./src/**/*.{ts,tsx}";
 
 html,

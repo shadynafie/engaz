@@ -1,8 +1,9 @@
 import { renderToString } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ActiveBotGlyph, CollaborationMarker } from "./CollaborationMarker";
 
 describe("collaboration transcript markers", () => {
+  afterEach(() => vi.useRealTimers());
   it("shows a left-aligned peer event with its avatar and full label", () => {
     const html = renderToString(
       <CollaborationMarker
@@ -24,15 +25,21 @@ describe("collaboration transcript markers", () => {
     expect(html).not.toContain("{peer}");
   });
 
-  it("animates the active bot glyph from its run status", () => {
+  it("shows the working label and elapsed time beside the active bot glyph", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(12_500);
     const html = renderToString(
       <ActiveBotGlyph
         bots={[{ botId: "research", color: "#14B8A6", status: "running" }]}
         label="Research is working"
+        startedAt={1_000}
       />,
     );
 
     expect(html).toContain('role="status"');
+    expect(html).toContain("Research is working</span>");
+    expect(html).not.toContain("sr-only");
+    expect(html).toContain("11s");
     expect(html).toContain('data-working="true"');
     expect(html).toContain("engaz-bot-avatar-ring");
   });

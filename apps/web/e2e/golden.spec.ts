@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 import {
   activeBotId,
@@ -12,6 +13,30 @@ function sidebarBotButton(page: Page, name: RegExp | string) {
   return page.locator("[data-sidebar-group] [data-roster-bot-id]").filter({
     has: page.locator("[data-roster-bot-name]").filter({ hasText: name }),
   });
+}
+
+async function expectCentredChatLayout(page: Page) {
+  const geometry = await page.getByTestId("chat-column").evaluate((column) => {
+    const main = column.closest("main")!;
+    const rect = column.getBoundingClientRect();
+    const area = main.getBoundingClientRect();
+    const composer = main.querySelector("fieldset")!.getBoundingClientRect();
+    const header = main
+      .querySelector('[data-testid="bot-settings-trigger"]')!
+      .getBoundingClientRect();
+    return {
+      width: rect.width,
+      centre: Math.abs(rect.x + rect.width / 2 - area.x - area.width / 2),
+      composerEdge: Math.abs(rect.x - composer.x),
+      composerWidth: Math.abs(rect.width - composer.width),
+      headerCentre: Math.abs(header.x + header.width / 2 - area.x - area.width / 2),
+    };
+  });
+  expect(geometry.width).toBeLessThanOrEqual(896);
+  expect(geometry.centre).toBeLessThan(1);
+  expect(geometry.composerEdge).toBeLessThan(1);
+  expect(geometry.composerWidth).toBeLessThan(1);
+  expect(geometry.headerCentre).toBeLessThan(1);
 }
 
 test.describe.configure({ mode: "serial" });
@@ -378,6 +403,30 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
     .locator("[data-sidebar-group]")
     .getByRole("button", { name: /^Chief/ })
     .click();
+  const portrait = await readFile(
+    new URL("../../../packages/ui-tokens/assets/agent-portraits/team-chief.webp", import.meta.url),
+  );
+  await rpc(page, "bots/update", {
+    botId: activeBotId(page),
+    color: `data:image/webp;base64,${portrait.toString("base64")}`,
+    title: "Team lead",
+  });
+  await page.reload();
+  await page.setViewportSize({ width: 1768, height: 900 });
+  const agentHeader = page.getByTestId("bot-settings-trigger");
+  await expect(agentHeader).toContainText("Chief · Team lead");
+  await expectCentredChatLayout(page);
+  await agentHeader.click();
+  await expect(agentHeader).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId("side-panel")).toHaveCSS("width", "384px");
+  await expectCentredChatLayout(page);
+  await captureScreenshot(page, testInfo, "13-centred-chat-with-panel");
+  await agentHeader.click();
+  await expect(page.getByTestId("side-panel")).toHaveCSS("width", "0px");
+  await expect(agentHeader).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    page.getByTestId("composer-bar").getByRole("button", { name: "Send", exact: true }),
+  ).toBeDisabled();
   await composer.fill("keep working until I stop you");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible({
@@ -387,8 +436,25 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
   await expect(page.getByText("Messages sent now guide the next turn.")).toHaveCount(0);
   await expect(page.getByText(/^Steer /)).toHaveCount(0);
   await expect(composer).toHaveAttribute("placeholder", "Message Chief");
-  await expect(page.getByRole("button", { name: "Send", exact: true })).toBeVisible();
+  await expect(
+    page.getByTestId("composer-bar").getByRole("button", { name: "Send", exact: true }),
+  ).toHaveCount(0);
   await composer.fill("Use the newer report and keep the answer short.");
+  await expect(
+    page.getByTestId("composer-bar").getByRole("button", { name: "Send", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    page.getByTestId("composer-bar").getByRole("button", { name: "Stop", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByTestId("transcript").getByRole("button", { name: "Stop", exact: true }),
+  ).toBeVisible();
+  const activityStop = page
+    .getByTestId("transcript")
+    .getByRole("button", { name: "Stop", exact: true });
+  await expect(activityStop).toHaveCSS("background-color", "rgb(26, 26, 26)");
+  await expect(activityStop).toHaveCSS("color", "rgb(241, 241, 239)");
+  await captureScreenshot(page, testInfo, "14-working-with-draft");
   await page.keyboard.press("Tab");
   await expect(
     page.getByTestId("composer-bar").getByRole("button", { name: "Voice", exact: true }),
@@ -400,12 +466,95 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
     page.getByTestId("transcript").getByText("Use the newer report and keep the answer short."),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
+  const workStatus = page
+    .getByTestId("transcript")
+    .getByRole("status")
+    .filter({ hasText: "Chief is working" });
+  await expect(workStatus).toBeVisible();
+  const userBubble = page
+    .getByTestId("transcript")
+    .getByText("Use the newer report and keep the answer short.", { exact: true });
+  await expect(userBubble).toHaveCSS("background-color", "rgb(38, 38, 38)");
+  await expect(userBubble).toHaveCSS("color", "rgb(241, 241, 239)");
+  await expect(
+    page
+      .getByTestId("transcript")
+      .getByTestId("message-bot-bubble")
+      .filter({ hasText: "creating a bot for that." }),
+  ).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(userBubble).toHaveCSS("font-size", "15px");
+  await expect(userBubble.locator("xpath=ancestor::div[@data-message-id]")).toHaveCSS(
+    "margin-top",
+    "8px",
+  );
+  await expect(
+    page
+      .getByTestId("message-bot-bubble")
+      .filter({ hasText: "creating a bot for that." })
+      .locator("xpath=ancestor::div[@data-message-id]"),
+  ).toHaveCSS("margin-top", "24px");
+  await expect(page.getByTestId("composer-bar")).not.toHaveCSS("box-shadow", "none");
+  const stopControl = page.getByRole("button", { name: "Stop", exact: true });
+  await expect(stopControl).toHaveCSS("background-color", "rgb(26, 26, 26)");
+  await expect(stopControl).toHaveCSS("color", "rgb(241, 241, 239)");
+  await expect(stopControl).toHaveClass(/bg-primary/);
+
+  const uploadedAvatar = workStatus.locator(".engaz-bot-avatar");
+  await expect(uploadedAvatar.locator("img")).toBeVisible();
+  await expect(uploadedAvatar).toHaveCSS("overflow", "visible");
+  const workRing = uploadedAvatar.locator(".engaz-bot-avatar-ring");
+  await expect(workRing).toHaveCSS("animation-name", "engaz-avatar-spin");
+  await expect(workRing).toHaveCSS("animation-timing-function", "linear");
+  await expect(workRing.locator("linearGradient stop")).toHaveCount(3);
+  await expect(workRing.locator("path")).toHaveCSS("filter", /drop-shadow/);
+  const ringOffset = await uploadedAvatar.evaluate((element) => {
+    const avatar = element.getBoundingClientRect();
+    const ring = element.querySelector("svg")!.getBoundingClientRect();
+    return Math.hypot(
+      avatar.x + avatar.width / 2 - ring.x - ring.width / 2,
+      avatar.y + avatar.height / 2 - ring.y - ring.height / 2,
+    );
+  });
+  expect(ringOffset).toBeLessThan(0.1);
+
+  const ringTransform = await workRing.evaluate((element) => getComputedStyle(element).transform);
+  await expect
+    .poll(() => workRing.evaluate((element) => getComputedStyle(element).transform))
+    .not.toBe(ringTransform);
+
+  await expect(workStatus.locator(".font-mono")).toHaveText(/^(?:\d+m )?\d+s$/);
+  await expect(workStatus).not.toContainText(/\d+\.\d+s/);
+  const initialWorkTime = await workStatus.textContent();
+  await expect.poll(() => workStatus.textContent()).not.toBe(initialWorkTime);
   await captureScreenshot(page, testInfo, "14-active-bot-work");
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("button", { name: "Send", exact: true })).toBeVisible();
+  await expect(
+    page.getByTestId("composer-bar").getByRole("button", { name: "Send", exact: true }),
+  ).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
   await expect(composer).toHaveAttribute("placeholder", "Message Chief");
+  await expectCentredChatLayout(page);
   await captureScreenshot(page, testInfo, "14-active-bot-work-mobile");
+  const chiefId = activeBotId(page);
+  const longName = "A".repeat(60);
+  await rpc(page, "bots/update", { botId: chiefId, name: longName });
+  await page.reload();
+  await composer.fill("Keep this draft while working.");
+  const narrowStatus = page.getByTestId("transcript").getByRole("status");
+  await expect(narrowStatus).toContainText(longName);
+  const narrowStop = page
+    .getByTestId("transcript")
+    .getByRole("button", { name: "Stop", exact: true });
+  await expect(narrowStop).toBeVisible();
+  const overflow = await narrowStop.evaluate((button) => {
+    const row = button.closest('[data-testid="transcript"]')!.getBoundingClientRect();
+    const stop = button.getBoundingClientRect();
+    return stop.right - row.right;
+  });
+  expect(overflow).toBeLessThanOrEqual(0);
+  await captureScreenshot(page, testInfo, "14-active-long-name-mobile");
+  await rpc(page, "bots/update", { botId: chiefId, name: "Chief" });
+  await page.reload();
   await page.setViewportSize({ width: 1280, height: 720 });
   expect(browserErrors).toEqual([]);
   expect(failedRequests).toEqual([]);
@@ -421,16 +570,25 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
     });
     await route.continue();
   });
-  await page.getByRole("button", { name: "Stop", exact: true }).click();
+  await composer.fill("Keep this unsent draft.");
+  await expect(
+    page.getByTestId("composer-bar").getByRole("button", { name: "Stop", exact: true }),
+  ).toHaveCount(0);
+  await page.getByTestId("transcript").getByRole("button", { name: "Stop", exact: true }).click();
   await stopRequestStarted;
   await expect(page.getByRole("button", { name: "Send", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeDisabled();
   releaseStopRequest();
-  // Idle Send stays disabled with an empty draft; wait for Stop to leave instead.
+  // Stopping from the activity row preserves the unsent message.
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toHaveCount(0, {
     timeout: 30_000,
   });
-  await expect(page.getByRole("button", { name: "Send", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send", exact: true })).toBeEnabled();
+  await expect(composer).toHaveValue("Keep this unsent draft.");
+  await composer.fill("");
+  await expect(page.getByRole("button", { name: "Send", exact: true })).toBeDisabled();
+
+  await expect(workStatus).toHaveCount(0);
 
   await page.context().clearCookies();
   await page.goto("/sign-in");

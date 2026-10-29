@@ -573,6 +573,9 @@ msgstr "选择机器人形状和颜色，或上传图片"
 msgid "Choose a bot…"
 msgstr "选择 Bot…"
 
+msgid "Choose a model"
+msgstr "选择模型"
+
 msgid "Choose a new password"
 msgstr "设置新密码"
 
@@ -703,6 +706,9 @@ msgstr "连接"
 
 msgid "Connect a model"
 msgstr "连接模型"
+
+msgid "Connect a model to continue."
+msgstr "连接模型以继续。"
 
 msgid "Connect API key"
 msgstr "连接 API 密钥"
@@ -2649,8 +2655,20 @@ msgstr "测试运行"
 msgid "The API did not come back. Refresh this page."
 msgstr "API 未恢复。请刷新此页面。"
 
+msgid "The model connection has reached its usage limit."
+msgstr "模型连接已达到使用限额。"
+
+msgid "The model connection was rejected."
+msgstr "模型连接被拒绝。"
+
+msgid "The run could not finish."
+msgstr "任务未能完成。"
+
 msgid "The selected memory provider is not available in this build."
 msgstr "所选记忆提供方在此构建中不可用。"
+
+msgid "The service is unavailable. Try again."
+msgstr "服务暂时不可用。请重试。"
 
 msgid "Thinking"
 msgstr "思考"
@@ -2678,6 +2696,9 @@ msgstr "此文件不是有效的 UTF-8 Markdown。"
 
 msgid "this Mac"
 msgstr "这台 Mac"
+
+msgid "This model cannot run this request."
+msgstr "此模型无法执行此请求。"
 
 msgid "This permanently removes every message and stops current work. The chat remains available."
 msgstr "将永久删除全部消息并停止当前工作。聊天仍可使用。"

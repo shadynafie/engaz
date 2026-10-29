@@ -1,5 +1,8 @@
+import { useElapsed } from "@engaz/chat-ui/activity";
 import { cn } from "@engaz/ui-web";
-import { useEffect, useState } from "react";
+
+export { formatElapsed } from "@engaz/chat-ui/activity";
+
 import "./beautiful-ui.css";
 
 /* Beautiful UI primitives — hand-ported from beautifului.dev
@@ -23,25 +26,6 @@ const CHEVRON_DELAYS = Array.from({ length: 9 }, (_, i) => {
   const column = i % 3;
   return (column + Math.abs(row - 1)) * 90;
 });
-
-/** Format wall-clock seconds since `startedAtMs` as `0.0s` / `1m 2.3s`. */
-export function formatElapsed(startedAtMs: number, nowMs: number): string {
-  const totalTenths = Math.round(Math.max(0, nowMs - startedAtMs) / 100);
-  const minutes = Math.floor(totalTenths / 600);
-  const seconds = (totalTenths % 600) / 10;
-  if (minutes === 0) return `${seconds.toFixed(1)}s`;
-  return `${minutes}m ${seconds.toFixed(1)}s`;
-}
-
-function useElapsed(startedAtMs?: number): string {
-  const [mountedAt] = useState(() => Date.now());
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(timer);
-  }, []);
-  return formatElapsed(startedAtMs ?? mountedAt, now);
-}
 
 /** Pixel-grid loader with shimmering label and live elapsed timer. */
 function DefaultLoadingState({ label, startedAt }: { label: string; startedAt?: number }) {

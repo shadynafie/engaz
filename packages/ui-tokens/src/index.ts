@@ -1,4 +1,6 @@
 export * from "./brand.js";
+export * from "./chat-appearance.js";
+export * from "./working-ring.js";
 
 export const APPEARANCE_PREFERENCES = ["system", "light", "dark"] as const;
 
@@ -94,8 +96,8 @@ export const lightTokens = {
   primaryForeground: "#F1F1EF",
   secondary: "#F0F0ED",
   secondaryForeground: "#1A1A1A",
-  chatUser: "#E2E2DC",
-  chatUserForeground: "#1A1A1A",
+  chatUser: "#262626",
+  chatUserForeground: "#F1F1EF",
   muted: "#F0F0ED",
   mutedForeground: "#6C6C70",
   accent: "#EAEAE6",
@@ -122,16 +124,6 @@ export const lightTokens = {
 export const tokens = darkTokens;
 
 export const RADIUS = "0.75rem";
-
-export const botColors = [
-  "#3EC5A8",
-  "#F5A03C",
-  "#6A6BF5",
-  "#9B5CF6",
-  "#3B82F6",
-  "#F2622A",
-  "#D9508A",
-] as const;
 
 export function isAppearancePreference(
   value: string | null | undefined,

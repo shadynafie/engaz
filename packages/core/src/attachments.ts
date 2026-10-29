@@ -136,6 +136,8 @@ const EXTENSION_MIME_TYPES: Record<string, AttachmentMimeType> = {
   ".md": "text/markdown",
   ".markdown": "text/markdown",
   ".csv": "text/csv",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ".json": "application/json",
 };
 
@@ -148,6 +150,8 @@ const MIME_TYPE_EXTENSIONS: Record<AttachmentMimeType, string> = {
   "text/plain": ".txt",
   "text/markdown": ".md",
   "text/csv": ".csv",
+  "application/vnd.ms-excel": ".xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
   "application/json": ".json",
 };
 

@@ -29,11 +29,8 @@ async function revealHoverRail(row: Locator): Promise<Locator> {
 /** Park the pointer outside the message and blur focus so the rail returns to opacity-0. */
 async function expectRailAtRest(page: Page, row: Locator) {
   const rail = row.getByTestId("message-hover-rail");
-  const box = await row.boundingBox();
-  if (box) {
-    // (0,0) can still sit on the first transcript row; leave below the row instead.
-    await page.mouse.move(Math.max(0, box.x) + 8, box.y + box.height + 32);
-  }
+  // Message positions can shift as replies arrive; the composer stays outside the transcript.
+  await page.getByTestId("composer-bar").hover();
   // More keeps focus after Escape; blur so focus-within does not leave the rail visible.
   await page.evaluate(() => {
     (document.activeElement as HTMLElement | null)?.blur();
@@ -170,6 +167,17 @@ test("message hover shows beside-bubble actions; reply links to parent", async (
     })
     .toBeLessThan(8);
 
+  // Multiline timestamps follow the bubble centre, excluding reactions below it.
+  for (const row of [botRow, longRow]) {
+    const offset = await row.getByTestId("message-hover-time").evaluate((time) => {
+      const bubble = time.parentElement!.querySelector('[data-testid="message-bubble-frame"]')!;
+      const t = time.getBoundingClientRect();
+      const b = bubble.getBoundingClientRect();
+      return Math.abs(t.y + t.height / 2 - b.y - b.height / 2);
+    });
+    expect(offset).toBeLessThan(1);
+  }
+
   // Time appears at the opposite row edge on hover, outside More.
   await revealHoverRail(parentRow);
   const rowTime = parentRow.getByTestId("message-hover-time");
@@ -181,9 +189,11 @@ test("message hover shows beside-bubble actions; reply links to parent", async (
   expect(rowBox).not.toBeNull();
   expect(Math.abs(timeBox!.x - rowBox!.x)).toBeLessThan(2);
   await toolbar.getByRole("button", { name: "More" }).click();
+  await expect(page.getByRole("menu")).toBeVisible();
   await expect(page.getByRole("menu").locator("time")).toHaveCount(0);
   // Escape closes More and restores focus to the trigger so the rail stays up.
   await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toBeHidden();
   await expect(toolbar.getByRole("button", { name: "More" })).toBeFocused();
   await captureScreenshot(page, testInfo, "message-user-actions-hover-desktop");
   // Default transcript shot: rail at rest (no hover pin, mouse clear).

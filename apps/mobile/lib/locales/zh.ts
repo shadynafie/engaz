@@ -1,4 +1,12 @@
 export const ZH_MESSAGES: Record<string, string> = {
+  "The service is unavailable. Try again.": "服务暂时不可用。请重试。",
+  "Choose a model": "选择模型",
+  "Connect a model to continue.": "连接模型以继续。",
+  "The model connection has reached its usage limit.": "模型连接已达到使用限额。",
+  "The model connection was rejected.": "模型连接被拒绝。",
+  "The run could not finish.": "任务未能完成。",
+  "This model cannot run this request.": "此模型无法执行此请求。",
+  "Connect a model": "连接模型",
   "A handoff or follow-up": "任务交接或后续工作",
   "A person": "用户",
   "A remote agent": "远程代理",

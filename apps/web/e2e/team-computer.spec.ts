@@ -240,8 +240,10 @@ async function setComputerMode(
   botId: string,
   mode: "team" | "dedicated",
 ) {
-  await page.getByRole("button", { name: botName, exact: true }).last().click();
+  const trigger = page.getByTestId("bot-settings-trigger");
+  if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
   const settings = page.getByTestId("bot-settings");
+  await expect(settings).toBeVisible();
   await expect(settings.locator("label:has-text('Name') input")).toHaveValue(botName);
   const advanced = settings.getByTestId("bot-settings-advanced");
   await advanced.evaluate((element) => {

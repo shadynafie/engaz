@@ -1,4 +1,5 @@
-import { type CSSProperties, memo } from "react";
+import { groupAvatarLayout } from "@engaz/core";
+import { memo } from "react";
 import { BotAvatar } from "./bot-avatar.js";
 import { cn } from "./lib/utils.js";
 
@@ -62,19 +63,11 @@ export const GroupAvatar = memo(function GroupAvatar({
     );
   }
 
-  const pair = members.length === 2;
-  const miniSize = Math.round(size * (pair ? 0.65 : 0.54));
-  const positions: CSSProperties[] = pair
-    ? [
-        { top: 0, left: 0 },
-        { right: 0, bottom: 0 },
-      ]
-    : [
-        { top: 0, left: (size - miniSize) / 2 },
-        { bottom: 0, left: 0 },
-        { right: 0, bottom: 0 },
-      ];
-  const visibleMembers = members.slice(0, pair || members.length === 3 ? members.length : 2);
+  const { miniSize, positions, visibleCount, overflowCount } = groupAvatarLayout(
+    members.length,
+    size,
+  );
+  const visibleMembers = members.slice(0, visibleCount);
 
   return (
     <div
@@ -99,7 +92,7 @@ export const GroupAvatar = memo(function GroupAvatar({
           />
         </div>
       ))}
-      {members.length > 3 ? (
+      {overflowCount > 0 ? (
         <div
           className="absolute right-0 bottom-0 z-[3] flex items-center justify-center rounded-full bg-secondary border border-border text-[10px] font-semibold text-secondary-foreground shadow-md"
           style={{
@@ -107,7 +100,7 @@ export const GroupAvatar = memo(function GroupAvatar({
             height: miniSize,
           }}
         >
-          {`+${members.length - 2}`}
+          {`+${overflowCount}`}
         </div>
       ) : null}
     </div>

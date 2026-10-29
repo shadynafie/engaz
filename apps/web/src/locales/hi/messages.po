@@ -573,6 +573,9 @@ msgstr "बॉट का आकार और रंग चुनें, या �
 msgid "Choose a bot…"
 msgstr ""
 
+msgid "Choose a model"
+msgstr "मॉडल चुनें"
+
 msgid "Choose a new password"
 msgstr "नया पासवर्ड चुनें"
 
@@ -703,6 +706,9 @@ msgstr "कनेक्ट करें"
 
 msgid "Connect a model"
 msgstr "एक मॉडल कनेक्ट करें"
+
+msgid "Connect a model to continue."
+msgstr "जारी रखने के लिए मॉडल कनेक्ट करें।"
 
 msgid "Connect API key"
 msgstr "API कुंजी कनेक्ट करें"
@@ -2649,8 +2655,20 @@ msgstr ""
 msgid "The API did not come back. Refresh this page."
 msgstr ""
 
+msgid "The model connection has reached its usage limit."
+msgstr "मॉडल कनेक्शन अपनी उपयोग सीमा तक पहुँच गया है।"
+
+msgid "The model connection was rejected."
+msgstr "मॉडल कनेक्शन अस्वीकार कर दिया गया।"
+
+msgid "The run could not finish."
+msgstr "कार्य पूरा नहीं हो सका।"
+
 msgid "The selected memory provider is not available in this build."
 msgstr "चयनित मेमोरी प्रोवाइडर इस बिल्ड में उपलब्ध नहीं है।"
+
+msgid "The service is unavailable. Try again."
+msgstr "सेवा उपलब्ध नहीं है। फिर से कोशिश करें।"
 
 msgid "Thinking"
 msgstr "सोच रहा है"
@@ -2678,6 +2696,9 @@ msgstr "यह फ़ाइल मान्य UTF-8 Markdown नहीं ह�
 
 msgid "this Mac"
 msgstr "यह Mac"
+
+msgid "This model cannot run this request."
+msgstr "यह मॉडल यह अनुरोध नहीं चला सकता।"
 
 msgid "This permanently removes every message and stops current work. The chat remains available."
 msgstr ""

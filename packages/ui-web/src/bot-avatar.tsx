@@ -20,6 +20,7 @@ import { memo, useId, useMemo, useSyncExternalStore } from "react";
 import type { AvatarStyle } from "./avatar-style.js";
 import { useAvatarStyle } from "./avatar-style.js";
 import { cn } from "./lib/utils.js";
+import { WorkingRing } from "./working-ring.js";
 import "./styles.css";
 
 export type { GrokColorDef };
@@ -118,55 +119,40 @@ export const BotAvatar = memo(function BotAvatar({
     return (
       <div
         className={cn(
-          "engaz-bot-avatar relative overflow-hidden rounded-full flex items-center justify-center select-none bg-secondary shrink-0 border border-border",
+          "engaz-bot-avatar relative rounded-full flex items-center justify-center select-none bg-secondary shrink-0 shadow-sm",
           className,
         )}
         data-working={isWorking}
         style={{
           width: size,
           height: size,
-          boxShadow: isWorking
-            ? "0 0 0 2px #3B82F6, 0 0 10px rgba(59,130,246,0.6)"
-            : "0 2px 5px rgba(0,0,0,0.5)",
         }}
       >
-        {isWorking ? (
-          <svg
-            className="engaz-bot-avatar-ring absolute pointer-events-none"
-            style={{
-              inset: -4,
-              width: size + 8,
-              height: size + 8,
-            }}
-            viewBox="0 0 48 48"
-            fill="none"
-            aria-hidden="true"
-          >
-            <circle
-              cx="24"
-              cy="24"
-              r="22"
-              stroke="#3B82F6"
-              strokeWidth="3.2"
-              strokeLinecap="round"
-              strokeDasharray="45 80"
-            />
-          </svg>
-        ) : null}
-        <img src={parsed.imageUrl} alt="" className="h-full w-full object-cover" />
+        {isWorking ? <WorkingRing size={size} /> : null}
+        <img
+          src={parsed.imageUrl}
+          alt=""
+          className="h-full w-full rounded-full border border-border object-cover"
+        />
       </div>
     );
   }
 
   if (parsed.shapeIndex === undefined && (variant ?? preferredVariant) === "organic") {
     return (
-      <OrganicAvatar
-        color={colorDef.hex}
-        identity={effectiveId}
-        size={size}
-        isWorking={isWorking}
-        className={className}
-      />
+      <div
+        className={cn("engaz-bot-avatar relative inline-flex shrink-0", className)}
+        data-working={isWorking}
+        style={{ width: size, height: size }}
+      >
+        {isWorking ? <WorkingRing size={size} color={colorDef.hex} /> : null}
+        <OrganicAvatar
+          color={colorDef.hex}
+          identity={effectiveId}
+          size={size}
+          isWorking={isWorking}
+        />
+      </div>
     );
   }
 
@@ -182,36 +168,7 @@ export const BotAvatar = memo(function BotAvatar({
       }}
       data-working={isWorking}
     >
-      <svg
-        className="engaz-bot-avatar-ring absolute pointer-events-none"
-        style={{
-          inset: -4,
-          width: size + 8,
-          height: size + 8,
-          filter: `drop-shadow(0 0 6px ${colorDef.light}) drop-shadow(0 0 10px #ffffff)`,
-        }}
-        viewBox="0 0 48 48"
-        fill="none"
-        aria-hidden="true"
-      >
-        <circle
-          cx="24"
-          cy="24"
-          r="22"
-          stroke={`url(#${id}-ring)`}
-          strokeWidth="3.2"
-          strokeLinecap="round"
-          strokeDasharray="45 80"
-        />
-        <circle cx="43" cy="24" r="2.8" fill="#ffffff" />
-        <defs>
-          <linearGradient id={`${id}-ring`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-            <stop offset="60%" stopColor={colorDef.light} stopOpacity="0.9" />
-            <stop offset="100%" stopColor={colorDef.light} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-      </svg>
+      {isWorking ? <WorkingRing size={size} color={colorDef.hex} /> : null}
       <svg
         viewBox={VIEWBOX}
         width={size}

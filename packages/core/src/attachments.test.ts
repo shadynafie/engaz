@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   AttachmentValidationError,
+  attachmentExtensionForMimeType,
   attachmentsForBot,
   blocksToAgentHistoryText,
   decodeAttachmentBase64,
   inferAttachmentMimeType,
+  messageBlockForArtifact,
   promptTextForAttachments,
   userTurnBlocksForRun,
   validateAttachmentMimeType,
@@ -70,6 +72,42 @@ describe("attachment helpers", () => {
     expect(inferAttachmentMimeType("notes.md", "application/pdf")).toBe("application/pdf");
     expect(inferAttachmentMimeType("archive.zip", "")).toBeNull();
   });
+
+  it.each([
+    ["xls", "application/vnd.ms-excel"],
+    ["xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+  ])(
+    "accepts %s spreadsheets and infers missing or generic picker MIME types",
+    (extension, mimeType) => {
+      for (const reportedType of [
+        undefined,
+        "",
+        "application/octet-stream",
+        "application/zip",
+        mimeType,
+      ]) {
+        expect(inferAttachmentMimeType(`statement.${extension.toUpperCase()}`, reportedType)).toBe(
+          mimeType,
+        );
+      }
+      expect(() => validateAttachmentMimeType(mimeType)).not.toThrow();
+      expect(attachmentExtensionForMimeType(mimeType)).toBe(`.${extension}`);
+      expect(
+        messageBlockForArtifact({
+          id: "sheet-1",
+          name: `statement.${extension}`,
+          mimeType,
+          size: 42,
+        }),
+      ).toEqual({
+        kind: "file",
+        artifactId: "sheet-1",
+        name: `statement.${extension}`,
+        mimeType,
+        size: 42,
+      });
+    },
+  );
 
   it("scopes current-turn images to user-triggered runs", () => {
     const messages = [

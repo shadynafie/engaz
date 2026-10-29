@@ -1,4 +1,13 @@
 export const RU_MESSAGES: Record<string, string> = {
+  "The service is unavailable. Try again.": "Сервис недоступен. Попробуйте снова.",
+  "Choose a model": "Выбрать модель",
+  "Connect a model to continue.": "Подключите модель, чтобы продолжить.",
+  "The model connection has reached its usage limit.":
+    "Подключение модели достигло лимита использования.",
+  "The model connection was rejected.": "Подключение модели отклонено.",
+  "The run could not finish.": "Не удалось завершить выполнение.",
+  "This model cannot run this request.": "Эта модель не может выполнить этот запрос.",
+  "Connect a model": "Подключить модель",
   "A handoff or follow-up": "Передача задачи или продолжение",
   "A person": "Человек",
   "A remote agent": "Удалённый агент",

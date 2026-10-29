@@ -573,6 +573,9 @@ msgstr "Wähle eine Bot-Form und Farbe oder lade ein Bild hoch"
 msgid "Choose a bot…"
 msgstr ""
 
+msgid "Choose a model"
+msgstr "Modell auswählen"
+
 msgid "Choose a new password"
 msgstr "Wähle ein neues Passwort"
 
@@ -703,6 +706,9 @@ msgstr "Verbinden"
 
 msgid "Connect a model"
 msgstr "Modell verbinden"
+
+msgid "Connect a model to continue."
+msgstr "Verbinde ein Modell, um fortzufahren."
 
 msgid "Connect API key"
 msgstr "API-Schlüssel verbinden"
@@ -2649,8 +2655,20 @@ msgstr ""
 msgid "The API did not come back. Refresh this page."
 msgstr ""
 
+msgid "The model connection has reached its usage limit."
+msgstr "Die Modellverbindung hat ihr Nutzungslimit erreicht."
+
+msgid "The model connection was rejected."
+msgstr "Die Modellverbindung wurde abgelehnt."
+
+msgid "The run could not finish."
+msgstr "Der Vorgang konnte nicht abgeschlossen werden."
+
 msgid "The selected memory provider is not available in this build."
 msgstr "Der ausgewählte Erinnerungsanbieter ist in diesem Build nicht verfügbar."
+
+msgid "The service is unavailable. Try again."
+msgstr "Der Dienst ist nicht verfügbar. Versuche es erneut."
 
 msgid "Thinking"
 msgstr "Denkmodus"
@@ -2678,6 +2696,9 @@ msgstr "Diese Datei ist kein gültiges UTF-8-Markdown."
 
 msgid "this Mac"
 msgstr "dieser Mac"
+
+msgid "This model cannot run this request."
+msgstr "Dieses Modell kann diese Anfrage nicht ausführen."
 
 msgid "This permanently removes every message and stops current work. The chat remains available."
 msgstr ""

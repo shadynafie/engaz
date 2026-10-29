@@ -161,28 +161,40 @@ describe("Android mobile platform contract", () => {
     expect(scroll).toContain('this.contentReady && !this.currentState.detached ? "jump" : null');
   });
 
-  it("stacks every currently working agent in a group footer", () => {
+  it("uses shared group avatars and distinguishes working from waiting in the footer", () => {
     const thread = readFileSync(resolve(mobileRoot, "app/thread.tsx"), "utf8");
-    expect(thread).toContain("workingGroupBots.map");
-    expect(thread).toContain("inGroup && workingGroupBots.length > 0 ?");
-    expect(thread).toContain("workingGroupBots.length - index");
+    expect(thread).toContain('from "../components/group-avatar"');
+    expect(thread).toContain("inGroup && activeGroupBots.length > 0 ?");
+    expect(thread).toContain("activeGroupBots.filter((bot) => isExecuting(bot.status))");
+    expect(thread).toContain(
+      "<GroupAvatar members={executing ? workingGroupBots : activeGroupBots} size={28} />",
+    );
+    expect(thread).not.toContain("workingGroupBots.map");
     expect(thread).toContain("agents working");
-    // Visible chrome is avatar-only; copy stays on accessibilityLabel.
+    expect(thread.match(/showElapsed=\{executing\}/g)).toHaveLength(2);
+    // The visible status owns its text, keeping its Stop action independently accessible.
     expect(thread).toMatch(
-      /accessibilityLabel=\{\s*workingGroupBots\.length === 1[\s\S]*agents working/,
+      /label=\{\s*!executing\s*\? t\("Waiting…"\)\s*: workingGroupBots\.length === 1[\s\S]*agents working/,
     );
     expect(thread).not.toMatch(
       /workingGroupBots\.length === 1\s*\?[\s\S]*<Text[^>]*>\s*\{t\("\{name\} is working"/,
     );
   });
 
-  it("keeps send and stop separate while steering active work", () => {
+  it("switches the composer action without losing cancellation or drafts", () => {
     const thread = readFileSync(resolve(mobileRoot, "app/thread.tsx"), "utf8");
     const stopStart = thread.indexOf("async function stop()");
     const stopSource = thread.slice(stopStart, thread.indexOf("const answerMessage", stopStart));
     expect(stopStart).toBeGreaterThan(-1);
-    expect(thread).toContain('accessibilityLabel={t("Send")}');
+    expect(thread).toContain("const showComposerStop = working && !canSend");
+    expect(thread).toContain("const composerDisabled = sending || (!working && !canSend)");
+    expect(thread).toContain('accessibilityLabel={showComposerStop ? t("Stop") : t("Send")}');
+    expect(thread).toContain("onPress={() => void (showComposerStop ? stop() : send())}");
+    expect(thread).toContain("onStop={canSend ? () => void stop() : undefined}");
     expect(thread).toContain('accessibilityLabel={t("Stop")}');
+    expect(thread).toContain('accessibilityRole="button"');
+    expect(stopSource).not.toContain("clearOriginComposer");
+    expect(stopSource).not.toContain("setDraft");
     expect(thread).not.toContain("Messages sent now guide the next turn.");
     expect(thread).not.toContain("Steer ");
     expect(thread).not.toContain("steering message");
@@ -195,10 +207,10 @@ describe("Android mobile platform contract", () => {
       "targetGroupId ? { groupId: targetGroupId } : { botId: targetBotId! },",
     );
     expect(stopSource).toMatch(
-      /if \(isCurrentTarget\(targetBotId, targetGroupId\)\) \{\s*setError\(err instanceof Error \? err\.message : t\("Failed to stop work"\)\);/,
+      /if \(isCurrentTarget\(targetBotId, targetGroupId\)\) \{\s*setError\(\s*err instanceof Error \? err\.message : t\("Failed to stop work"\),?\s*\);/,
     );
     expect(stopSource).toMatch(
-      /if \(isCurrentTarget\(targetBotId, targetGroupId\)\) \{\s*(?:const detail = [^\n]+;\s*)?setError\(t\("Work stopped, but the thread could not refresh: \{detail\}", \{ detail \}\)\);/,
+      /if \(isCurrentTarget\(targetBotId, targetGroupId\)\) \{\s*(?:const detail = [^\n]+;\s*)?setError\(\s*t\("Work stopped, but the thread could not refresh: \{detail\}",\s*\{\s*detail,?\s*\}\s*,?\s*\),?\s*\);/,
     );
   });
 

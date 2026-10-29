@@ -15,6 +15,8 @@ export const ATTACHMENT_FILE_MIME_TYPES = [
   "text/plain",
   "text/markdown",
   "text/csv",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/json",
 ] as const;
 

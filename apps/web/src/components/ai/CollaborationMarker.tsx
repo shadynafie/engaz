@@ -1,5 +1,8 @@
-import { BotAvatar, GroupAvatar, type GroupAvatarMember } from "@engaz/ui-web";
-import { LoadingState } from "./primitives";
+import { useElapsed } from "@engaz/chat-ui/activity";
+import { CHAT_ACTIVITY, CHAT_BUBBLE } from "@engaz/ui-tokens";
+import type { GroupAvatarMember } from "@engaz/ui-web";
+import { BotAvatar, GroupAvatar } from "@engaz/ui-web";
+import type { ReactNode } from "react";
 
 /** Lightweight peer event shown without exposing the exchanged message body. */
 export function CollaborationMarker({
@@ -33,10 +36,37 @@ export function CollaborationMarker({
   );
 }
 
-export function ActiveBotGlyph({ bots, label }: { bots: GroupAvatarMember[]; label: string }) {
+export function ActiveBotGlyph({
+  bots,
+  label,
+  startedAt,
+  action,
+}: {
+  bots: GroupAvatarMember[];
+  label: string;
+  startedAt?: number;
+  action?: ReactNode;
+}) {
+  const elapsed = useElapsed(startedAt);
   return (
-    <div className="flex min-h-10 items-center px-1">
-      <LoadingState indicator={<GroupAvatar members={bots} size={28} />} label={label} />
+    <div
+      className="flex min-h-10 items-center gap-3 px-1"
+      style={{ marginTop: CHAT_BUBBLE.messageGap }}
+    >
+      <span role="status" className="flex min-w-0 items-center" style={{ gap: CHAT_ACTIVITY.gap }}>
+        <GroupAvatar members={bots} size={28} />
+        <span className="truncate font-medium" style={{ fontSize: CHAT_ACTIVITY.fontSize }}>
+          {label}
+        </span>
+        <span
+          aria-hidden="true"
+          className="shrink-0 font-mono tabular-nums text-muted-foreground"
+          style={{ fontSize: CHAT_ACTIVITY.timerFontSize }}
+        >
+          {elapsed}
+        </span>
+      </span>
+      {action}
     </div>
   );
 }

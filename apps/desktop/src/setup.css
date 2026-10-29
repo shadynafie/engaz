@@ -79,6 +79,15 @@ html[data-platform="darwin"] .titlebar {
   justify-content: center;
 }
 
+.brand-mark {
+  display: block;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  background: var(--foreground);
+  mask: url("engaz-face.svg") center / contain no-repeat;
+}
+
 .heading {
   margin: 0 0 8px;
   font-size: 26px;

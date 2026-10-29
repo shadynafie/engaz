@@ -96,6 +96,37 @@ describe("BotAvatar", () => {
     expect(html).not.toContain("grok-character-eyes");
   });
 
+  it("keeps the working ring outside an uploaded image while rounding the image itself", () => {
+    const html = renderToString(
+      <BotAvatar color="data:image/png;base64,abc" identity="maya" size={32} status="running" />,
+    );
+    expect(html).toContain('data-working="true"');
+    expect(html).toContain("engaz-bot-avatar-ring");
+    expect(html).toContain("linearGradient");
+    expect(html).toContain('stop-opacity="0"');
+    expect(html).toContain("drop-shadow(0 0 1.5px currentColor)");
+    expect(html).not.toContain("overflow-hidden");
+    expect(html).toContain('class="h-full w-full rounded-full border border-border object-cover"');
+  });
+
+  it.each(["robot", "organic"] as const)(
+    "tints the shared comet with the %s avatar colour",
+    (variant) => {
+      const html = renderToString(<BotAvatar color="#10B981" variant={variant} status="running" />);
+      expect(html).toContain("engaz-bot-avatar-ring");
+      expect(html).toContain("color:#10B981");
+      expect(html).toContain('d="M24 2 A22 22 0 0 1 43.05 35"');
+      expect(html).toContain("drop-shadow(0 0 1.5px currentColor)");
+    },
+  );
+
+  it.each(["#10B981", "#10B981::shape_3", "data:image/png;base64,abc"])(
+    "hides the comet when %s is idle",
+    (color) => {
+      expect(renderToString(<BotAvatar color={color} />)).not.toContain("engaz-bot-avatar-ring");
+    },
+  );
+
   it("does not treat arbitrary http(s) color values as remote images", () => {
     const parsed = parseBotAvatar("https://evil.example/track.png");
     expect(parsed.isImage).toBe(false);

@@ -41,6 +41,11 @@ export function userVisibleMessages<T extends PresentableMessage>(
   const includePeerReceipts = options.includePeerReceipts === true;
 
   return messages.filter((message) => {
+    if (
+      message.blocks.length > 0 &&
+      message.blocks.every((block) => block.kind === "choice" && block.answerId === "_dismissed")
+    )
+      return false;
     if (isPeerReceiptBlocks(message.blocks)) return includePeerReceipts;
     if (!message.runId || !peerRunIds.has(message.runId)) return true;
     // Keep peer-run ask cards, and (unless the caller opts out) the bot's own text reply.

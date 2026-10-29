@@ -1,7 +1,9 @@
+import { groupAvatarLayout } from "@engaz/core";
 import { memo } from "react";
-import { StyleSheet, Text, View, type ViewStyle } from "react-native";
-import { native, useThemedStyles } from "../lib/native";
+import { Text, View } from "react-native";
+import { useMobileTokens } from "../lib/native";
 import { BotAvatar } from "./bot-avatar";
+import { NativeSymbol } from "./native-symbol";
 
 export interface GroupAvatarMember {
   botId?: string;
@@ -17,21 +19,26 @@ export const GroupAvatar = memo(function GroupAvatar({
   members: GroupAvatarMember[];
   size?: number;
 }) {
-  const styles = useThemedStyles(createGroupAvatarStyles);
+  const tokens = useMobileTokens();
   const firstMember = members[0];
   if (!firstMember) {
     return (
       <View
-        style={[
-          styles.fallback,
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-          },
-        ]}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: tokens.muted,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <Text style={[styles.fallbackText, { fontSize: Math.round(size * 0.35) }]}>👥</Text>
+        <NativeSymbol
+          ios="person.3.fill"
+          android="people"
+          size={Math.round(size * 0.48)}
+          color={tokens.mutedForeground}
+        />
       </View>
     );
   }
@@ -47,19 +54,11 @@ export const GroupAvatar = memo(function GroupAvatar({
     );
   }
 
-  const pair = members.length === 2;
-  const miniSize = Math.round(size * (pair ? 0.65 : 0.54));
-  const positions: ViewStyle[] = pair
-    ? [
-        { top: 0, left: 0 },
-        { right: 0, bottom: 0 },
-      ]
-    : [
-        { top: 0, left: (size - miniSize) / 2 },
-        { bottom: 0, left: 0 },
-        { right: 0, bottom: 0 },
-      ];
-  const visibleMembers = members.slice(0, pair || members.length === 3 ? members.length : 2);
+  const { miniSize, positions, visibleCount, overflowCount } = groupAvatarLayout(
+    members.length,
+    size,
+  );
+  const visibleMembers = members.slice(0, visibleCount);
 
   return (
     <View style={{ width: size, height: size, position: "relative" }}>
@@ -80,7 +79,7 @@ export const GroupAvatar = memo(function GroupAvatar({
           />
         </View>
       ))}
-      {members.length > 3 ? (
+      {overflowCount > 0 ? (
         <View
           style={{
             position: "absolute",
@@ -90,29 +89,16 @@ export const GroupAvatar = memo(function GroupAvatar({
             width: miniSize,
             height: miniSize,
             borderRadius: miniSize / 2,
-            backgroundColor: native.fillPressed,
+            backgroundColor: tokens.secondary,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Text style={{ color: native.label, fontSize: 10, fontWeight: "600" }}>
-            +{members.length - 2}
+          <Text style={{ color: tokens.secondaryForeground, fontSize: 10, fontWeight: "600" }}>
+            +{overflowCount}
           </Text>
         </View>
       ) : null}
     </View>
   );
 });
-
-function createGroupAvatarStyles() {
-  return StyleSheet.create({
-    fallback: {
-      backgroundColor: native.fillPressed,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    fallbackText: {
-      color: native.secondaryLabel,
-    },
-  });
-}

@@ -573,6 +573,9 @@ msgstr "Bir bot şekli ve rengi seçin veya görüntü yükleyin"
 msgid "Choose a bot…"
 msgstr ""
 
+msgid "Choose a model"
+msgstr "Model seç"
+
 msgid "Choose a new password"
 msgstr "Yeni bir parola seçin"
 
@@ -703,6 +706,9 @@ msgstr "Bağlan"
 
 msgid "Connect a model"
 msgstr "Model bağla"
+
+msgid "Connect a model to continue."
+msgstr "Devam etmek için bir model bağlayın."
 
 msgid "Connect API key"
 msgstr "API anahtarıyla bağlan"
@@ -2649,8 +2655,20 @@ msgstr ""
 msgid "The API did not come back. Refresh this page."
 msgstr ""
 
+msgid "The model connection has reached its usage limit."
+msgstr "Model bağlantısı kullanım sınırına ulaştı."
+
+msgid "The model connection was rejected."
+msgstr "Model bağlantısı reddedildi."
+
+msgid "The run could not finish."
+msgstr "İşlem tamamlanamadı."
+
 msgid "The selected memory provider is not available in this build."
 msgstr "Seçilen hafıza sağlayıcısı bu sürümde kullanılamıyor."
+
+msgid "The service is unavailable. Try again."
+msgstr "Hizmet kullanılamıyor. Tekrar deneyin."
 
 msgid "Thinking"
 msgstr "Düşünüyor"
@@ -2678,6 +2696,9 @@ msgstr "Bu dosya geçerli bir UTF-8 Markdown değil."
 
 msgid "this Mac"
 msgstr "bu Mac"
+
+msgid "This model cannot run this request."
+msgstr "Bu model bu isteği çalıştıramaz."
 
 msgid "This permanently removes every message and stops current work. The chat remains available."
 msgstr ""

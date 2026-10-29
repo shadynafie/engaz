@@ -786,8 +786,14 @@ export type MobileSnapshot = {
   cursor?: number;
   messages: MobileMessage[];
   olderCursor: number | null;
-  run: { id: string; botId?: string; status: string; error?: string | null } | null;
-  activeRuns?: Array<{ id: string; botId?: string; status: string }>;
+  run: {
+    id: string;
+    botId?: string;
+    status: string;
+    error?: string | null;
+    createdAt?: string;
+  } | null;
+  activeRuns?: Array<{ id: string; botId?: string; status: string; createdAt?: string }>;
   members?: MobileGroup["members"];
   computer?: {
     state: string;

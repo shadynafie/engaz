@@ -5,7 +5,7 @@ import {
   type SpaceBot,
   type SpaceGroup,
 } from "@engaz/contracts";
-import { botColors } from "@engaz/ui-tokens";
+import { DEFAULT_GROK_BOT_COLOR } from "@engaz/core";
 import { Redirect, useFocusEffect, useRouter } from "expo-router";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -65,7 +65,7 @@ import { registerPushToken } from "../lib/push";
 import { querySpaceSearch } from "../lib/search";
 import { mobileSearchDestination } from "../lib/search-destination";
 
-const FALLBACK_COLOR = botColors[3];
+const FALLBACK_COLOR = DEFAULT_GROK_BOT_COLOR;
 
 type InboxItem = InboxSpaceItem | { type: "search"; hit: SearchHit };
 

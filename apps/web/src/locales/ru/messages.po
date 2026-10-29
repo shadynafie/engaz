@@ -573,6 +573,9 @@ msgstr "Выберите форму и цвет бота или загрузит
 msgid "Choose a bot…"
 msgstr "Выбрать бота…"
 
+msgid "Choose a model"
+msgstr "Выбрать модель"
+
 msgid "Choose a new password"
 msgstr "Выберите новый пароль"
 
@@ -703,6 +706,9 @@ msgstr "Подключить"
 
 msgid "Connect a model"
 msgstr "Подключить модель"
+
+msgid "Connect a model to continue."
+msgstr "Подключите модель, чтобы продолжить."
 
 msgid "Connect API key"
 msgstr "Подключить API-ключ"
@@ -2649,8 +2655,20 @@ msgstr "Тестовый запуск"
 msgid "The API did not come back. Refresh this page."
 msgstr "API не вернулся. Обновите эту страницу."
 
+msgid "The model connection has reached its usage limit."
+msgstr "Подключение модели достигло лимита использования."
+
+msgid "The model connection was rejected."
+msgstr "Подключение модели отклонено."
+
+msgid "The run could not finish."
+msgstr "Не удалось завершить выполнение."
+
 msgid "The selected memory provider is not available in this build."
 msgstr "Выбранный поставщик памяти недоступен в этой сборке."
+
+msgid "The service is unavailable. Try again."
+msgstr "Сервис недоступен. Попробуйте снова."
 
 msgid "Thinking"
 msgstr "рассуждение"
@@ -2678,6 +2696,9 @@ msgstr "Этот файл недействителен в формате UTF-8 M
 
 msgid "this Mac"
 msgstr "этот Mac"
+
+msgid "This model cannot run this request."
+msgstr "Эта модель не может выполнить этот запрос."
 
 msgid "This permanently removes every message and stops current work. The chat remains available."
 msgstr "Это навсегда удалит все сообщения и остановит текущую работу. Чат останется доступным."

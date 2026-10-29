@@ -1,4 +1,7 @@
+import { useElapsed } from "@engaz/chat-ui/activity";
+import { ChatBubble, PressableChatBubble } from "@engaz/chat-ui/bubble/native";
 import { ChatMarkdown } from "@engaz/chat-ui/native";
+import { messageSpacing } from "@engaz/chat-ui/spacing";
 import type {
   AgentSkillCatalogEntry,
   Connection,
@@ -13,7 +16,9 @@ import {
   buildComposerMentionOptions,
   type ComposerMention,
   cloudAgentHttpsUrl,
+  createRefreshCoalescer,
   isApprovalAskBlock,
+  isExecuting,
   isRunTerminalEvent,
   isSecretAskBlock,
   latestAnswerableAskMessageId,
@@ -27,6 +32,7 @@ import {
   truncateSlashDescription,
   userVisibleMessages,
 } from "@engaz/core";
+import { CHAT_ACTIVITY, CHAT_BUBBLE } from "@engaz/ui-tokens";
 import * as Clipboard from "expo-clipboard";
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
@@ -56,11 +62,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppConnectCard } from "../components/AppConnectCard";
 import { AskActions } from "../components/AskActions";
 import { BotAvatar } from "../components/bot-avatar";
+import { GroupAvatar } from "../components/group-avatar";
 import {
   MarkdownArtifactPreview,
   type MarkdownArtifactPreviewTarget,
 } from "../components/markdown-artifact-preview";
 import { NativeSymbol } from "../components/native-symbol";
+import { RunErrorNotice } from "../components/run-error-notice";
 import {
   applyMobileThreadEvent,
   blockText,
@@ -385,8 +393,7 @@ function Thread() {
   const notificationThreadId = snap?.threadId ?? currentBot?.threadId;
   activeThreadId.current = notificationThreadId;
   const currentBotStatus = snap ? snap.run?.status : currentBot?.status;
-  const hasLiveProgress = visibleMessages.some((message) => message.id.startsWith("progress:"));
-  const workingGroupBots = useMemo(() => {
+  const activeGroupBots = useMemo(() => {
     if (!inGroup) return [];
     const seen = new Set<string>();
     const working = snap?.activeRuns ?? (snap?.run ? [snap.run] : []);
@@ -398,7 +405,21 @@ function Thread() {
       return [{ ...member, status: run.status }];
     });
   }, [inGroup, snap?.activeRuns, snap?.members, snap?.run]);
-  const working = inGroup ? workingGroupBots.length > 0 : isWorkingStatus(currentBotStatus);
+  const workingGroupBots = activeGroupBots.filter((bot) => isExecuting(bot.status));
+  const executing = inGroup ? workingGroupBots.length > 0 : isExecuting(currentBotStatus);
+  const working = inGroup ? activeGroupBots.length > 0 : isWorkingStatus(currentBotStatus);
+  const activeRuns = (snap?.activeRuns ?? (snap?.run ? [snap.run] : [])).filter((run) =>
+    isWorkingStatus(run.status),
+  );
+  const workingCreatedAt = activeRuns
+    .filter((run) => isExecuting(run.status))
+    .map((run) => Date.parse(run.createdAt ?? ""))
+    .filter(Number.isFinite);
+  const workingStartedAt = workingCreatedAt.length ? Math.min(...workingCreatedAt) : undefined;
+  const workingKey = `${threadKey}:${activeRuns
+    .map((run) => run.id)
+    .sort()
+    .join(":")}`;
 
   // The / picker offers the skills this agent is given; a group offers all of them.
   const skillsBotId = inGroup ? undefined : botId;
@@ -686,16 +707,18 @@ function Thread() {
     setBotActionsOpen(true);
   }
 
-  async function refresh() {
-    if (!botId && !groupId) return;
+  async function refresh(signal?: AbortSignal) {
+    if ((!botId && !groupId) || signal?.aborted) return;
     const targetBotId = botId;
     const targetGroupId = groupId;
     const epoch = historyEpoch.current;
     const next = await rpc<MobileSnapshot>(
       "threads/get",
       targetGroupId ? { groupId: targetGroupId } : { botId: targetBotId! },
+      { signal },
     );
     if (
+      signal?.aborted ||
       !shouldApplyMobileThreadRefresh({
         requestEpoch: epoch,
         currentEpoch: historyEpoch.current,
@@ -859,17 +882,18 @@ function Thread() {
     expandedHistoryThread.current = null;
     historyEpoch.current += 1;
     const abort = new AbortController();
+    const refreshQueue = createRefreshCoalescer(() => refresh(abort.signal));
     void (async () => {
       // Pending search jumps load the around-page separately; avoid replacing it with latest.
       const next = messageId
-        ? await rpc<MobileSnapshot>("threads/get", groupId ? { groupId } : { botId: botId! }).catch(
-            (err: Error) => {
-              setError(err.message);
-              return null;
-            },
-          )
-        : await refresh().catch((err: Error) => {
-            setError(err.message);
+        ? await rpc<MobileSnapshot>("threads/get", groupId ? { groupId } : { botId: botId! }, {
+            signal: abort.signal,
+          }).catch((err: Error) => {
+            if (!abort.signal.aborted) setError(err.message);
+            return null;
+          })
+        : await refresh(abort.signal).catch((err: Error) => {
+            if (!abort.signal.aborted) setError(err.message);
             return null;
           });
       if (abort.signal.aborted) return;
@@ -881,6 +905,7 @@ function Thread() {
             groupId ? { groupId } : { botId: botId! },
             cursor,
             (event) => {
+              if (abort.signal.aborted) return;
               cursor = Math.max(cursor, event.seq ?? -1);
               retryMs = 250;
               if (
@@ -914,7 +939,7 @@ function Thread() {
               if (isRunTerminalEvent(event)) {
                 void refreshMentionBots();
                 if (!jumpScrollTarget.current && !expandedHistoryThread.current) {
-                  void refresh().catch(() => undefined);
+                  void refreshQueue.invalidate().catch(() => undefined);
                 }
               }
             },
@@ -925,13 +950,14 @@ function Thread() {
         }
         if (abort.signal.aborted) break;
         if (!jumpScrollTarget.current && !expandedHistoryThread.current) {
-          await refresh().catch(() => undefined);
+          await refreshQueue.invalidate().catch(() => undefined);
         }
         await abortableDelay(retryMs, abort.signal);
         retryMs = Math.min(retryMs * 2, 5_000);
       }
     })();
     return () => {
+      refreshQueue.dispose();
       abort.abort();
     };
   }, [botId, groupId, markReadIfVisible, refreshMentionBots]);
@@ -1039,6 +1065,8 @@ function Thread() {
     selectedSkill !== null ||
     selectedMentions.length > 0 ||
     activePendingAttachments.length > 0;
+  const showComposerStop = working && !canSend;
+  const composerDisabled = sending || (!working && !canSend);
 
   async function send() {
     const initialBotTarget = botId;
@@ -1383,7 +1411,10 @@ function Thread() {
     };
   }
 
-  function renderMessageRow(message: MobileMessage, options?: { enableJump?: boolean }) {
+  function renderMessageRow(
+    message: MobileMessage,
+    options?: { enableJump?: boolean; previous?: MobileMessage },
+  ) {
     const actionProps = messageActionProps(message);
     const messageReactions = reactionView.reactions.get(message.id);
     const activityBotId =
@@ -1415,7 +1446,7 @@ function Thread() {
             : undefined
         }
         style={{
-          marginTop: 12,
+          marginTop: messageSpacing(options?.previous, message),
           width: "100%",
           flexDirection: "row",
           alignItems: "flex-start",
@@ -1499,10 +1530,8 @@ function Thread() {
   }
 
   const workingFooter =
-    !inGroup && currentBot && isWorkingStatus(currentBotStatus) && !hasLiveProgress ? (
+    !inGroup && currentBot && isWorkingStatus(currentBotStatus) ? (
       <View
-        accessibilityLabel={t("{name} is working", { name: currentBot.name })}
-        accessibilityRole="text"
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -1516,15 +1545,17 @@ function Thread() {
           size={28}
           status={currentBotStatus}
         />
+        <WorkingStatus
+          key={workingKey}
+          label={executing ? t("{name} is working", { name: currentBot.name }) : t("Waiting…")}
+          showElapsed={executing}
+          startedAt={workingStartedAt}
+          onStop={canSend ? () => void stop() : undefined}
+          disabled={sending}
+        />
       </View>
-    ) : inGroup && workingGroupBots.length > 0 ? (
+    ) : inGroup && activeGroupBots.length > 0 ? (
       <View
-        accessibilityLabel={
-          workingGroupBots.length === 1
-            ? t("{name} is working", { name: workingGroupBots[0]?.name ?? t("Agent") })
-            : t("{count} agents working", { count: workingGroupBots.length })
-        }
-        accessibilityRole="text"
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -1532,19 +1563,21 @@ function Thread() {
           marginTop: 12,
         }}
       >
-        <View style={{ flexDirection: "row", paddingRight: 8 }}>
-          {workingGroupBots.map((bot, index) => (
-            <View
-              key={bot.botId}
-              style={{
-                marginLeft: index === 0 ? 0 : -8,
-                zIndex: workingGroupBots.length - index,
-              }}
-            >
-              <BotAvatar color={bot.color} identity={bot.botId} size={28} status={bot.status} />
-            </View>
-          ))}
-        </View>
+        <GroupAvatar members={executing ? workingGroupBots : activeGroupBots} size={28} />
+        <WorkingStatus
+          key={workingKey}
+          label={
+            !executing
+              ? t("Waiting…")
+              : workingGroupBots.length === 1
+                ? t("{name} is working", { name: workingGroupBots[0]?.name ?? t("Agent") })
+                : t("{count} agents working", { count: workingGroupBots.length })
+          }
+          showElapsed={executing}
+          startedAt={workingStartedAt}
+          onStop={canSend ? () => void stop() : undefined}
+          disabled={sending}
+        />
       </View>
     ) : null;
 
@@ -1572,8 +1605,19 @@ function Thread() {
       style={{ flex: 1, backgroundColor: tokens.background, paddingHorizontal: 20 }}
     >
       {error ? <Text style={{ color: tokens.mutedForeground, marginTop: 12 }}>{error}</Text> : null}
-      {runError ? (
-        <Text style={{ color: tokens.destructive, marginTop: 12 }}>{runError}</Text>
+      {!error && runError ? (
+        <RunErrorNotice
+          error={runError}
+          onChooseModel={() => {
+            const failedBotId = snap?.run?.botId ?? botId;
+            router.push(
+              failedBotId
+                ? { pathname: "/bot-settings", params: { botId: failedBotId } }
+                : "/models",
+            );
+          }}
+          onOpenModels={() => router.push("/models")}
+        />
       ) : null}
       <View style={{ flex: 1, position: "relative" }}>
         {showPinnedPage ? (
@@ -1584,8 +1628,9 @@ function Thread() {
             maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
           >
             {loadEarlierControl}
-            {visibleMessages.map((message) => renderMessageRow(message, { enableJump: true }))}
-            {workingFooter}
+            {visibleMessages.map((message, index) =>
+              renderMessageRow(message, { enableJump: true, previous: visibleMessages[index - 1] }),
+            )}
           </ScrollView>
         ) : (
           <FlatList
@@ -1627,8 +1672,9 @@ function Thread() {
               setThreadScrollState(scrollBehavior.current.state());
             }}
             ListFooterComponent={loadEarlierControl}
-            ListHeaderComponent={workingFooter}
-            renderItem={({ item }) => renderMessageRow(item)}
+            renderItem={({ item, index }) =>
+              renderMessageRow(item, { previous: liveMessages[index + 1] })
+            }
           />
         )}
         {!showPinnedPage && threadScrollState.detached ? (
@@ -1678,6 +1724,7 @@ function Thread() {
           </Pressable>
         ) : null}
       </View>
+      {workingFooter ? <View style={{ paddingBottom: 12 }}>{workingFooter}</View> : null}
       <View style={{ paddingBottom: keyboardVisible ? 12 : Math.max(insets.bottom + 12, 24) }}>
         {replyTarget ? (
           <View
@@ -1909,6 +1956,11 @@ function Thread() {
               gap: 6,
               backgroundColor: tokens.card,
               borderRadius: 20,
+              shadowColor: tokens.overlay,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.12,
+              shadowRadius: 6,
+              elevation: 2,
               paddingHorizontal: 10,
               paddingVertical: 8,
               minHeight: 44,
@@ -2028,6 +2080,8 @@ function Thread() {
                 flexShrink: 1,
                 minWidth: 96,
                 color: tokens.foreground,
+                fontSize: CHAT_BUBBLE.fontSize,
+                lineHeight: CHAT_BUBBLE.lineHeight,
                 paddingVertical: 2,
                 maxHeight: 100,
                 writingDirection: "auto",
@@ -2035,9 +2089,10 @@ function Thread() {
             />
           </View>
           <Pressable
-            accessibilityLabel={t("Send")}
-            disabled={sending || !canSend}
-            onPress={() => void send()}
+            accessibilityRole="button"
+            accessibilityLabel={showComposerStop ? t("Stop") : t("Send")}
+            disabled={composerDisabled}
+            onPress={() => void (showComposerStop ? stop() : send())}
             style={{
               backgroundColor: tokens.primary,
               borderRadius: 22,
@@ -2045,35 +2100,16 @@ function Thread() {
               height: 44,
               alignItems: "center",
               justifyContent: "center",
-              opacity: sending || !canSend ? 0.5 : 1,
+              opacity: composerDisabled ? 0.5 : 1,
             }}
           >
             <NativeSymbol
-              ios="arrow.up"
-              android="arrow-up"
-              size={18}
+              ios={showComposerStop ? "stop.fill" : "arrow.up"}
+              android={showComposerStop ? "stop" : "arrow-up"}
+              size={showComposerStop ? 15 : 18}
               color={tokens.primaryForeground}
             />
           </Pressable>
-          {working ? (
-            <Pressable
-              accessibilityLabel={t("Stop")}
-              disabled={sending}
-              onPress={() => void stop()}
-              style={{
-                borderColor: tokens.border,
-                borderWidth: 1,
-                borderRadius: 22,
-                width: 44,
-                height: 44,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: sending ? 0.5 : 1,
-              }}
-            >
-              <NativeSymbol ios="stop.fill" android="stop" size={15} color={tokens.foreground} />
-            </Pressable>
-          ) : null}
         </View>
       </View>
       <Modal
@@ -2624,7 +2660,11 @@ const MessageBubble = memo(function MessageBubble({
           {askBlock.text ? (
             <Text
               {...actionProps}
-              style={{ color: tokens.foreground, fontSize: 15.5, lineHeight: 23 }}
+              style={{
+                color: tokens.foreground,
+                fontSize: CHAT_BUBBLE.fontSize,
+                lineHeight: CHAT_BUBBLE.lineHeight,
+              }}
             >
               {askBlock.text}
             </Text>
@@ -2704,18 +2744,7 @@ const MessageBubble = memo(function MessageBubble({
     const speaker =
       message.role === "bot" ? (memberName(members, message.botId) ?? botName) : undefined;
     return (
-      <View
-        style={{
-          maxWidth: "100%",
-          borderRadius: 20,
-          borderWidth: 1,
-          borderColor: tokens.border,
-          backgroundColor: message.role === "user" ? tokens.secondary : tokens.muted,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
-          gap: 8,
-        }}
-      >
+      <ChatBubble palette={tokens} user={message.role === "user"} style={{ gap: 8 }}>
         {speaker ? (
           <Text style={{ color: tokens.mutedForeground, fontSize: 12.5, fontWeight: "600" }}>
             {speaker}
@@ -2724,7 +2753,7 @@ const MessageBubble = memo(function MessageBubble({
         {replyPreview || (message.replyToMessageId && message.replyQuote) ? (
           <Text
             style={{
-              color: message.role === "user" ? tokens.secondaryForeground : tokens.mutedForeground,
+              color: message.role === "user" ? tokens.chatUserForeground : tokens.mutedForeground,
               fontSize: 12.5,
             }}
             numberOfLines={2}
@@ -2739,8 +2768,9 @@ const MessageBubble = memo(function MessageBubble({
         {caption ? (
           <Text
             style={{
-              color: message.role === "user" ? tokens.secondaryForeground : tokens.foreground,
-              fontSize: 15,
+              color: message.role === "user" ? tokens.chatUserForeground : tokens.foreground,
+              fontSize: CHAT_BUBBLE.fontSize,
+              lineHeight: CHAT_BUBBLE.lineHeight,
             }}
           >
             {caption}
@@ -2769,8 +2799,9 @@ const MessageBubble = memo(function MessageBubble({
             >
               <Text
                 style={{
-                  color: message.role === "user" ? tokens.secondaryForeground : tokens.foreground,
-                  fontSize: 15,
+                  color: message.role === "user" ? tokens.chatUserForeground : tokens.foreground,
+                  fontSize: CHAT_BUBBLE.fontSize,
+                  lineHeight: CHAT_BUBBLE.lineHeight,
                 }}
               >
                 🖼 {attachment.name ?? t("Image")}
@@ -2804,8 +2835,9 @@ const MessageBubble = memo(function MessageBubble({
             >
               <Text
                 style={{
-                  color: message.role === "user" ? tokens.secondaryForeground : tokens.foreground,
-                  fontSize: 15,
+                  color: message.role === "user" ? tokens.chatUserForeground : tokens.foreground,
+                  fontSize: CHAT_BUBBLE.fontSize,
+                  lineHeight: CHAT_BUBBLE.lineHeight,
                 }}
               >
                 📎 {attachment.name ?? t("File")}
@@ -2814,7 +2846,7 @@ const MessageBubble = memo(function MessageBubble({
                 <Text
                   style={{
                     color:
-                      message.role === "user" ? tokens.secondaryForeground : tokens.mutedForeground,
+                      message.role === "user" ? tokens.chatUserForeground : tokens.mutedForeground,
                     marginTop: 4,
                     fontSize: 13,
                   }}
@@ -2834,7 +2866,7 @@ const MessageBubble = memo(function MessageBubble({
             onAccessibilityAction={actionProps.onAccessibilityAction}
           />
         ))}
-      </View>
+      </ChatBubble>
     );
   }
   const segments = messagePresentationSegments(message.blocks);
@@ -2881,17 +2913,7 @@ function MessageTextCard({
   const contentText = blockText(message);
   if (!contentText) return null;
   return (
-    <Pressable
-      {...actionProps}
-      style={{
-        flexShrink: 1,
-        minWidth: 0,
-        maxWidth: "100%",
-        backgroundColor: message.role === "user" ? tokens.secondary : tokens.muted,
-        padding: 12,
-        borderRadius: 20,
-      }}
-    >
+    <PressableChatBubble {...actionProps} palette={tokens} user={message.role === "user"}>
       {speaker ? (
         <Text
           style={{
@@ -2907,7 +2929,7 @@ function MessageTextCard({
       {replyPreview || (message.replyToMessageId && message.replyQuote) ? (
         <Text
           style={{
-            color: message.role === "user" ? tokens.secondaryForeground : tokens.mutedForeground,
+            color: message.role === "user" ? tokens.chatUserForeground : tokens.mutedForeground,
             fontSize: 12.5,
             marginBottom: 6,
           }}
@@ -2921,7 +2943,13 @@ function MessageTextCard({
         </Text>
       ) : null}
       {message.role === "user" ? (
-        <Text style={{ color: tokens.secondaryForeground, fontSize: 15.5, lineHeight: 23 }}>
+        <Text
+          style={{
+            color: tokens.chatUserForeground,
+            fontSize: CHAT_BUBBLE.fontSize,
+            lineHeight: CHAT_BUBBLE.lineHeight,
+          }}
+        >
           {contentText}
         </Text>
       ) : (
@@ -2933,7 +2961,7 @@ function MessageTextCard({
           {contentText}
         </ChatMarkdown>
       )}
-    </Pressable>
+    </PressableChatBubble>
   );
 }
 
@@ -3109,6 +3137,76 @@ function AskBlock({
         </Text>
       )}
       {error ? <Text style={{ color: tokens.destructive, fontSize: 13 }}>{error}</Text> : null}
+    </View>
+  );
+}
+
+function WorkingStatus({
+  label,
+  startedAt,
+  showElapsed,
+  onStop,
+  disabled,
+}: {
+  label: string;
+  startedAt?: number;
+  showElapsed: boolean;
+  onStop?: () => void;
+  disabled?: boolean;
+}) {
+  const { t } = useI18n();
+  const tokens = useMobileTokens();
+  const elapsed = useElapsed(startedAt);
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: CHAT_ACTIVITY.gap,
+        marginLeft: CHAT_ACTIVITY.gap,
+        flex: 1,
+        minWidth: 0,
+      }}
+    >
+      <Text
+        style={{ color: tokens.mutedForeground, fontSize: CHAT_ACTIVITY.fontSize, flexShrink: 1 }}
+      >
+        {label}
+      </Text>
+      {showElapsed ? (
+        <Text
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+          style={{
+            color: tokens.mutedForeground,
+            fontSize: CHAT_ACTIVITY.timerFontSize,
+            fontVariant: ["tabular-nums"],
+            flexShrink: 0,
+          }}
+        >
+          {elapsed}
+        </Text>
+      ) : null}
+      {onStop ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("Stop")}
+          disabled={disabled}
+          onPress={onStop}
+          style={{
+            width: 44,
+            height: 44,
+            flexShrink: 0,
+            backgroundColor: tokens.primary,
+            borderRadius: 22,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: disabled ? 0.5 : 1,
+          }}
+        >
+          <NativeSymbol ios="stop.fill" android="stop" size={15} color={tokens.primaryForeground} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }

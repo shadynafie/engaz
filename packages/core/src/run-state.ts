@@ -30,6 +30,11 @@ export function assertTransition(from: RunStatus, to: RunStatus): void {
   }
 }
 
+/** Work is executing or queued, rather than waiting for a person. */
+export function isExecuting(status: string | undefined): boolean {
+  return status === "queued" || status === "leased" || status === "running";
+}
+
 export function isActive(status: RunStatus): boolean {
   return (ACTIVE_RUN_STATUSES as readonly RunStatus[]).includes(status);
 }

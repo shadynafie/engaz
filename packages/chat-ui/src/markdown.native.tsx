@@ -1,8 +1,7 @@
-import { type ColorTokens, darkTokens, type ResolvedAppearance } from "@engaz/ui-tokens";
-import Markdown, {
-  MarkdownStream,
-  type RenderRules,
-} from "@ronradtke/react-native-markdown-display";
+import type { ColorTokens, ResolvedAppearance } from "@engaz/ui-tokens";
+import { CHAT_BUBBLE, darkTokens } from "@engaz/ui-tokens";
+import type { RenderRules } from "@ronradtke/react-native-markdown-display";
+import Markdown, { MarkdownStream } from "@ronradtke/react-native-markdown-display";
 import { memo, useMemo } from "react";
 import { Linking, StyleSheet, Text, View } from "react-native";
 import type { ChatMarkdownProps } from "./markdown";
@@ -12,8 +11,8 @@ function markdownStyles(palette: ColorTokens) {
   return StyleSheet.create({
     body: {
       color: palette.foreground,
-      fontSize: 15.5,
-      lineHeight: 23,
+      fontSize: CHAT_BUBBLE.fontSize,
+      lineHeight: CHAT_BUBBLE.lineHeight,
       width: "100%",
       minWidth: 0,
       flexShrink: 1,

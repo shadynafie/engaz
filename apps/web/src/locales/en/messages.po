@@ -573,6 +573,9 @@ msgstr "Choose a bot shape, color, or upload an image"
 msgid "Choose a bot…"
 msgstr "Choose a bot…"
 
+msgid "Choose a model"
+msgstr "Choose a model"
+
 msgid "Choose a new password"
 msgstr "Choose a new password"
 
@@ -703,6 +706,9 @@ msgstr "Connect"
 
 msgid "Connect a model"
 msgstr "Connect a model"
+
+msgid "Connect a model to continue."
+msgstr "Connect a model to continue."
 
 msgid "Connect API key"
 msgstr "Connect API key"
@@ -2649,8 +2655,20 @@ msgstr "Test run"
 msgid "The API did not come back. Refresh this page."
 msgstr "The API did not come back. Refresh this page."
 
+msgid "The model connection has reached its usage limit."
+msgstr "The model connection has reached its usage limit."
+
+msgid "The model connection was rejected."
+msgstr "The model connection was rejected."
+
+msgid "The run could not finish."
+msgstr "The run could not finish."
+
 msgid "The selected memory provider is not available in this build."
 msgstr "The selected memory provider is not available in this build."
+
+msgid "The service is unavailable. Try again."
+msgstr "The service is unavailable. Try again."
 
 msgid "Thinking"
 msgstr "Thinking"
@@ -2678,6 +2696,9 @@ msgstr "This file is not valid UTF-8 Markdown."
 
 msgid "this Mac"
 msgstr "this Mac"
+
+msgid "This model cannot run this request."
+msgstr "This model cannot run this request."
 
 msgid "This permanently removes every message and stops current work. The chat remains available."
 msgstr "This permanently removes every message and stops current work. The chat remains available."

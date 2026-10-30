@@ -76,7 +76,17 @@ export async function startModelEmulator(options: {
       assert.equal(body.model, modelId, "Model routing changed");
       assert.equal(body.stream, true, "Expected streaming model request");
       assert.ok(Array.isArray(body.messages), "Expected model messages");
-      const step = options.steps[stepIndex++];
+      // The completion supervisor is a separate, tool-free call after a scripted
+      // agent answer. Keep the existing action script strict while answering
+      // this one known harness request deterministically.
+      const system = body.messages.find((message) => message.role === "system")?.content;
+      const completionReview = JSON.stringify(system ?? "").includes(
+        "You check whether an AI agent may finish its current task.",
+      );
+      if (completionReview) assert.ok(!body.tools?.length, "Review must not expose tools");
+      const step: ModelEmulatorStep | undefined = completionReview
+        ? { expect: () => undefined, response: { type: "text", text: '{"status":"complete"}' } }
+        : options.steps[stepIndex++];
       assert.ok(step, `Unexpected model request ${stepIndex}`);
       await step.expect(body);
       const reply = typeof step.response === "function" ? step.response(body) : step.response;

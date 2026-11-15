@@ -1380,9 +1380,18 @@ describeJourneys("required product journeys", () => {
       bot.id,
       "write a file in your home called notes/result.txt that says export-ok",
     );
+    await rpc(app, cookie, "routines/create", {
+      botId: bot.id,
+      name: "Quiet briefing",
+      prompt: "Brief me on new work needing attention",
+      crons: ["0 9 * * *"],
+      quietBriefing: true,
+      active: false,
+    });
     const manifest = await rpc<Record<string, unknown>>(app, cookie, "export/bot", {
       botId: bot.id,
     });
+    expect(manifest.routines).toContainEqual(expect.objectContaining({ quietBriefing: true }));
     const rawJson = JSON.stringify(manifest);
     expect(rawJson).toContain("export-ok");
     expect(rawJson).toContain("Be useful");

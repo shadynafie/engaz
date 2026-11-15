@@ -26,6 +26,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { ChevronLeft, Clock, GitBranch, Globe, MessageSquare, Pause, Plus, X } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { rpc } from "../lib/rpc";
+import { RoutineAppEvent } from "./RoutineAppEvent";
 import { RoutineSchedule } from "./RoutineSchedule";
 
 function toDatetimeLocalValue(date: Date): string {
@@ -62,6 +63,7 @@ const COMING_SOON = [
 ] as const;
 
 export type RoutineDraftState = {
+  quietBriefing: boolean;
   name: string;
   prompt: string;
   schedules: CronPreset[];
@@ -75,6 +77,7 @@ export type RoutineDraftState = {
 
 export function emptyRoutineDraft(): RoutineDraftState {
   return {
+    quietBriefing: false,
     name: "",
     prompt: "",
     schedules: [],
@@ -89,6 +92,7 @@ export function emptyRoutineDraft(): RoutineDraftState {
 
 export function draftFromRoutine(routine: Routine): RoutineDraftState {
   return {
+    quietBriefing: routine.quietBriefing,
     name: routine.name,
     prompt: routine.prompt,
     schedules: routine.crons.map(presetFromCron),
@@ -104,6 +108,7 @@ export function draftFromRoutine(routine: Routine): RoutineDraftState {
 export function routineTriggerSummary(routine: Routine): string {
   if (!routine.active) return t`Paused`;
   const parts: string[] = [];
+  if (routine.appEvent) parts.push(routine.appEvent.name);
   if (routine.webhookEnabled) parts.push(t`When a webhook fires`);
   if (routine.githubEnabled) parts.push(t`Git event`);
   if (routine.messageProvider === "slack") parts.push(t`Slack message`);
@@ -182,6 +187,7 @@ export function RoutineListRow({
 }
 
 export function RoutineEditor({
+  botId,
   draft,
   onChange,
   editing,
@@ -198,7 +204,9 @@ export function RoutineEditor({
   onTestRun,
   onDelete,
   onEnsureWebhook,
+  onEventSaved,
 }: {
+  botId: string;
   draft: RoutineDraftState;
   onChange: (next: RoutineDraftState) => void;
   editing: Routine | null;
@@ -215,6 +223,7 @@ export function RoutineEditor({
   onTestRun: () => void;
   onDelete: () => void;
   onEnsureWebhook: () => Promise<void>;
+  onEventSaved?: (routine: Routine) => void;
 }) {
   const { t } = useLingui();
   const fieldId = useId();
@@ -224,7 +233,8 @@ export function RoutineEditor({
     draft.schedules.length > 0 ||
     draft.webhookEnabled ||
     draft.githubEnabled ||
-    Boolean(draft.messageProvider);
+    Boolean(draft.messageProvider) ||
+    Boolean(editing?.appEvent);
   const canTest = Boolean(editing) && !saving && !running;
   const needsOneShotArm =
     editing != null && routineNeedsOneShotArm(editing, draft.schedules.map(cronFromPreset));
@@ -335,6 +345,23 @@ export function RoutineEditor({
         </div>
       ) : null}
 
+      {draft.schedules.length > 0 &&
+      !draft.webhookEnabled &&
+      !draft.githubEnabled &&
+      !draft.messageProvider &&
+      !editing?.appEvent ? (
+        <label
+          htmlFor={`${fieldId}-briefing`}
+          className="mb-5 flex items-start gap-2 text-sm text-muted-foreground"
+        >
+          <Checkbox
+            id={`${fieldId}-briefing`}
+            checked={draft.quietBriefing}
+            onCheckedChange={(checked) => onChange({ ...draft, quietBriefing: checked })}
+          />
+          <Trans>Only brief me on new work needing attention</Trans>
+        </label>
+      ) : null}
       <label htmlFor={`${fieldId}-name`} className="block text-sm text-muted-foreground">
         <Trans>Name</Trans>
         <Input
@@ -505,6 +532,15 @@ export function RoutineEditor({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {!draft.quietBriefing ? (
+          <RoutineAppEvent
+            key={editing?.id ?? "new"}
+            routine={editing}
+            draft={{ botId, name: draft.name, prompt: draft.prompt, active: draft.active }}
+            onSaved={onEventSaved}
+          />
+        ) : null}
 
         {!hasTriggers ? (
           <p className="mt-2 text-xs text-muted-foreground/70">

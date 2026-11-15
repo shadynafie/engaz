@@ -1,3 +1,4 @@
+import type { AppEventProvider } from "./app-events.js";
 import type {
   AdapterContext,
   AdapterDescriptor,
@@ -54,6 +55,7 @@ import type {
   PageBrowserResult,
   PortableFile,
   ProcessEvent,
+  RealtimeVoiceSession,
   SandboxCapabilities,
   ScreenRequest,
   ScreenSession,
@@ -188,6 +190,7 @@ export interface ConnectionAuthProvider {
 export interface ManagedConnectorProvider
   extends ConnectorProvider,
     Omit<ConnectionAuthProvider, "describe"> {
+  readonly appEvents?: AppEventProvider;
   catalog(context: AdapterContext, query?: string): Promise<ConnectorCatalogItem[]>;
   listConnectedExternalIds(context: AdapterContext): Promise<string[]>;
   connectionReady(context: AdapterContext, externalId: string): Promise<boolean>;
@@ -319,6 +322,10 @@ export interface ExecutionRunner {
 }
 
 export interface VoiceProvider {
+  createRealtimeSession?(
+    request: { apiKey: string; voiceId: string },
+    context: AdapterContext,
+  ): Promise<RealtimeVoiceSession>;
   describe(): AdapterDescriptor<VoiceCapabilities>;
   verify(apiKey: string, context: AdapterContext): Promise<VoiceVerifyResult>;
   listVoices(apiKey: string, context: AdapterContext): Promise<VoiceInfo[]>;

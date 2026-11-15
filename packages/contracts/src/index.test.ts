@@ -8,6 +8,7 @@ import {
   CreateGroupInput,
   CreateRoutineInput,
   canReactToThreadMessage,
+  ExportManifestSchema,
   McpServerConfigInput,
   MessageBlock,
   ModelConnectInputSchema,
@@ -26,6 +27,18 @@ import {
 } from "./index.js";
 
 describe("contracts", () => {
+  it("keeps briefing behavior in exports and accepts older routine exports", () => {
+    const routine = {
+      name: "Briefing",
+      prompt: "Summarize",
+      crons: ["0 9 * * *"],
+      timezone: "UTC",
+    };
+    const schema = ExportManifestSchema.shape.routines.element;
+    expect(schema.parse(routine).quietBriefing).toBe(false);
+    expect(schema.parse({ ...routine, quietBriefing: true }).quietBriefing).toBe(true);
+  });
+
   it("accepts structured live activity progress", () => {
     expect(MessageBlock.parse({ kind: "progress", text: "Using browser", activity: true })).toEqual(
       { kind: "progress", text: "Using browser", activity: true },
@@ -285,8 +298,17 @@ describe("contracts", () => {
         botId: "bot-1",
         name: "Never runs",
         prompt: "This has no trigger",
+        active: true,
       }).success,
     ).toBe(false);
+    expect(
+      CreateRoutineInput.safeParse({
+        botId: "bot-1",
+        name: "Draft",
+        prompt: "Choose an event",
+        active: false,
+      }).success,
+    ).toBe(true);
   });
 
   it("accepts bot-to-bot runs in thread snapshots and activity rows", () => {

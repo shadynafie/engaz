@@ -1,9 +1,18 @@
-import type { ThreadMessage, ThreadSnapshot } from "@engaz/contracts";
-import { isSecretAskBlock, narrateTool, speechFromBlocks, spokenDecision } from "@engaz/core";
+import { RealtimeVoice } from "@engaz/adapters/browser/realtime-voice";
+import type { ThreadMessage, ThreadSnapshot, VoiceCallRecordInput } from "@engaz/contracts";
+import {
+  appendVoiceCallLine,
+  isSecretAskBlock,
+  speechFromBlocks,
+  spokenDecision,
+  voiceCallMarkdown,
+} from "@engaz/core";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@engaz/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
+import { downloadArtifactBytes } from "../lib/artifact-open";
 import { dictation } from "../lib/dictation";
+import { rpc } from "../lib/rpc";
 import { speaker } from "../lib/tts";
 
 type Phase = "listening" | "thinking" | "speaking";
@@ -34,7 +43,26 @@ export function CallView({
   const [error, setError] = useState<string | null>(null);
   const phaseRef = useRef<Phase>("listening");
   const spokenMessage = useRef<string | null>(null);
-  const narrated = useRef(new Set<string>());
+  const initialMessages = useRef(new Set(snapshot?.messages.map((message) => message.id)));
+  const record = useRef<VoiceCallRecordInput>({
+    botId,
+    callId: crypto.randomUUID(),
+    startedAt: new Date().toISOString(),
+    endedAt: new Date().toISOString(),
+    transcript: [],
+  });
+  const [saving, setSaving] = useState(false);
+  const recordSaved = useRef(false);
+  const savePending = useRef(false);
+  const endedAt = useRef<string | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [liveAvailable, setLiveAvailable] = useState(false);
+  const [live, setLive] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const connectingRef = useRef(false);
+  const realtime = useRef<RealtimeVoice | null>(null);
+  const liveRef = useRef(false);
+  const secretPending = useRef(false);
   const closing = useRef(false);
   const snapshotRef = useRef(snapshot);
   snapshotRef.current = snapshot;
@@ -48,21 +76,98 @@ export function CallView({
     setPhase(next);
   }
 
-  function hangUp() {
+  async function hangUp() {
+    if (closing.current) return;
     closing.current = true;
     dictation.stop("cancel");
     speaker.stop();
-    onClose();
+    realtime.current?.close();
+    realtime.current = null;
+    liveRef.current = false;
+    setLive(false);
+    endedAt.current ??= new Date().toISOString();
+    record.current.endedAt = endedAt.current;
+    if (!record.current.transcript.length) {
+      onClose();
+      return;
+    }
+    setSaving(true);
+    savePending.current = true;
+    setSaveFailed(false);
+    try {
+      await rpc.voice.saveCall(record.current);
+      recordSaved.current = true;
+      onClose();
+    } catch {
+      setError(t`Could not save the call. Retry or download the transcript.`);
+      setSaveFailed(true);
+    } finally {
+      setSaving(false);
+      savePending.current = false;
+      closing.current = false;
+    }
+  }
+
+  async function startLive() {
+    if (connecting || closing.current || pendingSecretAsk(snapshotRef.current)) return;
+    setConnecting(true);
+    connectingRef.current = true;
+    setError(null);
+    dictation.stop("cancel");
+    speaker.stop();
+    const transport = new RealtimeVoice();
+    realtime.current = transport;
+    try {
+      await transport.start((signal) => rpc.voice.realtimeSession({ botId }, { signal }), {
+        muted: () => Boolean(pendingSecretAsk(snapshotRef.current)),
+        onTranscript: (text) => void handleTranscript(text),
+        onSpeaking: (speaking) => setCallPhase(speaking ? "speaking" : "listening"),
+        onCaption: setCaption,
+        onError: (message) => {
+          setError(message);
+          transport.close();
+          if (realtime.current !== transport) return;
+          realtime.current = null;
+          liveRef.current = false;
+          setLive(false);
+          setConnecting(false);
+          connectingRef.current = false;
+          // Resume the existing provider-neutral call after a broken live connection.
+          void listenRef.current();
+        },
+      });
+      if (closing.current || realtime.current !== transport) {
+        transport.close();
+        return;
+      }
+      liveRef.current = true;
+      setLive(true);
+      setCallPhase("listening");
+      transport.setMuted(Boolean(pendingSecretAsk(snapshotRef.current)));
+    } catch (err) {
+      setConnecting(false);
+      connectingRef.current = false;
+      setError(err instanceof Error ? err.message : t`Could not start live voice`);
+      realtime.current = null;
+      void listen();
+    } finally {
+      setConnecting(false);
+      connectingRef.current = false;
+    }
   }
 
   function interrupt() {
+    if (liveRef.current) {
+      realtime.current?.interrupt();
+      return;
+    }
     if (phaseRef.current === "speaking") speaker.stop();
     else dictation.stop("cancel");
     void listen();
   }
 
   async function listen() {
-    if (closing.current) return;
+    if (closing.current || liveRef.current || connectingRef.current) return;
     if (pendingSecretAsk(snapshotRef.current)) {
       dictation.stop("cancel");
       setCallPhase("listening");
@@ -83,6 +188,9 @@ export function CallView({
     }
   }
 
+  const listenRef = useRef(listen);
+  listenRef.current = listen;
+
   async function handleTranscript(text: string) {
     if (closing.current || !text.trim()) {
       void listen();
@@ -96,6 +204,7 @@ export function CallView({
       setError(t`Hang up, then enter the code on screen.`);
       return;
     }
+    appendVoiceCallLine(record.current, "user", text);
     setHeard(text);
     setCallPhase("thinking");
     const askId = latestAskId(current);
@@ -118,8 +227,15 @@ export function CallView({
   useEffect(() => {
     closing.current = false;
     spokenMessage.current = null;
-    narrated.current.clear();
+    void rpc.voice
+      .realtimeOptions()
+      .then((options) => {
+        if (!closing.current)
+          setLiveAvailable(options.available && typeof RTCPeerConnection !== "undefined");
+      })
+      .catch(() => undefined);
     const unsubSpeech = speaker.subscribe((state) => {
+      if (liveRef.current) return;
       if (state.status === "speaking") {
         setCallPhase("speaking");
         setCaption(state.caption ?? "");
@@ -142,6 +258,18 @@ export function CallView({
       unsubDictation();
       dictation.stop("cancel");
       speaker.stop();
+      realtime.current?.close();
+      // A route change still keeps the call transcript; explicit hangup offers retry on failure.
+      if (record.current.transcript.length && !savePending.current && !recordSaved.current) {
+        record.current.endedAt = new Date().toISOString();
+        void rpc.voice.saveCall(record.current).catch(() => {
+          downloadArtifactBytes(
+            "voice-call.md",
+            "text/markdown",
+            new TextEncoder().encode(voiceCallMarkdown(record.current, botName)),
+          );
+        });
+      }
     };
   }, [botId]);
 
@@ -161,65 +289,41 @@ export function CallView({
   }, []);
 
   useEffect(() => {
-    if (closing.current || phaseRef.current === "listening") return;
+    if (closing.current || saving || saveFailed || connecting) return;
     const messages = snapshot?.messages ?? [];
+    const runActive =
+      snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status);
+    if (runActive) return;
     const lastBot = [...messages].reverse().find((message) => message.role === "bot");
-    if (lastBot && lastBot.id !== spokenMessage.current) {
-      const text = speechFromBlocks(lastBot.blocks);
-      const ask = lastBot.blocks.find(
-        (block) => block.kind === "ask" && block.status !== "answered",
-      );
-      const secretAsk = ask && isSecretAskBlock(ask);
-      if (text) {
-        spokenMessage.current = lastBot.id;
-        dictation.stop("cancel");
-        void speaker.speak(
-          secretAsk
-            ? `${text}. ${secretPromptRef.current}`
-            : ask
-              ? `${text}. ${askPromptRef.current}`
-              : text,
-          {
-            botId,
-            messageId: lastBot.id,
-          },
-        );
-        return;
-      }
-      const runActive =
-        snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status);
-      if (!runActive) {
-        spokenMessage.current = lastBot.id;
-        void listen();
-        return;
-      }
+    if (!lastBot || lastBot.id === spokenMessage.current) return;
+    const ask = lastBot.blocks.find((block) => block.kind === "ask" && block.status !== "answered");
+    if (initialMessages.current.has(lastBot.id) && !ask) return;
+    const text = speechFromBlocks(lastBot.blocks);
+    if (!text) return;
+    spokenMessage.current = lastBot.id;
+    const secretAsk = ask && isSecretAskBlock(ask);
+    const spoken = secretAsk
+      ? `${text}. ${secretPromptRef.current}`
+      : ask
+        ? `${text}. ${askPromptRef.current}`
+        : text;
+    if (!secretAsk) appendVoiceCallLine(record.current, "assistant", spoken);
+    if (liveRef.current) realtime.current?.speak(spoken);
+    else {
+      dictation.stop("cancel");
+      void speaker.speak(spoken, { botId, messageId: lastBot.id });
     }
-    if (snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status)) {
-      const phrases: string[] = [];
-      let lastKey = "";
-      for (const message of messages) {
-        for (const block of message.blocks) {
-          if (block.kind !== "progress" && block.kind !== "subagent") continue;
-          const key = `${message.id}:${block.kind}:${block.kind === "subagent" ? block.status : block.text}`;
-          if (narrated.current.has(key)) continue;
-          const phrase =
-            block.kind === "subagent"
-              ? narrateTool("run_subagent")
-              : (narrateTool(block.text.split(/\s+/)[0] ?? "") ?? speakableProgress(block.text));
-          if (!phrase) continue;
-          narrated.current.add(key);
-          phrases.push(phrase);
-          lastKey = key;
-        }
-      }
-      if (phrases.length) {
-        void speaker.speak(phrases.join(". "), { botId, messageId: `narrate:${lastKey}` });
-      }
-    }
-  }, [snapshot, botId]);
+  }, [snapshot, botId, connecting, saving, saveFailed]);
 
   useEffect(() => {
-    if (!pendingSecretAsk(snapshot)) return;
+    const secret = Boolean(pendingSecretAsk(snapshot));
+    realtime.current?.setMuted(secret);
+    const resumed = secretPending.current && !secret;
+    secretPending.current = secret;
+    if (!secret) {
+      if (resumed) void listenRef.current();
+      return;
+    }
     dictation.stop("cancel");
     setHeard("");
   }, [snapshot]);
@@ -237,6 +341,16 @@ export function CallView({
         className="max-w-[420px] rounded-3xl p-6 text-center sm:max-w-[420px]"
       >
         <DialogHeader className="items-center gap-2">
+          {liveAvailable && !live && !saveFailed ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={connecting || saving || Boolean(pendingSecretAsk(snapshot))}
+              onClick={() => void startLive()}
+            >
+              {connecting ? <Trans>Connecting…</Trans> : <Trans>Live voice</Trans>}
+            </Button>
+          ) : null}
           <div className="text-[13px] uppercase tracking-[0.12em] text-muted-foreground/80">
             <Trans>Call</Trans>
           </div>
@@ -256,12 +370,44 @@ export function CallView({
         </p>
         {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
         <div className="mt-2 flex justify-center gap-3">
-          <Button variant="outline" className="rounded-full" onClick={interrupt}>
+          <Button
+            variant="outline"
+            className="rounded-full"
+            disabled={saving || saveFailed || connecting}
+            onClick={interrupt}
+          >
             <Trans>Interrupt</Trans>
           </Button>
-          <Button variant="destructive" className="rounded-full" onClick={hangUp}>
-            <Trans>Hang up</Trans>
+          <Button
+            variant="destructive"
+            className="rounded-full"
+            disabled={saving || connecting}
+            onClick={() => void hangUp()}
+          >
+            {saving ? (
+              <Trans>Saving…</Trans>
+            ) : saveFailed ? (
+              <Trans>Retry save</Trans>
+            ) : (
+              <Trans>Hang up</Trans>
+            )}
           </Button>
+          {saveFailed ? (
+            <Button
+              variant="outline"
+              onClick={() => {
+                downloadArtifactBytes(
+                  "voice-call.md",
+                  "text/markdown",
+                  new TextEncoder().encode(voiceCallMarkdown(record.current, botName)),
+                );
+                record.current.transcript = [];
+                onClose();
+              }}
+            >
+              <Trans>Download and close</Trans>
+            </Button>
+          ) : null}
         </div>
         <p className="text-xs text-muted-foreground/80">
           <Trans>Space interrupts · Esc hangs up</Trans>
@@ -289,10 +435,4 @@ function latestAskId(snapshot: ThreadSnapshot | null): string | null {
     }
   }
   return null;
-}
-
-function speakableProgress(text: string): string | null {
-  const trimmed = text.trim();
-  if (!trimmed || trimmed.length > 80) return null;
-  return trimmed;
 }

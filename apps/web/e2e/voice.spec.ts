@@ -1,7 +1,25 @@
+import type { Route } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { captureScreenshot, completeOnboarding, openUserSettings, rpc, signup } from "./helpers";
 
 test("voice settings connect a key, speak a reply, and open a call", async ({ page }, testInfo) => {
+  await page.addInitScript(() => {
+    class SpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = "en-US";
+      onresult: ((event: unknown) => void) | null = null;
+      onerror = null;
+      onend = null;
+      start() {
+        (window as unknown as { callRecognition: SpeechRecognition }).callRecognition = this;
+      }
+      stop() {}
+      abort() {}
+    }
+    (window as unknown as { SpeechRecognition: typeof SpeechRecognition }).SpeechRecognition =
+      SpeechRecognition;
+  });
   const stamp = Date.now();
   const userName = `Voice ${stamp}`;
   await signup(page, `voice-${stamp}@engaz.test`, "password12", userName);
@@ -83,8 +101,74 @@ test("voice settings connect a key, speak a reply, and open a call", async ({ pa
     .click();
   await expect(page.getByTestId("call-view")).toBeVisible();
   await expect(page.getByRole("button", { name: "Hang up" })).toBeVisible();
-  await page.getByRole("button", { name: "Hang up" }).click();
-  await expect(page.getByTestId("call-view")).toHaveCount(0);
+  await captureScreenshot(page, testInfo, "voice-call");
+  let resumeSend!: () => void;
+  const sendGate = new Promise<void>((resolve) => {
+    resumeSend = resolve;
+  });
+  let finishSend!: () => void;
+  const sendHandlerDone = new Promise<void>((resolve) => {
+    finishSend = resolve;
+  });
+  const delaySend = async (route: Route) => {
+    try {
+      await sendGate;
+      await route.continue();
+    } finally {
+      finishSend();
+    }
+  };
+  await page.route("**/rpc/threads/send", delaySend);
+  const sending = page.waitForRequest("**/rpc/threads/send");
+  await page.evaluate(() => {
+    const recognition = (
+      window as unknown as { callRecognition: { onresult: (event: unknown) => void } }
+    ).callRecognition;
+    recognition.onresult({
+      resultIndex: 0,
+      results: [[{ transcript: "voice call record check" }]],
+    });
+  });
+  await expect(
+    page.getByTestId("call-view").getByText("voice call record check", { exact: true }),
+  ).toBeVisible();
+  // Hang up while submission is held: the spoken words must already be in the saved call.
+  await sending;
+  const callBots = await rpc<Array<{ id: string }>>(page, "bots/list", {});
+  try {
+    await page.getByRole("button", { name: "Hang up" }).click();
+    await expect(page.getByTestId("call-view")).toHaveCount(0);
+    const callFiles = await rpc<Array<{ id: string; name: string }>>(page, "artifacts/list", {
+      botId: callBots[0]!.id,
+    });
+    const callRecord = callFiles.find((file) => file.name.startsWith("voice-call-"));
+    expect(callRecord).toBeDefined();
+    const savedCall = await rpc<{ contentBase64: string }>(page, "artifacts/get", {
+      botId: callBots[0]!.id,
+      artifactId: callRecord!.id,
+    });
+    const markdown = Buffer.from(savedCall.contentBase64, "base64").toString("utf8");
+    expect(markdown).toContain("voice call record check");
+    expect(markdown).toContain("## Summary");
+    expect(markdown).not.toContain("fake-scripted-voice-key");
+  } finally {
+    resumeSend();
+    await sendHandlerDone;
+    await page.unroute("**/rpc/threads/send", delaySend);
+  }
+  // Finishing the call does not cancel the request already handed to the same agent.
+  await expect
+    .poll(async () => {
+      const snapshot = await rpc<{
+        messages: Array<{ blocks: Array<{ kind: string; text?: string }> }>;
+      }>(page, "threads/get", { botId: callBots[0]!.id });
+      return snapshot.messages.some((message) =>
+        message.blocks.some(
+          (block) => block.kind === "text" && block.text === "voice call record check",
+        ),
+      );
+    })
+    .toBe(true);
 
   await openUserSettings(page, "voice");
   const settings = page.getByTestId("voice-settings");

@@ -1690,6 +1690,37 @@ describe("answerRunInput", () => {
 });
 
 describe("sendUserMessage", () => {
+  it("runs the acceptance guard inside the locked message transaction before creating work", async () => {
+    const tx = {
+      thread: { update: vi.fn().mockResolvedValue({ nextMessageSeq: 2 }) },
+      message: { create: vi.fn().mockResolvedValue({ id: "message", seq: 1 }) },
+      task: { create: vi.fn() },
+      run: { create: vi.fn() },
+      event: { create: vi.fn() },
+    };
+    const beforeAccept = vi.fn(async (client) => {
+      expect(client).toBe(tx);
+      expect(tx.message.create).toHaveBeenCalledOnce();
+      throw new Error("revoked before acceptance");
+    });
+    const prisma = { $transaction: vi.fn(async (fn) => fn(tx)) } as unknown as PrismaClient;
+    await expect(
+      sendUserMessage(prisma, {
+        spaceId: "space",
+        threadId: "thread",
+        botId: "bot",
+        userId: "owner",
+        blocks: [{ kind: "text", text: "event" }],
+        prompt: "event",
+        trigger: "webhook",
+        beforeAccept,
+      }),
+    ).rejects.toThrow("revoked before acceptance");
+    expect(beforeAccept).toHaveBeenCalledOnce();
+    expect(tx.task.create).not.toHaveBeenCalled();
+    expect(tx.event.create).not.toHaveBeenCalled();
+  });
+
   it("creates the message, run, and event in one transaction and publishes once", async () => {
     const fanout = new TestFanout();
     const publish = vi.spyOn(fanout, "publish");

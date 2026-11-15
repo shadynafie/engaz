@@ -80,6 +80,7 @@ export default function RoutineDetail() {
                 routine.active ? t("Active") : t("Paused"),
                 [
                   ...routine.crons,
+                  ...(routine.appEvent ? [routine.appEvent.name] : []),
                   ...(routine.webhookEnabled ? [t("Webhook")] : []),
                   ...(routine.githubEnabled ? [t("Git event")] : []),
                   ...(routine.messageProvider === "slack"
@@ -94,6 +95,16 @@ export default function RoutineDetail() {
               ].join(" · ")}
             </Text>
           </View>
+          {routine.quietBriefing ? (
+            <Text style={{ color: tokens.mutedForeground }}>
+              {t("Only briefs on new work needing attention")}
+            </Text>
+          ) : null}
+          {routine.appEvent ? (
+            <Text style={{ color: tokens.mutedForeground }}>
+              {t("Manage app events in the web app")}
+            </Text>
+          ) : null}
           {routine.pauseReason ? (
             <Text style={{ color: tokens.warning }}>{routine.pauseReason}</Text>
           ) : null}

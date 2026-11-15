@@ -198,6 +198,7 @@ async function ensureSpawnRun(
 }
 
 type BotLifecycleDeps = {
+  cleanupAppEvent?: (binding: unknown) => Promise<void>;
   prisma: PrismaClient;
   sandbox: SandboxProvider;
   home: AgentHomeStore;
@@ -416,6 +417,9 @@ export async function destroyBot(
           memoriesPreserved: !options.deleteMemories,
         },
       });
+      const appEvents = deps.cleanupAppEvent
+        ? await tx.routine.findMany({ where: { botId: bot.id }, select: { appEvent: true } })
+        : [];
       await tx.bot.delete({ where: { id: bot.id } });
       if (webhookSecretId) {
         await tx.secret.deleteMany({
@@ -429,6 +433,7 @@ export async function destroyBot(
           ...groupCleanup.artifactKeys,
         ],
         cancelledGroupRuns: groupCleanup.cancelledRuns,
+        appEvents,
       };
     }),
   );
@@ -464,6 +469,13 @@ export async function destroyBot(
   const artifactStore = deps.artifacts;
   if (artifactStore) {
     await removeStoredArtifacts(artifactStore, deletion.artifactKeys, context);
+  }
+  const eventCleanup = await Promise.allSettled(
+    deletion.appEvents.map((routine) => deps.cleanupAppEvent?.(routine.appEvent)),
+  );
+  for (const result of eventCleanup) {
+    if (result.status === "rejected")
+      getLogger().error("App event cleanup after bot deletion failed", result.reason);
   }
 }
 

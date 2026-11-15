@@ -119,6 +119,8 @@ export default function Layout() {
                 <Stack.Screen name="group-thread" options={{ title: t("Group") }} />
                 <Stack.Screen name="group-settings" options={{ title: t("Group settings") }} />
                 <Stack.Screen name="bot-settings" options={{ title: t("Chat settings") }} />
+                <Stack.Screen name="files" options={{ title: t("Files") }} />
+                <Stack.Screen name="memory" options={{ title: t("Memory") }} />
                 <Stack.Screen name="skills" options={{ title: t("Skills") }} />
                 <Stack.Screen name="thread" options={{ title: t("Thread") }} />
                 <Stack.Screen name="routine" options={{ title: t("Routine") }} />

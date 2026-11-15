@@ -351,7 +351,18 @@ export const UpdateBotInput = z
     }
   });
 
+export const AppEventBindingSchema = z.object({
+  connectionId: Id,
+  provider: z.string(),
+  triggerId: z.string(),
+  event: z.string(),
+  name: z.string(),
+});
+export type AppEventBinding = z.infer<typeof AppEventBindingSchema>;
+
 export const RoutineSchema = z.object({
+  quietBriefing: z.boolean().default(false),
+  appEvent: AppEventBindingSchema.nullable().default(null),
   id: Id,
   botId: Id,
   name: z.string(),
@@ -380,6 +391,7 @@ export type Routine = z.infer<typeof RoutineSchema>;
 
 export const CreateRoutineInput = z
   .object({
+    quietBriefing: z.boolean().default(false),
     botId: Id,
     skipStale: z.boolean().default(true),
     name: z.string().min(1).max(80),
@@ -400,6 +412,17 @@ export const CreateRoutineInput = z
   })
   .superRefine((value, ctx) => {
     if (
+      value.quietBriefing &&
+      (!value.crons.length || value.webhookEnabled || value.githubEnabled || value.messageProvider)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Quiet briefings use schedules only.",
+        path: ["quietBriefing"],
+      });
+    }
+    if (
+      value.active &&
       value.crons.length === 0 &&
       !value.webhookEnabled &&
       !value.githubEnabled &&
@@ -750,6 +773,8 @@ export const ArtifactSchema = z.object({
   size: z.number().int(),
   createdAt: z.string(),
 });
+
+export type Artifact = z.infer<typeof ArtifactSchema>;
 
 export const ArtifactWithContentSchema = ArtifactSchema.extend({
   contentBase64: z.string(),
@@ -1261,7 +1286,15 @@ export const ExportManifestSchema = z.object({
   exportedAt: z.string(),
   bot: BotSchema.pick({ name: true, title: true, description: true, instructions: true }),
   memory: z.array(z.object({ path: z.string(), content: z.string() })),
-  routines: z.array(RoutineSchema.pick({ name: true, prompt: true, crons: true, timezone: true })),
+  routines: z.array(
+    RoutineSchema.pick({
+      name: true,
+      prompt: true,
+      crons: true,
+      timezone: true,
+      quietBriefing: true,
+    }),
+  ),
   files: z.array(z.object({ path: z.string(), content: z.string() })),
   history: z.array(ThreadMessageSchema),
 });

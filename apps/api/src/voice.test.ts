@@ -3,6 +3,7 @@ import type { PrismaClient } from "@engaz/db";
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 import {
+  createRealtimeVoiceSession,
   disconnectVoiceCredential,
   MAX_SPEAK_REQUEST_BYTES,
   MAX_TRANSCRIBE_REQUEST_BYTES,
@@ -270,5 +271,25 @@ describe("disconnectVoiceCredential", () => {
       },
     );
     expect(transaction).not.toHaveBeenCalled();
+  });
+});
+
+describe("live voice ownership", () => {
+  it("refuses another bot before loading any credential or contacting the provider", async () => {
+    const findFirst = vi.fn().mockResolvedValue(null);
+    const load = vi.fn();
+    await expect(
+      createRealtimeVoiceSession(
+        { prisma: { bot: { findFirst } }, secrets: { load } } as unknown as VoiceDeps,
+        actor,
+        { botId: "other-bot" },
+      ),
+    ).rejects.toThrow();
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "other-bot", userId: actor.userId, spaceId: actor.spaceId },
+      }),
+    );
+    expect(load).not.toHaveBeenCalled();
   });
 });

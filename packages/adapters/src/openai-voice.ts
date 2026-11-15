@@ -1,6 +1,7 @@
 import type {
   AdapterContext,
   AdapterDescriptor,
+  RealtimeVoiceSession,
   SpeechClip,
   VoiceCapabilities,
   VoiceInfo,
@@ -44,6 +45,52 @@ export class OpenAIVoiceProvider implements VoiceProvider {
       contractVersion: "1",
       adapterVersion: "0.1.0",
       capabilities: { catalog: true, synthesize: true, transcribe: true },
+    };
+  }
+
+  async createRealtimeSession(
+    request: { apiKey: string; voiceId: string },
+    context: AdapterContext,
+  ): Promise<RealtimeVoiceSession> {
+    const voices = new Set(["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse"]);
+    const signal = voiceDeadline(context.signal, 15_000);
+    const res = await fetch(`${API}/realtime/client_secrets`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${request.apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        expires_after: { anchor: "created_at", seconds: 60 },
+        session: {
+          type: "realtime",
+          model: "gpt-realtime-2.1-mini",
+          instructions:
+            "You are the spoken voice of an Engaz agent. Never answer microphone input independently. When given a passage to read, read only that passage without adding claims or taking actions.",
+          audio: {
+            input: {
+              transcription: { model: "gpt-4o-mini-transcribe" },
+              turn_detection: {
+                type: "server_vad",
+                create_response: false,
+                interrupt_response: true,
+              },
+            },
+            output: { voice: voices.has(request.voiceId) ? request.voiceId : "alloy" },
+          },
+          tools: [],
+        },
+      }),
+      signal,
+    });
+    const body = await readVoiceJson(res, { requireValid: res.ok });
+    if (!res.ok) throw new Error(voiceHttpError(res.status, "OpenAI", "starting live voice", body));
+    const value = body as { value?: unknown; expires_at?: unknown };
+    if (typeof value.value !== "string" || !value.value || typeof value.expires_at !== "number") {
+      throw new Error("The voice service returned an invalid session.");
+    }
+    return {
+      transport: "openai-webrtc",
+      clientSecret: value.value,
+      expiresAt: value.expires_at,
+      endpoint: `${API}/realtime/calls`,
     };
   }
 

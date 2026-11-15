@@ -191,6 +191,8 @@ export interface AnswerRunInput {
 }
 
 export interface SendUserMessageInput {
+  /** Trusted server check inside the thread-locked transaction, before accepting work. */
+  beforeAccept?: (tx: Prisma.TransactionClient) => Promise<void>;
   spaceId: string;
   threadId: string;
   botId: string;
@@ -378,6 +380,7 @@ export async function sendUserMessage(
         blocks: input.blocks,
         clientNonce: input.clientNonce,
       });
+      await input.beforeAccept?.(tx);
       const createRun = input.createRun !== false;
       const busy =
         createRun && !input.allowParallelRun

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { JobPublisher } from "@engaz/adapter-kit";
 import { runContinueJob } from "@engaz/adapter-kit";
 import type { EncryptedSecretStore } from "@engaz/adapters";
-import type { PrismaClient } from "@engaz/db";
+import type { Prisma, PrismaClient } from "@engaz/db";
 import { getLogger } from "@engaz/logging";
 
 export const WEBHOOK_MAX_BODY_BYTES = 64 * 1024;
@@ -19,6 +19,7 @@ export type WebhookEvents = {
     trigger: "webhook";
     clientNonce?: string;
     allowParallelRun?: boolean;
+    beforeAccept?: (tx: Prisma.TransactionClient) => Promise<void>;
   }): Promise<{ messageId: string; runId: string | null; seq: number }>;
 };
 
@@ -158,6 +159,7 @@ export async function deliverWebhookEvent(
     idempotencyKey?: string;
     /** Messaging wakes share the live chat thread; keep a separate webhook run. */
     allowParallelRun?: boolean;
+    beforeAccept?: (tx: Prisma.TransactionClient) => Promise<void>;
   },
 ) {
   const promptText =
@@ -190,6 +192,7 @@ export async function deliverWebhookEvent(
     trigger: "webhook",
     clientNonce,
     ...(input.allowParallelRun ? { allowParallelRun: true } : {}),
+    ...(input.beforeAccept ? { beforeAccept: input.beforeAccept } : {}),
   });
 
   if (sent.runId) {

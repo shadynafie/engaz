@@ -328,7 +328,10 @@ function findAccountIndex(refs: readonly string[], connectionRef: string): numbe
 }
 
 /** Deterministic, offline Composio catalog and connection emulator for product tests. */
+import { AppEventEmulator } from "./app-event-emulator.js";
+
 export class ComposioEmulator implements ComposioProvider {
+  readonly appEvents = new AppEventEmulator();
   private readonly connectedByUser = new Map<string, string[]>();
   private readonly mailboxesByUser = new Map<string, Mailbox>();
   private githubReleases: EmulatedGithubRelease[] = [...DEFAULT_ENGAZ_EMULATED_RELEASES];

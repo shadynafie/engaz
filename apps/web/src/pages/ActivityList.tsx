@@ -69,7 +69,12 @@ export function ActivityList({ onOpenRun }: ActivityListProps) {
   return (
     <div className="mb-2 border-b border-border pb-2">
       {detailRun ? (
-        <ActivityDetails run={detailRun} onClose={() => setDetailRun(null)} onOpenRun={onOpenRun} />
+        <ActivityDetails
+          runId={detailRun.runId}
+          run={detailRun}
+          onClose={() => setDetailRun(null)}
+          onOpenRun={onOpenRun}
+        />
       ) : null}
       {activeRuns.length > 0 ? (
         <section>
@@ -160,21 +165,25 @@ function ActivityRow({
   );
 }
 
-function ActivityDetails({
+export function ActivityDetails({
+  runId,
   run,
   onClose,
   onOpenRun,
 }: {
-  run: RunActivityRow;
+  runId: string;
+  run?: RunActivityRow;
   onClose: () => void;
-  onOpenRun: (run: RunActivityRow) => void;
+  onOpenRun?: (run: RunActivityRow) => void;
 }) {
   const [details, setDetails] = useState<RunActivityDetails | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let cancelled = false;
+    setDetails(null);
+    setFailed(false);
     void rpc.runs
-      .details({ runId: run.runId })
+      .details({ runId })
       .then((value) => {
         if (!cancelled) setDetails(value);
       })
@@ -184,7 +193,7 @@ function ActivityDetails({
     return () => {
       cancelled = true;
     };
-  }, [run.runId]);
+  }, [runId]);
   return (
     <Dialog
       open
@@ -235,25 +244,33 @@ function ActivityDetails({
                   <dd>{details.routine.name}</dd>
                 </>
               ) : null}
-              <dt className="text-muted-foreground">
-                <Trans>Task</Trans>
-              </dt>
-              <dd>{run.promptSnippet}</dd>
+              {run ? (
+                <>
+                  <dt className="text-muted-foreground">
+                    <Trans>Task</Trans>
+                  </dt>
+                  <dd>{run.promptSnippet}</dd>
+                </>
+              ) : null}
               {details.source ? (
                 <>
                   <dt className="text-muted-foreground">
                     <Trans>Source</Trans>
                   </dt>
                   <dd>
-                    <Button
-                      variant="link"
-                      onClick={() => {
-                        onOpenRun({ ...run, ...details.source! });
-                        onClose();
-                      }}
-                    >
-                      {details.source.botName}
-                    </Button>
+                    {run && onOpenRun ? (
+                      <Button
+                        variant="link"
+                        onClick={() => {
+                          onOpenRun({ ...run, ...details.source! });
+                          onClose();
+                        }}
+                      >
+                        {details.source.botName}
+                      </Button>
+                    ) : (
+                      details.source.botName
+                    )}
                   </dd>
                 </>
               ) : null}

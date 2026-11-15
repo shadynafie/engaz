@@ -391,6 +391,30 @@ export default function BotSettingsScreen() {
           <Text style={{ color: tokens.foreground, fontSize: 15 }}>{t("Skills")}</Text>
           <Text style={{ color: tokens.mutedForeground, fontSize: 18 }}>›</Text>
         </Pressable>
+        {(["files", "memory"] as const).map((screen) => (
+          <Pressable
+            key={screen}
+            accessibilityRole="button"
+            onPress={() =>
+              botId &&
+              router.push({
+                pathname: screen === "files" ? "/files" : "/memory",
+                params: { botId },
+              })
+            }
+            style={{
+              minHeight: 48,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text style={{ color: tokens.foreground, fontSize: 15 }}>
+              {screen === "files" ? t("Files") : t("Memory")}
+            </Text>
+            <Text style={{ color: tokens.mutedForeground, fontSize: 18 }}>›</Text>
+          </Pressable>
+        ))}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("Advanced")}

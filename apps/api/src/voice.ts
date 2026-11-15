@@ -248,6 +248,27 @@ export async function prepareVoice(
   return { ready: true, utterances: toUtterances(input.text) };
 }
 
+export async function realtimeVoiceAvailable(deps: VoiceDeps, actor: Actor): Promise<boolean> {
+  const loaded = await loadDefaultVoiceCredential(deps, actor);
+  return Boolean(loaded && createVoiceProvider(loaded.cred.provider).createRealtimeSession);
+}
+
+export async function createRealtimeVoiceSession(
+  deps: VoiceDeps,
+  actor: Actor,
+  input: { botId: string; signal?: AbortSignal },
+) {
+  const target = await resolveVoiceTarget(deps, actor, input);
+  const provider = createVoiceProvider(target.cred.provider);
+  if (!provider.createRealtimeSession) {
+    throw new ORPCError("BAD_REQUEST", { message: "This provider does not offer live voice." });
+  }
+  return provider.createRealtimeSession(
+    { apiKey: target.apiKey, voiceId: target.voiceId },
+    voiceContext(actor, input.signal),
+  );
+}
+
 export async function synthesizeVoice(
   deps: VoiceDeps,
   actor: Actor,

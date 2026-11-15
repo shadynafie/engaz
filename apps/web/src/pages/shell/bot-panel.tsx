@@ -27,6 +27,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { X } from "lucide-react";
 import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { rpc } from "../../lib/rpc";
+import { FilesButton } from "../FilesDialog";
 import { AgentPlugins } from "./AgentPlugins";
 import { AgentSkills } from "./AgentSkills";
 import { AvatarStudioPopover } from "./avatar-studio-popover";
@@ -475,6 +476,9 @@ export function BotSettings({
       </div>
       <AgentPlugins botId={bot.id} onManage={onOpenPlugins} />
       <AgentSkills botId={bot.id} onSkillsChange={onSkillsChange} />
+      <div className="mt-4">
+        <FilesButton target={{ botId: bot.id }} />
+      </div>
       <details
         data-testid="bot-settings-advanced"
         className="group mt-5"

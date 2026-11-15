@@ -23,6 +23,7 @@ import {
   isSecretAskBlock,
   latestAnswerableAskMessageId,
   mentionChipKey,
+  messageWorkSummaries,
   projectMessageReactions,
   resolveComposerSendPlan,
   SLASH_ACTIONS,
@@ -69,6 +70,7 @@ import {
 } from "../components/markdown-artifact-preview";
 import { NativeSymbol } from "../components/native-symbol";
 import { RunErrorNotice } from "../components/run-error-notice";
+import { WorkSummary } from "../components/work-summary";
 import {
   applyMobileThreadEvent,
   blockText,
@@ -329,6 +331,12 @@ function Thread() {
     [snap?.messages],
   );
   const visibleMessages = reactionView.visibleMessages;
+  const workSummaries = messageWorkSummaries(
+    snap?.messages ?? [],
+    [...(snap?.activeRuns ?? []), ...(snap?.run ? [snap.run] : [])]
+      .filter((run) => !["completed", "failed", "cancelled"].includes(run.status))
+      .map((run) => run.id),
+  );
   const latestMessageId = visibleMessages.at(-1)?.id ?? null;
   const activePendingAttachments = attachmentsForThread(pendingAttachments, threadKey);
   const composerMentionTargets = useMemo(
@@ -1494,6 +1502,9 @@ function Thread() {
               actionProps={actionProps}
             />
           </Pressable>
+          {workSummaries.get(message.id) ? (
+            <WorkSummary summary={workSummaries.get(message.id)!} runId={message.runId} />
+          ) : null}
           {messageReactions ? (
             <View
               style={{

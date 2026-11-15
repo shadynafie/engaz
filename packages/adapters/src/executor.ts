@@ -254,6 +254,7 @@ import {
   renderPlotSpecToSvg,
   searchChartCatalog,
 } from "./plot-tool.js";
+import { quietBriefingContext } from "./quiet-briefing.js";
 import type { RemoteTransportDependencies } from "./remote-mcp.js";
 import { loadReplyContext, messageToAgentHistoryText } from "./reply-context.js";
 import {
@@ -1017,13 +1018,33 @@ export function createRunExecutor(deps: ExecutorDeps) {
         if (nextRunAt) await deps.jobs.enqueue(routineWakeupJob(routine.id, nextRunAt));
         return;
       }
+      const briefingSnapshotAt = new Date();
+      const briefing = routine.quietBriefing
+        ? await quietBriefingContext(deps.prisma, routine, briefingSnapshotAt)
+        : undefined;
+      if (briefing === null) {
+        const skipped = await deps.prisma.routine.updateMany({
+          where: {
+            id: routine.id,
+            active: true,
+            generation: routine.generation,
+            nextRunAt: scheduledAt,
+          },
+          data: { nextRunAt, ...(nextRunAt ? {} : { active: false }) },
+        });
+        if (skipped.count === 1 && nextRunAt)
+          await deps.jobs.enqueue(routineWakeupJob(routine.id, nextRunAt));
+        return;
+      }
       const previousLastRunAt = routine.lastRunAt;
       const skillRecords = await listAgentSkillRecords(deps.prisma, {
         spaceId: routine.spaceId,
         userId: routine.userId,
         botId: routine.botId,
       });
-      const routinePrompt = expandSkillReferencesInPrompt(routine.prompt, skillRecords);
+      const routinePrompt =
+        expandSkillReferencesInPrompt(routine.prompt, skillRecords) +
+        (briefing ? `\n\n${briefing}` : "");
       const claimed = await deps.prisma.$transaction(async (tx) => {
         const updated = await tx.routine.updateMany({
           where: {
@@ -1061,6 +1082,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             routineId: routine.id,
             routineGeneration: routine.generation,
             routineScheduledFor: scheduledAt,
+            briefingSnapshotAt: routine.quietBriefing ? briefingSnapshotAt : undefined,
           },
         });
       });
@@ -1118,6 +1140,16 @@ export function createRunExecutor(deps: ExecutorDeps) {
       const run = await deps.prisma.run.findUnique({ where: { id: runId } });
       if (!run) return;
       if (isTerminal(run.status as RunStatus)) return;
+      const quietBriefingRun = run.routineId
+        ? Boolean(
+            (
+              await deps.prisma.routine.findUnique({
+                where: { id: run.routineId },
+                select: { quietBriefing: true },
+              })
+            )?.quietBriefing,
+          )
+        : false;
       if (
         run.routineGeneration != null &&
         run.routineScheduledFor &&
@@ -1396,9 +1428,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
           payload: { trigger: run.trigger, routineId: run.routineId },
         });
 
-        const discoveredPromise = deps.connector
-          ? deps.connector.discoverTools(context)
-          : Promise.resolve([]);
+        const discoveredPromise =
+          !quietBriefingRun && deps.connector
+            ? deps.connector.discoverTools(context)
+            : Promise.resolve([]);
         const threadContext = threadContextForRun(
           run.trigger,
           {
@@ -1452,6 +1485,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             : "The delegated bot completed its turn without a written summary."
           : undefined;
         const recallPromise =
+          !quietBriefingRun &&
           threadContext.includeSemanticRecall &&
           semanticMemory &&
           memoryScope &&
@@ -1482,7 +1516,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 }),
             recallPromise,
           ]);
-        const semanticMemoryEnabled = Boolean(semanticMemory) && !messagingChannelRun;
+        const semanticMemoryEnabled =
+          Boolean(semanticMemory) && !messagingChannelRun && !quietBriefingRun;
         let recalledMemory = "";
         let recallSucceeded = false;
         if (recalled) {
@@ -1685,10 +1720,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
             .then((row) => row?.enabled ?? deploymentAutoReviewDefault());
           return autoReviewPreferencePromise;
         };
-        const tools = [...builtins, ...exposedConnectorTools];
+        const tools = quietBriefingRun ? [] : [...builtins, ...exposedConnectorTools];
         // A tool the agent was not offered this run (never granted, or taken away since) is
         // refused before approval rules run, so the owner is never asked to approve it.
-        const knownToolNames = new Set([...BUILTIN_AGENT_TOOL_NAMES, ...tools.map((t) => t.name)]);
+        const knownToolNames = new Set(
+          quietBriefingRun ? [] : [...BUILTIN_AGENT_TOOL_NAMES, ...tools.map((t) => t.name)],
+        );
         const approvedEffects = await deps.prisma.externalEffect.findMany({
           where: { runId, status: "approved" },
           orderBy: APPROVED_EFFECT_REPLAY_ORDER,

@@ -50,6 +50,10 @@ msgstr "{0} (10 MiB 초과)"
 msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
+#. placeholder {0}: summary.count
+msgid "{0} actions"
+msgstr ""
+
 #. placeholder {0}: block.name
 msgid "{0} connection"
 msgstr "{0} 연결"
@@ -129,6 +133,9 @@ msgstr "{workingBotName} 작업 중"
 #. placeholder {0}: mention.name
 msgid "@{0}"
 msgstr "@{0}"
+
+msgid "1 action"
+msgstr ""
 
 msgid "A bit of everything"
 msgstr ""
@@ -352,6 +359,9 @@ msgstr "API 키"
 
 msgid "API key header"
 msgstr "API 키 헤더"
+
+msgid "App"
+msgstr ""
 
 msgid "Appearance"
 msgstr "모양"
@@ -579,6 +589,12 @@ msgstr "모델 선택"
 msgid "Choose a new password"
 msgstr "새 비밀번호 선택"
 
+msgid "Choose an app"
+msgstr ""
+
+msgid "Choose an event"
+msgstr ""
+
 msgid "Choose file"
 msgstr "파일 선택"
 
@@ -698,6 +714,9 @@ msgstr "서버에서 설정됨"
 msgid "Confirm delete"
 msgstr "삭제 확인"
 
+msgid "Confirm forget"
+msgstr ""
+
 msgid "Confirm password"
 msgstr "비밀번호 확인"
 
@@ -710,8 +729,14 @@ msgstr "AI 모델 연결"
 msgid "Connect a model to continue."
 msgstr "계속하려면 모델을 연결하세요."
 
+msgid "Connect an app in Integrations to choose its events."
+msgstr ""
+
 msgid "Connect API key"
 msgstr "API 키 연결"
+
+msgid "Connect app event"
+msgstr ""
 
 msgid "Connect MCP server “{name}”"
 msgstr "MCP 서버 ‘{name}’ 연결"
@@ -885,6 +910,9 @@ msgstr "{name}을 다운로드하지 못했습니다. 다시 시도해 주세요
 msgid "Could not draft a lesson. Try again."
 msgstr ""
 
+msgid "Could not forget memory. Reload and try again."
+msgstr ""
+
 msgid "Could not install connector"
 msgstr "도구 연결을 추가하지 못했습니다."
 
@@ -897,7 +925,16 @@ msgstr ""
 msgid "Could not load approval rules"
 msgstr "확인 규칙을 불러오지 못했습니다."
 
+msgid "Could not load apps"
+msgstr ""
+
 msgid "Could not load bots. Reload to try again."
+msgstr ""
+
+msgid "Could not load events"
+msgstr ""
+
+msgid "Could not load files"
 msgstr ""
 
 msgid "Could not load integrations"
@@ -936,6 +973,9 @@ msgstr "음성 설정을 불러오지 못했습니다."
 msgid "Could not log out. Try again."
 msgstr ""
 
+msgid "Could not open file"
+msgstr ""
+
 msgid "Could not open local settings. Start the local server and create its owner account, then try again."
 msgstr ""
 
@@ -953,6 +993,9 @@ msgstr "삭제하지 못했습니다."
 
 msgid "Could not remove connector"
 msgstr "도구 연결을 삭제하지 못했습니다."
+
+msgid "Could not remove event"
+msgstr ""
 
 msgid "Could not remove group"
 msgstr "그룹을 삭제하지 못했습니다."
@@ -987,6 +1030,9 @@ msgstr "저장하지 못했습니다."
 msgid "Could not save Auto Review"
 msgstr "자동 검토를 저장할 수 없습니다"
 
+msgid "Could not save event"
+msgstr ""
+
 msgid "Could not save group"
 msgstr "그룹을 저장하지 못했습니다."
 
@@ -1014,6 +1060,9 @@ msgstr "목소리를 저장하지 못했습니다."
 msgid "Could not save the access token"
 msgstr ""
 
+msgid "Could not save the call. Retry or download the transcript."
+msgstr ""
+
 msgid "Could not save this choice"
 msgstr "선택 내용을 저장하지 못했습니다."
 
@@ -1028,6 +1077,9 @@ msgstr "재설정 이메일을 보낼 수 없습니다"
 
 msgid "Could not send that"
 msgstr "메시지를 보내지 못했습니다."
+
+msgid "Could not start live voice"
+msgstr ""
 
 msgid "Could not start OAuth"
 msgstr "OAuth 인증을 시작하지 못했습니다."
@@ -1245,12 +1297,16 @@ msgstr "계정이 없나요?"
 msgid "Done"
 msgstr "완료"
 
+#. placeholder {0}: file.name
 #. placeholder {0}: props.name
 msgid "Download {0}"
 msgstr "{0} 다운로드"
 
 msgid "Download {name}"
 msgstr "{name} 다운로드"
+
+msgid "Download and close"
+msgstr ""
 
 msgid "Download as markdown"
 msgstr "마크다운으로 다운로드"
@@ -1312,9 +1368,21 @@ msgstr "최대 출력 토큰 수는 1에서 {MAX_MODEL_MAX_TOKENS} 사이의 정
 msgid "Enter a whole number from 1 to 1000 for the image limit."
 msgstr "이미지 한도는 1에서 1000 사이의 정수로 입력하세요."
 
+msgid "Enter event settings as a JSON object"
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "<0>{0}</0>에서 이 코드를 입력하세요"
+
+msgid "Event"
+msgstr ""
+
+msgid "Event settings"
+msgstr ""
+
+msgid "Event settings JSON"
+msgstr ""
 
 msgid "Every"
 msgstr "매"
@@ -1343,6 +1411,9 @@ msgstr "펼치기"
 #. placeholder {0}: group.title
 msgid "Expand {0}"
 msgstr "{0} 펼치기"
+
+msgid "Experimental outbound connection. Missed events may need to be replayed."
+msgstr ""
 
 msgid "Export"
 msgstr "내보내기"
@@ -1378,6 +1449,9 @@ msgstr ""
 msgid "Failure handling"
 msgstr "실패했을 때 처리"
 
+msgid "Files"
+msgstr ""
+
 msgid "Find a server"
 msgstr ""
 
@@ -1403,6 +1477,9 @@ msgstr "MCP 연결을 마무리하는 중…"
 
 msgid "Flag unexpected actions"
 msgstr "예상하지 못한 작업 표시"
+
+msgid "Forget"
+msgstr ""
 
 msgid "Forgot password?"
 msgstr "비밀번호를 잊으셨나요?"
@@ -1617,6 +1694,9 @@ msgstr ""
 
 msgid "Listening…"
 msgstr "듣는 중…"
+
+msgid "Live voice"
+msgstr ""
 
 msgid "Load earlier messages"
 msgstr "이전 메시지 불러오기"
@@ -1883,6 +1963,12 @@ msgstr "아직 연결된 채팅 앱이 없습니다."
 msgid "No exceptions. Actions run automatically."
 msgstr "별도 확인 규칙이 없습니다. 작업이 자동으로 실행됩니다."
 
+msgid "No files match"
+msgstr ""
+
+msgid "No files yet"
+msgstr ""
+
 msgid "No group chats yet."
 msgstr "아직 그룹 채팅이 없습니다."
 
@@ -1971,6 +2057,9 @@ msgstr "일정에 따라"
 #. placeholder {0}: preset.time
 msgid "on the 1st at {0}"
 msgstr "매월 1일 {0}에"
+
+msgid "Only brief me on new work needing attention"
+msgstr ""
 
 msgid "Only empty spaces can be deleted. Delete its bots and groups first."
 msgstr ""
@@ -2165,6 +2254,9 @@ msgstr ""
 msgid "Recreating the computer"
 msgstr ""
 
+msgid "Refresh files"
+msgstr ""
+
 msgid "Refresh view"
 msgstr "화면 새로고침"
 
@@ -2186,6 +2278,9 @@ msgstr "삭제"
 #. placeholder {0}: attachment.file.name
 msgid "Remove {0}"
 msgstr "{0} 삭제"
+
+msgid "Remove app event"
+msgstr ""
 
 msgid "Remove Git event"
 msgstr ""
@@ -2212,6 +2307,9 @@ msgstr "대화, 컴퓨터, 기억과 함께 삭제되었습니다."
 
 msgid "Removed, but list refresh failed"
 msgstr "삭제했지만 목록을 새로고침하지 못했습니다."
+
+msgid "Removes this memory and its revisions. Chat history and backups are kept."
+msgstr ""
 
 msgid "Removing…"
 msgstr "삭제 중…"
@@ -2278,6 +2376,9 @@ msgstr ""
 
 msgid "Retry now"
 msgstr "지금 다시 시도"
+
+msgid "Retry save"
+msgstr ""
 
 msgid "Retry screen"
 msgstr ""
@@ -2392,6 +2493,9 @@ msgid "Search bots and switch conversations"
 msgstr ""
 
 msgid "Search by domain"
+msgstr ""
+
+msgid "Search files"
 msgstr ""
 
 msgid "Search models"

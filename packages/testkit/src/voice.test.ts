@@ -183,6 +183,53 @@ describeVoice("voice credentials and speech HTTP", () => {
       ok: true,
     });
   });
+
+  it("persists one call artifact under concurrent retries and refuses another owner", async () => {
+    const cookie = await signup(app, `call-record-${stamp}@engaz.test`, "Call Owner");
+    const other = await signup(app, `call-other-${stamp}@engaz.test`, "Other Call Owner");
+    const bot = await rpc<{ id: string }>(app, cookie, "bots/create", {
+      name: "Call Agent",
+      title: "",
+      description: "",
+      instructions: "",
+      notifyOnFinish: true,
+    });
+    const record = {
+      botId: bot.id,
+      callId: "c6365a88-42d9-4e6b-9afd-e9d434941a2a",
+      startedAt: "2026-01-01T12:00:00.000Z",
+      endedAt: "2026-01-01T12:01:00.000Z",
+      transcript: [
+        { role: "user", text: "Check the report" },
+        { role: "assistant", text: "The report is ready." },
+      ],
+    };
+    const [first, retry] = await Promise.all([
+      rpc<{ id: string }>(app, cookie, "voice/saveCall", record),
+      rpc<{ id: string }>(app, cookie, "voice/saveCall", record),
+    ]);
+    expect(first.id).toBe(retry.id);
+    expect(await prisma.artifact.count({ where: { botId: bot.id } })).toBe(1);
+    const saved = await rpc<{ contentBase64: string }>(app, cookie, "artifacts/get", {
+      botId: bot.id,
+      artifactId: first.id,
+    });
+    const markdown = Buffer.from(saved.contentBase64, "base64").toString("utf8");
+    expect(markdown).toContain("Request:\n\n> Check the report");
+    expect(markdown).toContain("The report is ready.");
+    expect((await raw(app, other, "voice/saveCall", record)).status).toBeGreaterThanOrEqual(400);
+    expect(
+      (await raw(app, other, "artifacts/get", { botId: bot.id, artifactId: first.id })).status,
+    ).toBeGreaterThanOrEqual(400);
+    expect(
+      (
+        await raw(app, cookie, "voice/saveCall", {
+          ...record,
+          transcript: [{ role: "user", text: "x".repeat(20_001) }],
+        })
+      ).status,
+    ).toBeGreaterThanOrEqual(400);
+  });
 });
 
 async function signup(app: App, email: string, name: string) {

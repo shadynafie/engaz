@@ -1,6 +1,6 @@
 # Workspace visibility and coordination
 
-These source changes build on the existing agent, routine, artifact, memory, and computer interfaces. They are inspired by Bot HQ's workflow patterns; no external artwork was copied. They are not a published release.
+These source changes build on the existing agent, routine, artifact, memory, and computer interfaces. They are inspired by Bot HQ's workflow patterns; no external artwork was copied. They are published in the server/web [v0.4.0 release](https://github.com/shadynafie/engaz/releases/tag/v0.4.0); native binaries are separate.
 
 ## Work and files
 

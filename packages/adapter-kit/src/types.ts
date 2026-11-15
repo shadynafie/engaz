@@ -473,6 +473,13 @@ export interface SpeechClip {
   mimeType: "audio/mpeg" | "audio/wav" | "audio/ogg";
 }
 
+export interface RealtimeVoiceSession {
+  transport: "openai-webrtc";
+  clientSecret: string;
+  expiresAt: number;
+  endpoint: "https://api.openai.com/v1/realtime/calls";
+}
+
 export interface VoiceCapabilities {
   catalog: boolean;
   synthesize: boolean;

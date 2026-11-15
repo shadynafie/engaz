@@ -10,6 +10,7 @@ import type {
   ManagedConnectorProvider,
 } from "@engaz/adapter-kit";
 import { getLogger } from "@engaz/logging";
+import { ComposioAppEvents } from "./composio-app-events.js";
 import {
   composioToolkitDirectory,
   mergeCatalogWithConnected,
@@ -215,6 +216,7 @@ export function planLiveConnectionSync(
 }
 
 export class ComposioConnector implements ComposioProvider {
+  readonly appEvents = new ComposioAppEvents(() => this.sdk());
   constructor(private readonly apiKey?: string) {}
   private client: Composio | undefined;
   private readonly catalogSessions = new Map<string, string>();

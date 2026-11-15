@@ -63,6 +63,7 @@ function MemoryDocumentList({
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmForget, setConfirmForget] = useState(false);
   const generation = useRef(0);
   const loadRef = useRef(load);
   loadRef.current = load;
@@ -88,6 +89,7 @@ function MemoryDocumentList({
   }, [t]);
 
   function openDoc(doc: MemoryDocument) {
+    setConfirmForget(false);
     setOpenId(doc.id);
     setDraft(doc.content);
     setError(null);
@@ -103,6 +105,26 @@ function MemoryDocumentList({
       setOpenId(null);
     } catch {
       setError(t`Could not save`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function forget(doc: MemoryDocument) {
+    if (busy) return;
+    if (!confirmForget) {
+      setConfirmForget(true);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await rpc.memory.remove({ documentId: doc.id, revision: doc.revision });
+      setDocs((current) => current.filter((entry) => entry.id !== doc.id));
+      setOpenId(null);
+      setConfirmForget(false);
+    } catch {
+      setError(t`Could not forget memory. Reload and try again.`);
     } finally {
       setBusy(false);
     }
@@ -184,7 +206,23 @@ function MemoryDocumentList({
                 >
                   <Trans>Cancel</Trans>
                 </Button>
+                <Button
+                  variant="ghost"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void forget(doc)}
+                  className="ms-auto text-destructive"
+                >
+                  {confirmForget ? <Trans>Confirm forget</Trans> : <Trans>Forget</Trans>}
+                </Button>
               </div>
+              {confirmForget ? (
+                <p role="status" className="mt-2 text-[13px] text-muted-foreground">
+                  <Trans>
+                    Removes this memory and its revisions. Chat history and backups are kept.
+                  </Trans>
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>

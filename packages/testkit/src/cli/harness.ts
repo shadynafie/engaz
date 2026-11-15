@@ -101,6 +101,8 @@ async function main() {
         "packages/testkit/src/journeys.test.ts",
         "packages/testkit/src/authorization.test.ts",
         "packages/testkit/src/attachments.test.ts",
+        "packages/testkit/src/memory-forget.postgres.test.ts",
+        "packages/testkit/src/routine-app-events.postgres.test.ts",
         "packages/testkit/src/voice.test.ts",
         "packages/testkit/src/search.test.ts",
         "packages/testkit/src/executor-lifecycle.test.ts",
@@ -114,7 +116,8 @@ async function main() {
         "packages/adapters/src/realtime.postgres.test.ts",
         "packages/adapters/src/job-reconciler.postgres.test.ts",
         "packages/adapters/src/cloud-agent.postgres.test.ts",
-      ];
+      ].filter((suite) => !e2eSpec || suite.includes(e2eSpec));
+      if (!suites.length) throw new Error("No integration suite matches --spec");
       // Each app reconciles all durable work in its database, including intentionally
       // unfinished fixture runs. Clone the pristine migrated schema so one suite
       // cannot execute another suite's backlog or wait for it during shutdown.

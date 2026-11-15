@@ -50,6 +50,10 @@ msgstr "{0} (más de 10 MiB)"
 msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
+#. placeholder {0}: summary.count
+msgid "{0} actions"
+msgstr ""
+
 #. placeholder {0}: block.name
 msgid "{0} connection"
 msgstr "Conexión {0}"
@@ -129,6 +133,9 @@ msgstr "{workingBotName} está trabajando"
 #. placeholder {0}: mention.name
 msgid "@{0}"
 msgstr "@{0}"
+
+msgid "1 action"
+msgstr ""
 
 msgid "A bit of everything"
 msgstr ""
@@ -352,6 +359,9 @@ msgstr "Clave de API"
 
 msgid "API key header"
 msgstr "Encabezado de clave de API"
+
+msgid "App"
+msgstr ""
 
 msgid "Appearance"
 msgstr "Apariencia"
@@ -579,6 +589,12 @@ msgstr "Elegir un modelo"
 msgid "Choose a new password"
 msgstr "Elige una contraseña nueva"
 
+msgid "Choose an app"
+msgstr ""
+
+msgid "Choose an event"
+msgstr ""
+
 msgid "Choose file"
 msgstr "Elegir archivo"
 
@@ -698,6 +714,9 @@ msgstr "Configurado por el despliegue"
 msgid "Confirm delete"
 msgstr "Confirmar eliminación"
 
+msgid "Confirm forget"
+msgstr ""
+
 msgid "Confirm password"
 msgstr "Confirmar contraseña"
 
@@ -710,8 +729,14 @@ msgstr "Conectar un modelo"
 msgid "Connect a model to continue."
 msgstr "Conecta un modelo para continuar."
 
+msgid "Connect an app in Integrations to choose its events."
+msgstr ""
+
 msgid "Connect API key"
 msgstr "Conectar clave de API"
+
+msgid "Connect app event"
+msgstr ""
 
 msgid "Connect MCP server “{name}”"
 msgstr "Conectar servidor MCP “{name}”"
@@ -885,6 +910,9 @@ msgstr "No se pudo descargar {name}. Inténtalo de nuevo."
 msgid "Could not draft a lesson. Try again."
 msgstr ""
 
+msgid "Could not forget memory. Reload and try again."
+msgstr ""
+
 msgid "Could not install connector"
 msgstr "No se pudo instalar el conector"
 
@@ -897,7 +925,16 @@ msgstr ""
 msgid "Could not load approval rules"
 msgstr "No se pudieron cargar las reglas de aprobación"
 
+msgid "Could not load apps"
+msgstr ""
+
 msgid "Could not load bots. Reload to try again."
+msgstr ""
+
+msgid "Could not load events"
+msgstr ""
+
+msgid "Could not load files"
 msgstr ""
 
 msgid "Could not load integrations"
@@ -936,6 +973,9 @@ msgstr "No se pudo cargar la configuración de voz"
 msgid "Could not log out. Try again."
 msgstr ""
 
+msgid "Could not open file"
+msgstr ""
+
 msgid "Could not open local settings. Start the local server and create its owner account, then try again."
 msgstr ""
 
@@ -953,6 +993,9 @@ msgstr "No se pudo quitar"
 
 msgid "Could not remove connector"
 msgstr "No se pudo quitar el conector"
+
+msgid "Could not remove event"
+msgstr ""
 
 msgid "Could not remove group"
 msgstr "No se pudo quitar el grupo"
@@ -987,6 +1030,9 @@ msgstr "No se pudo guardar"
 msgid "Could not save Auto Review"
 msgstr "No se pudo guardar Auto Review"
 
+msgid "Could not save event"
+msgstr ""
+
 msgid "Could not save group"
 msgstr "No se pudo guardar el grupo"
 
@@ -1014,6 +1060,9 @@ msgstr "No se pudo guardar esa voz"
 msgid "Could not save the access token"
 msgstr ""
 
+msgid "Could not save the call. Retry or download the transcript."
+msgstr ""
+
 msgid "Could not save this choice"
 msgstr "No se pudo guardar esta opción"
 
@@ -1028,6 +1077,9 @@ msgstr "No se pudo enviar el correo de restablecimiento"
 
 msgid "Could not send that"
 msgstr "No se pudo enviar eso"
+
+msgid "Could not start live voice"
+msgstr ""
 
 msgid "Could not start OAuth"
 msgstr "No se pudo iniciar OAuth"
@@ -1245,12 +1297,16 @@ msgstr "¿No tienes una cuenta?"
 msgid "Done"
 msgstr "Listo"
 
+#. placeholder {0}: file.name
 #. placeholder {0}: props.name
 msgid "Download {0}"
 msgstr "Descargar {0}"
 
 msgid "Download {name}"
 msgstr "Descargar {name}"
+
+msgid "Download and close"
+msgstr ""
 
 msgid "Download as markdown"
 msgstr "Descargar como Markdown"
@@ -1312,9 +1368,21 @@ msgstr "Introduce un número entero del 1 al {MAX_MODEL_MAX_TOKENS} para el máx
 msgid "Enter a whole number from 1 to 1000 for the image limit."
 msgstr "Introduce un número entero del 1 al 1000 para el límite de imágenes."
 
+msgid "Enter event settings as a JSON object"
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Ingresa este código en <0>{0}</0>"
+
+msgid "Event"
+msgstr ""
+
+msgid "Event settings"
+msgstr ""
+
+msgid "Event settings JSON"
+msgstr ""
 
 msgid "Every"
 msgstr "Cada"
@@ -1343,6 +1411,9 @@ msgstr "Expandir"
 #. placeholder {0}: group.title
 msgid "Expand {0}"
 msgstr "Expandir {0}"
+
+msgid "Experimental outbound connection. Missed events may need to be replayed."
+msgstr ""
 
 msgid "Export"
 msgstr "Exportar"
@@ -1378,6 +1449,9 @@ msgstr ""
 msgid "Failure handling"
 msgstr "Manejo de fallos"
 
+msgid "Files"
+msgstr ""
+
 msgid "Find a server"
 msgstr ""
 
@@ -1403,6 +1477,9 @@ msgstr "Finalizando conexión MCP…"
 
 msgid "Flag unexpected actions"
 msgstr "Marcar acciones inesperadas"
+
+msgid "Forget"
+msgstr ""
 
 msgid "Forgot password?"
 msgstr "¿Olvidaste la contraseña?"
@@ -1617,6 +1694,9 @@ msgstr ""
 
 msgid "Listening…"
 msgstr "Escuchando…"
+
+msgid "Live voice"
+msgstr ""
 
 msgid "Load earlier messages"
 msgstr "Cargar mensajes anteriores"
@@ -1883,6 +1963,12 @@ msgstr "Aún no hay apps de chat vinculadas."
 msgid "No exceptions. Actions run automatically."
 msgstr "Sin excepciones. Las acciones se ejecutan automáticamente."
 
+msgid "No files match"
+msgstr ""
+
+msgid "No files yet"
+msgstr ""
+
 msgid "No group chats yet."
 msgstr "Aún no hay chats de grupo."
 
@@ -1971,6 +2057,9 @@ msgstr "Con un horario"
 #. placeholder {0}: preset.time
 msgid "on the 1st at {0}"
 msgstr "el día 1 a las {0}"
+
+msgid "Only brief me on new work needing attention"
+msgstr ""
 
 msgid "Only empty spaces can be deleted. Delete its bots and groups first."
 msgstr ""
@@ -2165,6 +2254,9 @@ msgstr ""
 msgid "Recreating the computer"
 msgstr ""
 
+msgid "Refresh files"
+msgstr ""
+
 msgid "Refresh view"
 msgstr "Actualizar vista"
 
@@ -2186,6 +2278,9 @@ msgstr "Quitar"
 #. placeholder {0}: attachment.file.name
 msgid "Remove {0}"
 msgstr "Quitar {0}"
+
+msgid "Remove app event"
+msgstr ""
 
 msgid "Remove Git event"
 msgstr ""
@@ -2212,6 +2307,9 @@ msgstr "Eliminado junto con el chat, la computadora y la memoria."
 
 msgid "Removed, but list refresh failed"
 msgstr "Eliminado, pero falló la actualización de la lista"
+
+msgid "Removes this memory and its revisions. Chat history and backups are kept."
+msgstr ""
 
 msgid "Removing…"
 msgstr "Quitando…"
@@ -2278,6 +2376,9 @@ msgstr ""
 
 msgid "Retry now"
 msgstr "Reintentar ahora"
+
+msgid "Retry save"
+msgstr ""
 
 msgid "Retry screen"
 msgstr "Reintentar pantalla"
@@ -2392,6 +2493,9 @@ msgid "Search bots and switch conversations"
 msgstr ""
 
 msgid "Search by domain"
+msgstr ""
+
+msgid "Search files"
 msgstr ""
 
 msgid "Search models"

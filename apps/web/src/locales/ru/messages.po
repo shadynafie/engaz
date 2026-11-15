@@ -50,6 +50,10 @@ msgstr "{0} (более 10 МБ)"
 msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
+#. placeholder {0}: summary.count
+msgid "{0} actions"
+msgstr ""
+
 #. placeholder {0}: block.name
 msgid "{0} connection"
 msgstr "Соединение {0}"
@@ -129,6 +133,9 @@ msgstr "{workingBotName} работает"
 #. placeholder {0}: mention.name
 msgid "@{0}"
 msgstr "@{0}"
+
+msgid "1 action"
+msgstr ""
 
 msgid "A bit of everything"
 msgstr ""
@@ -352,6 +359,9 @@ msgstr "API-ключ"
 
 msgid "API key header"
 msgstr "Заголовок ключа API"
+
+msgid "App"
+msgstr ""
 
 msgid "Appearance"
 msgstr "Внешний вид"
@@ -579,6 +589,12 @@ msgstr "Выбрать модель"
 msgid "Choose a new password"
 msgstr "Выберите новый пароль"
 
+msgid "Choose an app"
+msgstr ""
+
+msgid "Choose an event"
+msgstr ""
+
 msgid "Choose file"
 msgstr "Выбрать файл"
 
@@ -698,6 +714,9 @@ msgstr "Настраивается путем развертывания"
 msgid "Confirm delete"
 msgstr "Подтвердить удаление"
 
+msgid "Confirm forget"
+msgstr ""
+
 msgid "Confirm password"
 msgstr "Подтвердите пароль"
 
@@ -710,8 +729,14 @@ msgstr "Подключить модель"
 msgid "Connect a model to continue."
 msgstr "Подключите модель, чтобы продолжить."
 
+msgid "Connect an app in Integrations to choose its events."
+msgstr ""
+
 msgid "Connect API key"
 msgstr "Подключить API-ключ"
+
+msgid "Connect app event"
+msgstr ""
 
 msgid "Connect MCP server “{name}”"
 msgstr "Подключите MCP-сервер «{name}»"
@@ -885,6 +910,9 @@ msgstr "Не удалось загрузить {name}. Попробуйте ещ
 msgid "Could not draft a lesson. Try again."
 msgstr ""
 
+msgid "Could not forget memory. Reload and try again."
+msgstr ""
+
 msgid "Could not install connector"
 msgstr "Не удалось установить коннектор"
 
@@ -897,8 +925,17 @@ msgstr ""
 msgid "Could not load approval rules"
 msgstr "Не удалось загрузить правила одобрения."
 
+msgid "Could not load apps"
+msgstr ""
+
 msgid "Could not load bots. Reload to try again."
 msgstr "Не удалось загрузить ботов. Обновите страницу и попробуйте снова."
+
+msgid "Could not load events"
+msgstr ""
+
+msgid "Could not load files"
+msgstr ""
 
 msgid "Could not load integrations"
 msgstr "Не удалось загрузить интеграции"
@@ -936,6 +973,9 @@ msgstr "Не удалось загрузить голосовые настрой
 msgid "Could not log out. Try again."
 msgstr ""
 
+msgid "Could not open file"
+msgstr ""
+
 msgid "Could not open local settings. Start the local server and create its owner account, then try again."
 msgstr "Не удалось открыть локальные настройки. Запустите локальный сервер и создайте учетную запись владельца, затем повторите попытку."
 
@@ -953,6 +993,9 @@ msgstr "Не удалось удалить"
 
 msgid "Could not remove connector"
 msgstr "Не удалось удалить коннектор"
+
+msgid "Could not remove event"
+msgstr ""
 
 msgid "Could not remove group"
 msgstr "Не удалось удалить группу"
@@ -987,6 +1030,9 @@ msgstr "Не удалось сохранить"
 msgid "Could not save Auto Review"
 msgstr "Не удалось сохранить автообзор."
 
+msgid "Could not save event"
+msgstr ""
+
 msgid "Could not save group"
 msgstr "Не удалось сохранить группу"
 
@@ -1014,6 +1060,9 @@ msgstr "Не удалось сохранить этот голос"
 msgid "Could not save the access token"
 msgstr ""
 
+msgid "Could not save the call. Retry or download the transcript."
+msgstr ""
+
 msgid "Could not save this choice"
 msgstr "Не удалось сохранить этот выбор."
 
@@ -1028,6 +1077,9 @@ msgstr "Не удалось отправить электронное письм
 
 msgid "Could not send that"
 msgstr "Не удалось отправить это"
+
+msgid "Could not start live voice"
+msgstr ""
 
 msgid "Could not start OAuth"
 msgstr "Не удалось запустить OAuth"
@@ -1245,12 +1297,16 @@ msgstr "У вас нет учетной записи?"
 msgid "Done"
 msgstr "Готово"
 
+#. placeholder {0}: file.name
 #. placeholder {0}: props.name
 msgid "Download {0}"
 msgstr "Скачать {0}"
 
 msgid "Download {name}"
 msgstr "Скачать {name}"
+
+msgid "Download and close"
+msgstr ""
 
 msgid "Download as markdown"
 msgstr "Скачать как Markdown"
@@ -1312,9 +1368,21 @@ msgstr ""
 msgid "Enter a whole number from 1 to 1000 for the image limit."
 msgstr ""
 
+msgid "Enter event settings as a JSON object"
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Введите этот код по адресу <0>{0}</0>."
+
+msgid "Event"
+msgstr ""
+
+msgid "Event settings"
+msgstr ""
+
+msgid "Event settings JSON"
+msgstr ""
 
 msgid "Every"
 msgstr "Каждые"
@@ -1343,6 +1411,9 @@ msgstr "Развернуть"
 #. placeholder {0}: group.title
 msgid "Expand {0}"
 msgstr "Развернуть {0}"
+
+msgid "Experimental outbound connection. Missed events may need to be replayed."
+msgstr ""
 
 msgid "Export"
 msgstr "Экспорт"
@@ -1378,6 +1449,9 @@ msgstr ""
 msgid "Failure handling"
 msgstr "Обработка сбоев"
 
+msgid "Files"
+msgstr ""
+
 msgid "Find a server"
 msgstr ""
 
@@ -1403,6 +1477,9 @@ msgstr "Завершение подключения MCP…"
 
 msgid "Flag unexpected actions"
 msgstr "Пометить неожиданные действия"
+
+msgid "Forget"
+msgstr ""
 
 msgid "Forgot password?"
 msgstr "Забыли пароль?"
@@ -1617,6 +1694,9 @@ msgstr "Прослушивание"
 
 msgid "Listening…"
 msgstr "Слушаю…"
+
+msgid "Live voice"
+msgstr ""
 
 msgid "Load earlier messages"
 msgstr "Загрузить более ранние сообщения"
@@ -1883,6 +1963,12 @@ msgstr "Приложения для чата пока не связаны."
 msgid "No exceptions. Actions run automatically."
 msgstr "Никаких исключений. Действия выполняются автоматически."
 
+msgid "No files match"
+msgstr ""
+
+msgid "No files yet"
+msgstr ""
+
 msgid "No group chats yet."
 msgstr "Групповых чатов пока нет."
 
@@ -1971,6 +2057,9 @@ msgstr "По расписанию"
 #. placeholder {0}: preset.time
 msgid "on the 1st at {0}"
 msgstr "1-го числа в {0}"
+
+msgid "Only brief me on new work needing attention"
+msgstr ""
 
 msgid "Only empty spaces can be deleted. Delete its bots and groups first."
 msgstr "Удалить можно только пустые пространства. Сначала удалите их ботов и группы."
@@ -2165,6 +2254,9 @@ msgstr "Восстановление возвращает последнее с�
 msgid "Recreating the computer"
 msgstr "Повторное создание компьютера"
 
+msgid "Refresh files"
+msgstr ""
+
 msgid "Refresh view"
 msgstr "Обновить экран"
 
@@ -2186,6 +2278,9 @@ msgstr "Удалить"
 #. placeholder {0}: attachment.file.name
 msgid "Remove {0}"
 msgstr "Удалить {0}"
+
+msgid "Remove app event"
+msgstr ""
 
 msgid "Remove Git event"
 msgstr "Удалить событие Git"
@@ -2212,6 +2307,9 @@ msgstr "Удалено вместе с чатом, компьютером и п�
 
 msgid "Removed, but list refresh failed"
 msgstr "Удалено, но обновить список не удалось."
+
+msgid "Removes this memory and its revisions. Chat history and backups are kept."
+msgstr ""
 
 msgid "Removing…"
 msgstr "Удаление…"
@@ -2278,6 +2376,9 @@ msgstr ""
 
 msgid "Retry now"
 msgstr "Повторить попытку сейчас"
+
+msgid "Retry save"
+msgstr ""
 
 msgid "Retry screen"
 msgstr "Повторить загрузку экрана"
@@ -2393,6 +2494,9 @@ msgstr "Искать ботов и переключать диалоги"
 
 msgid "Search by domain"
 msgstr "Поиск по домену"
+
+msgid "Search files"
+msgstr ""
 
 msgid "Search models"
 msgstr "Поиск моделей"

@@ -1,4 +1,24 @@
 export const RU_MESSAGES: Record<string, string> = {
+  Files: "Файлы",
+  Memory: "Память",
+  "Could not load files": "Не удалось загрузить файлы",
+  "Search files": "Поиск файлов",
+  "Refresh files": "Обновить файлы",
+  "No files yet": "Файлов пока нет",
+  "Could not save": "Не удалось сохранить",
+  "Could not forget memory. Reload and try again.":
+    "Не удалось удалить память. Обновите и повторите попытку.",
+  Refresh: "Обновить",
+  "Forget memory?": "Удалить память?",
+  "Removes this memory and its revisions. Chat history and backups are kept.":
+    "Эта память и её версии будут удалены. История чата и резервные копии сохранятся.",
+  Forget: "Забыть",
+  "Nothing remembered yet": "Пока ничего не запомнено",
+  "Only briefs on new work needing attention":
+    "Сообщать только о новых задачах, требующих внимания",
+  "Manage app events in the web app": "Управляйте событиями приложений в веб-приложении",
+  "1 action": "1 действие",
+  "{count} actions": "Действий: {count}",
   "The service is unavailable. Try again.": "Сервис недоступен. Попробуйте снова.",
   "Choose a model": "Выбрать модель",
   "Connect a model to continue.": "Подключите модель, чтобы продолжить.",

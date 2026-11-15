@@ -125,8 +125,20 @@ describeWithDatabase("API authorization and resource isolation", () => {
       ["computer/heartbeat", { botId: "missing-bot" }],
       ["memory/list", {}],
       ["memory/update", { documentId: "missing-memory", content: "Nope" }],
+      ["memory/remove", { documentId: "missing-memory", revision: 1 }],
       ["memory/exportMarkdown", {}],
       ["routines/list", { botId: "missing-bot" }],
+      ["routines/eventTypes", { connectionId: "missing-connection" }],
+      [
+        "routines/connectEvent",
+        {
+          routineId: "missing-routine",
+          connectionId: "missing-connection",
+          event: "FAKE_EVENT",
+          config: {},
+        },
+      ],
+      ["routines/disconnectEvent", { routineId: "missing-routine" }],
       ["routines/create", routineInput("missing-bot")],
       ["routines/update", { routineId: "missing-routine", name: "Nope" }],
       ["routines/remove", { routineId: "missing-routine" }],
@@ -177,6 +189,18 @@ describeWithDatabase("API authorization and resource isolation", () => {
       ["notifications/registerPush", { token: "ExponentPushToken[not-real]" }],
       ["search/query", { q: "anything" }],
       ["voice/catalog"],
+      ["voice/realtimeOptions"],
+      ["voice/realtimeSession", { botId: "missing-bot" }],
+      [
+        "voice/saveCall",
+        {
+          botId: "missing-bot",
+          callId: "00000000-0000-4000-8000-000000000000",
+          startedAt: "2026-01-01T00:00:00.000Z",
+          endedAt: "2026-01-01T00:01:00.000Z",
+          transcript: [{ role: "user", text: "test" }],
+        },
+      ],
       ["voice/status"],
       ["voice/credentials"],
       ["voice/connect", { provider: "elevenlabs", apiKey: "not-a-real-key" }],
@@ -408,6 +432,7 @@ describeWithDatabase("API authorization and resource isolation", () => {
       ["agentSkills/update", { skillId: ownerAgentSkill.id, description: "Stolen" }],
       ["agentSkills/remove", { skillId: ownerAgentSkill.id }],
       ["memory/update", { documentId: ownerMemory.id, content: "stolen" }],
+      ["memory/remove", { documentId: ownerMemory.id, revision: 1 }],
       ["connections/complete", { connectionId: ownerConnection.connectionId }],
     ] satisfies Array<[string, unknown]>;
     await Promise.all(

@@ -30,6 +30,7 @@ export async function createOwnedArtifact(
   actor: Actor,
   input: {
     botId: string;
+    id?: string;
     groupId?: string;
     name: string;
     mimeType: string;
@@ -47,6 +48,7 @@ export async function createOwnedArtifact(
   const row = await deps.prisma.artifact
     .create({
       data: {
+        id: input.id,
         spaceId: actor.spaceId,
         userId: actor.userId,
         botId: input.botId,

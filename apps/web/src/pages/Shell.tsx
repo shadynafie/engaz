@@ -47,6 +47,7 @@ import {
   isToolActivityBlock,
   latestAnswerableAskMessageId,
   mentionChipKey,
+  messageWorkSummaries,
   projectMessageReactions,
   reorderBotTo,
   resolveComposerSendPlan,
@@ -150,6 +151,7 @@ import { SkillDraftCard } from "../components/teach/SkillDraftCard";
 import { TeachCaptureOverlay } from "../components/teach/TeachCaptureOverlay";
 import { TeachComputerOverlayControl } from "../components/teach/TeachComputerOverlay";
 import { TeachRecordingChrome, TeachStopButton } from "../components/teach/TeachRecordingChrome";
+import { WorkSummary } from "../components/WorkSummary";
 import { readActivityMode, writeActivityMode } from "../lib/activity-mode";
 import type { ArtifactTarget } from "../lib/artifact-open";
 import { authClient } from "../lib/auth";
@@ -218,6 +220,7 @@ import {
 import { speaker } from "../lib/tts";
 import { ActivityList } from "./ActivityList";
 import type { ContextMenuPosition } from "./BotContextMenu";
+import { FilesButton } from "./FilesDialog";
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
 import type { McpServerDraft } from "./PluginsOverlay";
@@ -3457,6 +3460,11 @@ export function ShellPage() {
             <ChevronRight size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
           </button>
           <div className="flex items-center justify-self-end gap-1">
+            {active || activeGroup ? (
+              <span className="app-no-drag">
+                <FilesButton target={transcriptArtifactTarget} compact />
+              </span>
+            ) : null}
             {!inGroup && active ? (
               <button
                 type="button"
@@ -3490,6 +3498,7 @@ export function ShellPage() {
             scrollRef={messageScroll}
             artifactTarget={transcriptArtifactTarget}
             messages={transcriptMessages}
+            activeRunIds={currentRuns.filter((run) => isActive(run.status)).map((run) => run.id)}
             olderCursor={activeSnapshot?.olderCursor ?? null}
             loadingOlder={loadingOlder}
             answerableAskMessageId={answerableAskMessageId}
@@ -3825,9 +3834,21 @@ export function ShellPage() {
             ) : null}
             {panel === "routine" && active ? (
               <RoutineEditor
+                botId={active.id}
                 draft={routineDraft}
                 onChange={setRoutineDraft}
                 editing={editingRoutine}
+                onEventSaved={(saved) => {
+                  if (activeBotId.current !== saved.botId) return;
+                  setEditingRoutine((current) =>
+                    !current
+                      ? saved
+                      : current.id === saved.id
+                        ? { ...current, appEvent: saved.appEvent, active: saved.active }
+                        : current,
+                  );
+                  setRoutineDraft((current) => ({ ...current, active: saved.active }));
+                }}
                 timezone={editingRoutine?.timezone ?? localTimezone()}
                 webhook={{
                   path:
@@ -3860,7 +3881,8 @@ export function ShellPage() {
                     !routineDraft.schedules.length &&
                     !routineDraft.webhookEnabled &&
                     !routineDraft.githubEnabled &&
-                    !routineDraft.messageProvider
+                    !routineDraft.messageProvider &&
+                    !targetRoutine?.appEvent
                   ) {
                     setRoutineError(t`Add a schedule, webhook, GitHub, or message trigger`);
                     return;
@@ -3901,6 +3923,7 @@ export function ShellPage() {
                         crons,
                         active: armOneShot ? true : routineDraft.active,
                         skipStale: routineDraft.skipStale,
+                        quietBriefing: routineDraft.quietBriefing,
                         webhookEnabled: routineDraft.webhookEnabled,
                         githubEnabled: routineDraft.githubEnabled,
                         messageProvider: routineDraft.messageProvider,
@@ -3915,6 +3938,7 @@ export function ShellPage() {
                         timezone: localTimezone(),
                         active: routineDraft.active,
                         skipStale: routineDraft.skipStale,
+                        quietBriefing: routineDraft.quietBriefing,
                         notify: true,
                         webhookEnabled: routineDraft.webhookEnabled,
                         githubEnabled: routineDraft.githubEnabled,
@@ -4414,6 +4438,7 @@ export function ShellPage() {
         ) : null}
         {callOpen && active ? (
           <CallView
+            key={active.id}
             botId={active.id}
             botName={active.name}
             transcribe={Boolean(voiceStatus?.transcribe)}
@@ -4585,6 +4610,7 @@ export function ShellPage() {
 }
 
 export const Transcript = memo(function Transcript({
+  activeRunIds = [],
   scrollRef,
   artifactTarget,
   messages,
@@ -4618,6 +4644,7 @@ export const Transcript = memo(function Transcript({
   scrollRef: RefObject<HTMLDivElement | null>;
   artifactTarget: ArtifactTarget;
   messages: ThreadMessage[];
+  activeRunIds?: string[];
   olderCursor: number | null;
   loadingOlder: boolean;
   answerableAskMessageId: string | null;
@@ -4668,6 +4695,7 @@ export const Transcript = memo(function Transcript({
     [messages],
   );
   const reactionView = useMemo(() => projectMessageReactions(messages), [messages]);
+  const workSummaries = messageWorkSummaries(reactionView.visibleMessages, activeRunIds);
   const displayedMessages = reactionView.visibleMessages.filter((message) =>
     message.blocks.some((block) => !isToolActivityBlock(block)),
   );
@@ -4942,6 +4970,9 @@ export const Transcript = memo(function Transcript({
                       onSpeak={() => onSpeak(message)}
                       onOpenComputer={onOpenComputer}
                     />
+                    {workSummaries.get(message.id) ? (
+                      <WorkSummary summary={workSummaries.get(message.id)!} runId={message.runId} />
+                    ) : null}
                   </div>
                 </div>
                 {!peerReceipt && messageReactions ? (

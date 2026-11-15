@@ -601,6 +601,7 @@ model Run {
   routineId            String?
   routineGeneration    Int?
   routineScheduledFor  DateTime?
+  briefingSnapshotAt   DateTime?
   routine              Routine?         @relation(fields: [routineId], references: [id], onDelete: SetNull)
   startedAt            DateTime?
   completedAt          DateTime?
@@ -740,6 +741,8 @@ model Routine {
   webhookEnabled Boolean   @default(false)
   githubEnabled  Boolean   @default(false)
   messageProvider String?
+  quietBriefing  Boolean   @default(false)
+  appEvent       Json?
   lastRunAt      DateTime?
   nextRunAt      DateTime?
   generation     Int       @default(0)

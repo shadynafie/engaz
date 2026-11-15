@@ -50,6 +50,10 @@ msgstr "{0} (over 10 MiB)"
 msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
+#. placeholder {0}: summary.count
+msgid "{0} actions"
+msgstr "{0} actions"
+
 #. placeholder {0}: block.name
 msgid "{0} connection"
 msgstr "{0} connection"
@@ -129,6 +133,9 @@ msgstr "{workingBotName} is working"
 #. placeholder {0}: mention.name
 msgid "@{0}"
 msgstr "@{0}"
+
+msgid "1 action"
+msgstr "1 action"
 
 msgid "A bit of everything"
 msgstr "A bit of everything"
@@ -352,6 +359,9 @@ msgstr "API key"
 
 msgid "API key header"
 msgstr "API key header"
+
+msgid "App"
+msgstr "App"
 
 msgid "Appearance"
 msgstr "Appearance"
@@ -579,6 +589,12 @@ msgstr "Choose a model"
 msgid "Choose a new password"
 msgstr "Choose a new password"
 
+msgid "Choose an app"
+msgstr "Choose an app"
+
+msgid "Choose an event"
+msgstr "Choose an event"
+
 msgid "Choose file"
 msgstr "Choose file"
 
@@ -698,6 +714,9 @@ msgstr "Configured by deployment"
 msgid "Confirm delete"
 msgstr "Confirm delete"
 
+msgid "Confirm forget"
+msgstr "Confirm forget"
+
 msgid "Confirm password"
 msgstr "Confirm password"
 
@@ -710,8 +729,14 @@ msgstr "Connect a model"
 msgid "Connect a model to continue."
 msgstr "Connect a model to continue."
 
+msgid "Connect an app in Integrations to choose its events."
+msgstr "Connect an app in Integrations to choose its events."
+
 msgid "Connect API key"
 msgstr "Connect API key"
+
+msgid "Connect app event"
+msgstr "Connect app event"
 
 msgid "Connect MCP server “{name}”"
 msgstr "Connect MCP server “{name}”"
@@ -885,6 +910,9 @@ msgstr "Could not download {name}. Try again."
 msgid "Could not draft a lesson. Try again."
 msgstr "Could not draft a lesson. Try again."
 
+msgid "Could not forget memory. Reload and try again."
+msgstr "Could not forget memory. Reload and try again."
+
 msgid "Could not install connector"
 msgstr "Could not install connector"
 
@@ -897,8 +925,17 @@ msgstr "Could not load activity."
 msgid "Could not load approval rules"
 msgstr "Could not load approval rules"
 
+msgid "Could not load apps"
+msgstr "Could not load apps"
+
 msgid "Could not load bots. Reload to try again."
 msgstr "Could not load bots. Reload to try again."
+
+msgid "Could not load events"
+msgstr "Could not load events"
+
+msgid "Could not load files"
+msgstr "Could not load files"
 
 msgid "Could not load integrations"
 msgstr "Could not load integrations"
@@ -936,6 +973,9 @@ msgstr "Could not load voice settings"
 msgid "Could not log out. Try again."
 msgstr "Could not log out. Try again."
 
+msgid "Could not open file"
+msgstr "Could not open file"
+
 msgid "Could not open local settings. Start the local server and create its owner account, then try again."
 msgstr "Could not open local settings. Start the local server and create its owner account, then try again."
 
@@ -953,6 +993,9 @@ msgstr "Could not remove"
 
 msgid "Could not remove connector"
 msgstr "Could not remove connector"
+
+msgid "Could not remove event"
+msgstr "Could not remove event"
 
 msgid "Could not remove group"
 msgstr "Could not remove group"
@@ -987,6 +1030,9 @@ msgstr "Could not save"
 msgid "Could not save Auto Review"
 msgstr "Could not save Auto Review"
 
+msgid "Could not save event"
+msgstr "Could not save event"
+
 msgid "Could not save group"
 msgstr "Could not save group"
 
@@ -1014,6 +1060,9 @@ msgstr "Could not save that voice"
 msgid "Could not save the access token"
 msgstr "Could not save the access token"
 
+msgid "Could not save the call. Retry or download the transcript."
+msgstr "Could not save the call. Retry or download the transcript."
+
 msgid "Could not save this choice"
 msgstr "Could not save this choice"
 
@@ -1028,6 +1077,9 @@ msgstr "Could not send reset email"
 
 msgid "Could not send that"
 msgstr "Could not send that"
+
+msgid "Could not start live voice"
+msgstr "Could not start live voice"
 
 msgid "Could not start OAuth"
 msgstr "Could not start OAuth"
@@ -1245,12 +1297,16 @@ msgstr "Don’t have an account?"
 msgid "Done"
 msgstr "Done"
 
+#. placeholder {0}: file.name
 #. placeholder {0}: props.name
 msgid "Download {0}"
 msgstr "Download {0}"
 
 msgid "Download {name}"
 msgstr "Download {name}"
+
+msgid "Download and close"
+msgstr "Download and close"
 
 msgid "Download as markdown"
 msgstr "Download as markdown"
@@ -1312,9 +1368,21 @@ msgstr "Enter a whole number from 1 to {MAX_MODEL_MAX_TOKENS} for maximum output
 msgid "Enter a whole number from 1 to 1000 for the image limit."
 msgstr "Enter a whole number from 1 to 1000 for the image limit."
 
+msgid "Enter event settings as a JSON object"
+msgstr "Enter event settings as a JSON object"
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Enter this code at <0>{0}</0>"
+
+msgid "Event"
+msgstr "Event"
+
+msgid "Event settings"
+msgstr "Event settings"
+
+msgid "Event settings JSON"
+msgstr "Event settings JSON"
 
 msgid "Every"
 msgstr "Every"
@@ -1343,6 +1411,9 @@ msgstr "Expand"
 #. placeholder {0}: group.title
 msgid "Expand {0}"
 msgstr "Expand {0}"
+
+msgid "Experimental outbound connection. Missed events may need to be replayed."
+msgstr "Experimental outbound connection. Missed events may need to be replayed."
 
 msgid "Export"
 msgstr "Export"
@@ -1378,6 +1449,9 @@ msgstr "Failing"
 msgid "Failure handling"
 msgstr "Failure handling"
 
+msgid "Files"
+msgstr "Files"
+
 msgid "Find a server"
 msgstr "Find a server"
 
@@ -1403,6 +1477,9 @@ msgstr "Finishing MCP connection…"
 
 msgid "Flag unexpected actions"
 msgstr "Flag unexpected actions"
+
+msgid "Forget"
+msgstr "Forget"
 
 msgid "Forgot password?"
 msgstr "Forgot password?"
@@ -1617,6 +1694,9 @@ msgstr "Listening"
 
 msgid "Listening…"
 msgstr "Listening…"
+
+msgid "Live voice"
+msgstr "Live voice"
 
 msgid "Load earlier messages"
 msgstr "Load earlier messages"
@@ -1883,6 +1963,12 @@ msgstr "No chat apps linked yet."
 msgid "No exceptions. Actions run automatically."
 msgstr "No exceptions. Actions run automatically."
 
+msgid "No files match"
+msgstr "No files match"
+
+msgid "No files yet"
+msgstr "No files yet"
+
 msgid "No group chats yet."
 msgstr "No group chats yet."
 
@@ -1971,6 +2057,9 @@ msgstr "On a schedule"
 #. placeholder {0}: preset.time
 msgid "on the 1st at {0}"
 msgstr "on the 1st at {0}"
+
+msgid "Only brief me on new work needing attention"
+msgstr "Only brief me on new work needing attention"
 
 msgid "Only empty spaces can be deleted. Delete its bots and groups first."
 msgstr "Only empty spaces can be deleted. Delete its bots and groups first."
@@ -2165,6 +2254,9 @@ msgstr "Recovery restores the last saved workspace. Unsaved work may be lost."
 msgid "Recreating the computer"
 msgstr "Recreating the computer"
 
+msgid "Refresh files"
+msgstr "Refresh files"
+
 msgid "Refresh view"
 msgstr "Refresh view"
 
@@ -2186,6 +2278,9 @@ msgstr "Remove"
 #. placeholder {0}: attachment.file.name
 msgid "Remove {0}"
 msgstr "Remove {0}"
+
+msgid "Remove app event"
+msgstr "Remove app event"
 
 msgid "Remove Git event"
 msgstr "Remove Git event"
@@ -2212,6 +2307,9 @@ msgstr "Removed with chat, computer, and memory."
 
 msgid "Removed, but list refresh failed"
 msgstr "Removed, but list refresh failed"
+
+msgid "Removes this memory and its revisions. Chat history and backups are kept."
+msgstr "Removes this memory and its revisions. Chat history and backups are kept."
 
 msgid "Removing…"
 msgstr "Removing…"
@@ -2278,6 +2376,9 @@ msgstr "Resumed work"
 
 msgid "Retry now"
 msgstr "Retry now"
+
+msgid "Retry save"
+msgstr "Retry save"
 
 msgid "Retry screen"
 msgstr "Retry screen"
@@ -2393,6 +2494,9 @@ msgstr "Search bots and switch conversations"
 
 msgid "Search by domain"
 msgstr "Search by domain"
+
+msgid "Search files"
+msgstr "Search files"
 
 msgid "Search models"
 msgstr "Search models"

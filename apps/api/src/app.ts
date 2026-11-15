@@ -98,6 +98,7 @@ import {
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
 import { mountApiRequestBodyLimits } from "./request-body-limit.js";
 import { createRouter } from "./router.js";
+import { createRoutineAppEvents } from "./routine-app-events.js";
 import { mountScreenTarget } from "./screen-proxy.js";
 import { isDeferredReservationLost, TeamChatBridge } from "./team-chat-bridge.js";
 import { ModelTeamChatEngagementJudge } from "./team-chat-judge.js";
@@ -309,6 +310,10 @@ export async function createApp(
           sessionRoot: env.piSessionRecording ? piSessionsRoot(env.dataDir) : undefined,
         });
   const notifications = new ExpoPushProvider(env.dataDir);
+  const routineAppEvents = createRoutineAppEvents(
+    { prisma, events, jobs, secrets },
+    stack.composio?.appEvents,
+  );
   const auth = createAuth(prisma, {
     secret: env.authSecret,
     baseURL: env.authUrl,
@@ -328,7 +333,15 @@ export async function createApp(
       await Promise.all(
         bots.map((bot) =>
           destroyBot(
-            { prisma, sandbox, home, jobs, artifacts, dataDir: env.dataDir },
+            {
+              prisma,
+              sandbox,
+              home,
+              jobs,
+              artifacts,
+              dataDir: env.dataDir,
+              cleanupAppEvent: routineAppEvents.cleanup,
+            },
             bot,
             {
               operationId: `account-delete:${userId}`,
@@ -421,7 +434,12 @@ export async function createApp(
     : undefined;
   reconciler?.start();
 
+  void routineAppEvents
+    .start()
+    .catch((error) => getLogger().error("App event subscription failed", error));
+
   const router = createRouter({
+    routineAppEvents,
     lessonModel: { runtime, resolveModel: (scope) => executor.resolveModel(scope) },
     cloudAgent,
     verifyModel: (model, signal) => runtime.verifyModel(model, signal),
@@ -857,6 +875,7 @@ export async function createApp(
       await teamChatBridge?.stop();
       await email?.drain?.();
       await reconciler?.stop();
+      await routineAppEvents.stop();
       await jobs.close();
       await realtime.close();
       await connector.stop();

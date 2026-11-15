@@ -50,6 +50,10 @@ msgstr "{0} (10 MiB से अधिक)"
 msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
+#. placeholder {0}: summary.count
+msgid "{0} actions"
+msgstr ""
+
 #. placeholder {0}: block.name
 msgid "{0} connection"
 msgstr "{0} कनेक्शन"
@@ -129,6 +133,9 @@ msgstr "{workingBotName} काम कर रहा है"
 #. placeholder {0}: mention.name
 msgid "@{0}"
 msgstr "@{0}"
+
+msgid "1 action"
+msgstr ""
 
 msgid "A bit of everything"
 msgstr ""
@@ -352,6 +359,9 @@ msgstr "API कुंजी"
 
 msgid "API key header"
 msgstr "API कुंजी हेडर"
+
+msgid "App"
+msgstr ""
 
 msgid "Appearance"
 msgstr "रूप"
@@ -579,6 +589,12 @@ msgstr "मॉडल चुनें"
 msgid "Choose a new password"
 msgstr "नया पासवर्ड चुनें"
 
+msgid "Choose an app"
+msgstr ""
+
+msgid "Choose an event"
+msgstr ""
+
 msgid "Choose file"
 msgstr "फ़ाइल चुनें"
 
@@ -698,6 +714,9 @@ msgstr "डिप्लॉयमेंट द्वारा कॉन्फ़�
 msgid "Confirm delete"
 msgstr "डिलीट की पुष्टि करें"
 
+msgid "Confirm forget"
+msgstr ""
+
 msgid "Confirm password"
 msgstr "पासवर्ड की पुष्टि करें"
 
@@ -710,8 +729,14 @@ msgstr "एक मॉडल कनेक्ट करें"
 msgid "Connect a model to continue."
 msgstr "जारी रखने के लिए मॉडल कनेक्ट करें।"
 
+msgid "Connect an app in Integrations to choose its events."
+msgstr ""
+
 msgid "Connect API key"
 msgstr "API कुंजी कनेक्ट करें"
+
+msgid "Connect app event"
+msgstr ""
 
 msgid "Connect MCP server “{name}”"
 msgstr "MCP सर्वर “{name}” कनेक्ट करें"
@@ -885,6 +910,9 @@ msgstr "{name} डाउनलोड नहीं हो सका। पुन�
 msgid "Could not draft a lesson. Try again."
 msgstr ""
 
+msgid "Could not forget memory. Reload and try again."
+msgstr ""
+
 msgid "Could not install connector"
 msgstr "कनेक्टर इंस्टॉल नहीं हो सका"
 
@@ -897,7 +925,16 @@ msgstr ""
 msgid "Could not load approval rules"
 msgstr "अनुमोदन नियम लोड नहीं हो सके"
 
+msgid "Could not load apps"
+msgstr ""
+
 msgid "Could not load bots. Reload to try again."
+msgstr ""
+
+msgid "Could not load events"
+msgstr ""
+
+msgid "Could not load files"
 msgstr ""
 
 msgid "Could not load integrations"
@@ -936,6 +973,9 @@ msgstr "आवाज़ सेटिंग्स लोड नहीं हो �
 msgid "Could not log out. Try again."
 msgstr ""
 
+msgid "Could not open file"
+msgstr ""
+
 msgid "Could not open local settings. Start the local server and create its owner account, then try again."
 msgstr ""
 
@@ -953,6 +993,9 @@ msgstr "हटाया नहीं जा सका"
 
 msgid "Could not remove connector"
 msgstr "कनेक्टर हटाया नहीं जा सका"
+
+msgid "Could not remove event"
+msgstr ""
 
 msgid "Could not remove group"
 msgstr "समूह हटाया नहीं जा सका"
@@ -987,6 +1030,9 @@ msgstr "सहेजा नहीं जा सका"
 msgid "Could not save Auto Review"
 msgstr ""
 
+msgid "Could not save event"
+msgstr ""
+
 msgid "Could not save group"
 msgstr "समूह सहेजा नहीं जा सका"
 
@@ -1014,6 +1060,9 @@ msgstr "वह आवाज़ सहेजी नहीं जा सकी"
 msgid "Could not save the access token"
 msgstr ""
 
+msgid "Could not save the call. Retry or download the transcript."
+msgstr ""
+
 msgid "Could not save this choice"
 msgstr "यह विकल्प सहेजा नहीं जा सका"
 
@@ -1028,6 +1077,9 @@ msgstr "रीसेट ईमेल नहीं भेजा जा सका"
 
 msgid "Could not send that"
 msgstr "वह भेजा नहीं जा सका"
+
+msgid "Could not start live voice"
+msgstr ""
 
 msgid "Could not start OAuth"
 msgstr "OAuth शुरू नहीं हो सका"
@@ -1245,12 +1297,16 @@ msgstr "खाता नहीं है?"
 msgid "Done"
 msgstr "पूर्ण"
 
+#. placeholder {0}: file.name
 #. placeholder {0}: props.name
 msgid "Download {0}"
 msgstr "{0} डाउनलोड करें"
 
 msgid "Download {name}"
 msgstr "{name} डाउनलोड करें"
+
+msgid "Download and close"
+msgstr ""
 
 msgid "Download as markdown"
 msgstr "मार्कडाउन के रूप में डाउनलोड करें"
@@ -1312,9 +1368,21 @@ msgstr "अधिकतम आउटपुट टोकन के लिए 1 �
 msgid "Enter a whole number from 1 to 1000 for the image limit."
 msgstr "इमेज सीमा के लिए 1 से 1000 के बीच कोई पूर्णांक दर्ज करें।"
 
+msgid "Enter event settings as a JSON object"
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "यह कोड <0>{0}</0> पर दर्ज करें"
+
+msgid "Event"
+msgstr ""
+
+msgid "Event settings"
+msgstr ""
+
+msgid "Event settings JSON"
+msgstr ""
 
 msgid "Every"
 msgstr "हर"
@@ -1342,6 +1410,9 @@ msgstr "विस्तृत करें"
 
 #. placeholder {0}: group.title
 msgid "Expand {0}"
+msgstr ""
+
+msgid "Experimental outbound connection. Missed events may need to be replayed."
 msgstr ""
 
 msgid "Export"
@@ -1378,6 +1449,9 @@ msgstr ""
 msgid "Failure handling"
 msgstr "विफलता प्रबंधन"
 
+msgid "Files"
+msgstr ""
+
 msgid "Find a server"
 msgstr ""
 
@@ -1402,6 +1476,9 @@ msgid "Finishing MCP connection…"
 msgstr "MCP कनेक्शन पूरा हो रहा है…"
 
 msgid "Flag unexpected actions"
+msgstr ""
+
+msgid "Forget"
 msgstr ""
 
 msgid "Forgot password?"
@@ -1617,6 +1694,9 @@ msgstr ""
 
 msgid "Listening…"
 msgstr "सुना जा रहा है…"
+
+msgid "Live voice"
+msgstr ""
 
 msgid "Load earlier messages"
 msgstr "पुराने संदेश लोड करें"
@@ -1883,6 +1963,12 @@ msgstr ""
 msgid "No exceptions. Actions run automatically."
 msgstr "कोई अपवाद नहीं। कार्रवाइयां स्वतः चलती हैं।"
 
+msgid "No files match"
+msgstr ""
+
+msgid "No files yet"
+msgstr ""
+
 msgid "No group chats yet."
 msgstr ""
 
@@ -1971,6 +2057,9 @@ msgstr ""
 #. placeholder {0}: preset.time
 msgid "on the 1st at {0}"
 msgstr "1 तारीख को {0} बजे"
+
+msgid "Only brief me on new work needing attention"
+msgstr ""
 
 msgid "Only empty spaces can be deleted. Delete its bots and groups first."
 msgstr ""
@@ -2165,6 +2254,9 @@ msgstr ""
 msgid "Recreating the computer"
 msgstr ""
 
+msgid "Refresh files"
+msgstr ""
+
 msgid "Refresh view"
 msgstr ""
 
@@ -2186,6 +2278,9 @@ msgstr "हटाएं"
 #. placeholder {0}: attachment.file.name
 msgid "Remove {0}"
 msgstr "{0} हटाएं"
+
+msgid "Remove app event"
+msgstr ""
 
 msgid "Remove Git event"
 msgstr ""
@@ -2212,6 +2307,9 @@ msgstr "चैट, कंप्यूटर और मेमोरी सहि�
 
 msgid "Removed, but list refresh failed"
 msgstr "हटाया गया, लेकिन सूची रिफ़्रेश विफल रही"
+
+msgid "Removes this memory and its revisions. Chat history and backups are kept."
+msgstr ""
 
 msgid "Removing…"
 msgstr "हटाया जा रहा है…"
@@ -2278,6 +2376,9 @@ msgstr ""
 
 msgid "Retry now"
 msgstr "अभी पुनः प्रयास करें"
+
+msgid "Retry save"
+msgstr ""
 
 msgid "Retry screen"
 msgstr ""
@@ -2392,6 +2493,9 @@ msgid "Search bots and switch conversations"
 msgstr ""
 
 msgid "Search by domain"
+msgstr ""
+
+msgid "Search files"
 msgstr ""
 
 msgid "Search models"

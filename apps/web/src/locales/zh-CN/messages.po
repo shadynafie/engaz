@@ -50,6 +50,10 @@ msgstr "{0}（超过 10 MiB）"
 msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
+#. placeholder {0}: summary.count
+msgid "{0} actions"
+msgstr ""
+
 #. placeholder {0}: block.name
 msgid "{0} connection"
 msgstr "{0} 连接"
@@ -129,6 +133,9 @@ msgstr "{workingBotName} 正在工作"
 #. placeholder {0}: mention.name
 msgid "@{0}"
 msgstr "@{0}"
+
+msgid "1 action"
+msgstr ""
 
 msgid "A bit of everything"
 msgstr "什么都做一点"
@@ -352,6 +359,9 @@ msgstr "API 密钥"
 
 msgid "API key header"
 msgstr "API 密钥请求头"
+
+msgid "App"
+msgstr ""
 
 msgid "Appearance"
 msgstr "外观"
@@ -579,6 +589,12 @@ msgstr "选择模型"
 msgid "Choose a new password"
 msgstr "设置新密码"
 
+msgid "Choose an app"
+msgstr ""
+
+msgid "Choose an event"
+msgstr ""
+
 msgid "Choose file"
 msgstr "选择文件"
 
@@ -698,6 +714,9 @@ msgstr "由部署配置"
 msgid "Confirm delete"
 msgstr "确认删除"
 
+msgid "Confirm forget"
+msgstr ""
+
 msgid "Confirm password"
 msgstr "确认密码"
 
@@ -710,8 +729,14 @@ msgstr "连接模型"
 msgid "Connect a model to continue."
 msgstr "连接模型以继续。"
 
+msgid "Connect an app in Integrations to choose its events."
+msgstr ""
+
 msgid "Connect API key"
 msgstr "连接 API 密钥"
+
+msgid "Connect app event"
+msgstr ""
 
 msgid "Connect MCP server “{name}”"
 msgstr "连接 MCP 服务器“{name}”"
@@ -885,6 +910,9 @@ msgstr "无法下载 {name}。请重试。"
 msgid "Could not draft a lesson. Try again."
 msgstr ""
 
+msgid "Could not forget memory. Reload and try again."
+msgstr ""
+
 msgid "Could not install connector"
 msgstr "无法安装连接器"
 
@@ -897,7 +925,16 @@ msgstr ""
 msgid "Could not load approval rules"
 msgstr "无法加载审批规则"
 
+msgid "Could not load apps"
+msgstr ""
+
 msgid "Could not load bots. Reload to try again."
+msgstr ""
+
+msgid "Could not load events"
+msgstr ""
+
+msgid "Could not load files"
 msgstr ""
 
 msgid "Could not load integrations"
@@ -936,6 +973,9 @@ msgstr "无法加载语音设置"
 msgid "Could not log out. Try again."
 msgstr ""
 
+msgid "Could not open file"
+msgstr ""
+
 msgid "Could not open local settings. Start the local server and create its owner account, then try again."
 msgstr ""
 
@@ -953,6 +993,9 @@ msgstr "无法移除"
 
 msgid "Could not remove connector"
 msgstr "无法移除连接器"
+
+msgid "Could not remove event"
+msgstr ""
 
 msgid "Could not remove group"
 msgstr "无法移除群组"
@@ -987,6 +1030,9 @@ msgstr "无法保存"
 msgid "Could not save Auto Review"
 msgstr "无法保存自动审核"
 
+msgid "Could not save event"
+msgstr ""
+
 msgid "Could not save group"
 msgstr "无法保存群组"
 
@@ -1014,6 +1060,9 @@ msgstr "无法保存该语音"
 msgid "Could not save the access token"
 msgstr ""
 
+msgid "Could not save the call. Retry or download the transcript."
+msgstr ""
+
 msgid "Could not save this choice"
 msgstr "无法保存此选择"
 
@@ -1028,6 +1077,9 @@ msgstr "无法发送重置邮件"
 
 msgid "Could not send that"
 msgstr "无法发送"
+
+msgid "Could not start live voice"
+msgstr ""
 
 msgid "Could not start OAuth"
 msgstr "无法开始 OAuth"
@@ -1245,12 +1297,16 @@ msgstr "还没有账户？"
 msgid "Done"
 msgstr "完成"
 
+#. placeholder {0}: file.name
 #. placeholder {0}: props.name
 msgid "Download {0}"
 msgstr "下载 {0}"
 
 msgid "Download {name}"
 msgstr "下载 {name}"
+
+msgid "Download and close"
+msgstr ""
 
 msgid "Download as markdown"
 msgstr "下载为 Markdown"
@@ -1312,9 +1368,21 @@ msgstr "请输入 1 到 {MAX_MODEL_MAX_TOKENS} 之间的整数作为最大输出
 msgid "Enter a whole number from 1 to 1000 for the image limit."
 msgstr "请输入 1 到 1000 之间的整数作为图像限制。"
 
+msgid "Enter event settings as a JSON object"
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "在 <0>{0}</0> 输入此代码"
+
+msgid "Event"
+msgstr ""
+
+msgid "Event settings"
+msgstr ""
+
+msgid "Event settings JSON"
+msgstr ""
 
 msgid "Every"
 msgstr "每"
@@ -1343,6 +1411,9 @@ msgstr "展开"
 #. placeholder {0}: group.title
 msgid "Expand {0}"
 msgstr "展开 {0}"
+
+msgid "Experimental outbound connection. Missed events may need to be replayed."
+msgstr ""
 
 msgid "Export"
 msgstr "导出"
@@ -1378,6 +1449,9 @@ msgstr ""
 msgid "Failure handling"
 msgstr "失败处理"
 
+msgid "Files"
+msgstr ""
+
 msgid "Find a server"
 msgstr ""
 
@@ -1403,6 +1477,9 @@ msgstr "正在完成 MCP 连接…"
 
 msgid "Flag unexpected actions"
 msgstr "标记异常操作"
+
+msgid "Forget"
+msgstr ""
 
 msgid "Forgot password?"
 msgstr "忘记密码？"
@@ -1617,6 +1694,9 @@ msgstr ""
 
 msgid "Listening…"
 msgstr "正在听…"
+
+msgid "Live voice"
+msgstr ""
 
 msgid "Load earlier messages"
 msgstr "加载更早的消息"
@@ -1883,6 +1963,12 @@ msgstr "还没有关联聊天应用。"
 msgid "No exceptions. Actions run automatically."
 msgstr "没有例外。操作会自动执行。"
 
+msgid "No files match"
+msgstr ""
+
+msgid "No files yet"
+msgstr ""
+
 msgid "No group chats yet."
 msgstr "还没有群聊。"
 
@@ -1971,6 +2057,9 @@ msgstr "按计划"
 #. placeholder {0}: preset.time
 msgid "on the 1st at {0}"
 msgstr "每月 1 日 {0}"
+
+msgid "Only brief me on new work needing attention"
+msgstr ""
 
 msgid "Only empty spaces can be deleted. Delete its bots and groups first."
 msgstr ""
@@ -2165,6 +2254,9 @@ msgstr ""
 msgid "Recreating the computer"
 msgstr ""
 
+msgid "Refresh files"
+msgstr ""
+
 msgid "Refresh view"
 msgstr ""
 
@@ -2186,6 +2278,9 @@ msgstr "移除"
 #. placeholder {0}: attachment.file.name
 msgid "Remove {0}"
 msgstr "移除 {0}"
+
+msgid "Remove app event"
+msgstr ""
 
 msgid "Remove Git event"
 msgstr ""
@@ -2212,6 +2307,9 @@ msgstr "已连同对话、电脑和记忆一起移除。"
 
 msgid "Removed, but list refresh failed"
 msgstr "已移除，但列表刷新失败"
+
+msgid "Removes this memory and its revisions. Chat history and backups are kept."
+msgstr ""
 
 msgid "Removing…"
 msgstr "正在移除…"
@@ -2278,6 +2376,9 @@ msgstr ""
 
 msgid "Retry now"
 msgstr "立即重试"
+
+msgid "Retry save"
+msgstr ""
 
 msgid "Retry screen"
 msgstr ""
@@ -2392,6 +2493,9 @@ msgid "Search bots and switch conversations"
 msgstr ""
 
 msgid "Search by domain"
+msgstr ""
+
+msgid "Search files"
 msgstr ""
 
 msgid "Search models"

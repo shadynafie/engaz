@@ -69,6 +69,7 @@ import {
   probeOpenAiCompatibleModels,
   provisionComputer,
   queueComputerUpdate,
+  quietBriefingContext,
   releaseComputerExecutionLease,
   replaceComputer,
   resolveAutoReviewChecker,
@@ -89,6 +90,7 @@ import {
 import { type Auth, hashSignupInviteToken } from "@engaz/auth";
 import type { Actor, ComputerStatus, McpServer, Me, SpaceNavigation } from "@engaz/contracts";
 import {
+  AppEventBindingSchema,
   appContract,
   IntegrationProviderIdSchema,
   McpCheckStatusSchema,
@@ -174,6 +176,7 @@ import {
   promptFocus,
   startOnboarding,
 } from "./onboarding.js";
+import type { RoutineAppEventsService } from "./routine-app-events.js";
 import { getRunActivityDetails, listSpaceRuns } from "./runs.js";
 import { addScreenProxyCapability } from "./screen-proxy.js";
 import { querySpaceSearch } from "./search.js";
@@ -202,16 +205,19 @@ import {
   threadSnapshot,
 } from "./thread-target.js";
 import {
+  createRealtimeVoiceSession,
   disconnectVoiceCredential,
   listVoiceCatalog,
   loadDefaultVoiceCredential,
   loadVoiceCredential,
   persistVoiceCredential,
   prepareVoice,
+  realtimeVoiceAvailable,
   toVoiceCredential,
   toVoiceStatus,
   voiceContext,
 } from "./voice.js";
+import { saveVoiceCall } from "./voice-calls.js";
 
 const MAX_COMPUTER_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 const THREAD_MESSAGE_PAGE_SIZE = 100;
@@ -444,6 +450,7 @@ function mcpAssignmentDto(row: {
 }
 
 export interface RouterDeps {
+  routineAppEvents?: RoutineAppEventsService;
   lessonModel?: LessonModel;
   cloudAgent?: CloudAgentConnection | null;
   /** Sends one test request with a new model connection before it is saved. */
@@ -1352,6 +1359,7 @@ export function createRouter(deps: RouterDeps) {
             jobs: deps.jobs,
             artifacts: deps.artifacts,
             dataDir: deps.dataDir,
+            cleanupAppEvent: deps.routineAppEvents?.cleanup,
           },
           bot,
           {
@@ -2435,6 +2443,30 @@ export function createRouter(deps: RouterDeps) {
           updatedAt: new Date().toISOString(),
         };
       }),
+      remove: authed.memory.remove.handler(async ({ context, input }) => {
+        const doc = await deps.prisma.memoryDocument.findFirst({
+          where: {
+            id: input.documentId,
+            spaceId: context.actor.spaceId,
+            userId: context.actor.userId,
+          },
+        });
+        if (!doc) throw new IsolationError();
+        const removed = await deps.prisma.memoryDocument.deleteMany({
+          where: {
+            id: doc.id,
+            spaceId: context.actor.spaceId,
+            userId: context.actor.userId,
+            revision: input.revision,
+          },
+        });
+        if (removed.count !== 1) {
+          throw new ORPCError("CONFLICT", {
+            message: "Memory changed. Reload before forgetting it.",
+          });
+        }
+        return { ok: true as const };
+      }),
       exportMarkdown: authed.memory.exportMarkdown.handler(async ({ context, input }) => {
         const docs = await deps.prisma.memoryDocument.findMany({
           where: {
@@ -2460,6 +2492,21 @@ export function createRouter(deps: RouterDeps) {
       ),
     },
     routines: {
+      eventTypes: authed.routines.eventTypes.handler(async ({ context, input }) => {
+        if (!deps.routineAppEvents)
+          throw new ORPCError("BAD_REQUEST", { message: "App events are not configured." });
+        return deps.routineAppEvents.types(context.actor, input.connectionId);
+      }),
+      connectEvent: authed.routines.connectEvent.handler(async ({ context, input }) => {
+        if (!deps.routineAppEvents)
+          throw new ORPCError("BAD_REQUEST", { message: "App events are not configured." });
+        return mapRoutine(await deps.routineAppEvents.connect(context.actor, input));
+      }),
+      disconnectEvent: authed.routines.disconnectEvent.handler(async ({ context, input }) => {
+        if (!deps.routineAppEvents)
+          throw new ORPCError("BAD_REQUEST", { message: "App events are not configured." });
+        return mapRoutine(await deps.routineAppEvents.disconnect(context.actor, input.routineId));
+      }),
       health: authed.routines.health.handler(async () => {
         const health = await deps.prisma.schedulerHealth.findUnique({ where: { id: "routines" } });
         return {
@@ -2498,6 +2545,7 @@ export function createRouter(deps: RouterDeps) {
             userId: context.actor.userId,
             name: input.name,
             prompt: input.prompt,
+            quietBriefing: input.quietBriefing,
             skipStale: input.skipStale,
             crons: input.crons,
             timezone: input.timezone,
@@ -2541,7 +2589,24 @@ export function createRouter(deps: RouterDeps) {
           const githubEnabled = input.githubEnabled ?? existing.githubEnabled;
           const messageProvider =
             input.messageProvider === undefined ? existing.messageProvider : input.messageProvider;
-          if (crons.length === 0 && !webhookEnabled && !githubEnabled && !messageProvider) {
+          const quietBriefing = input.quietBriefing ?? existing.quietBriefing;
+          if (
+            quietBriefing &&
+            (!crons.length ||
+              webhookEnabled ||
+              githubEnabled ||
+              messageProvider ||
+              existing.appEvent)
+          ) {
+            throw new ORPCError("BAD_REQUEST", { message: "Quiet briefings use schedules only." });
+          }
+          if (
+            crons.length === 0 &&
+            !webhookEnabled &&
+            !githubEnabled &&
+            !messageProvider &&
+            !existing.appEvent
+          ) {
             throw new ORPCError("BAD_REQUEST", {
               message: "Add a schedule, webhook, GitHub, or message trigger",
             });
@@ -2610,6 +2675,7 @@ export function createRouter(deps: RouterDeps) {
             data: {
               name: input.name,
               prompt: input.prompt,
+              quietBriefing: input.quietBriefing,
               skipStale: input.skipStale,
               crons: input.crons,
               timezone: input.timezone,
@@ -2622,7 +2688,8 @@ export function createRouter(deps: RouterDeps) {
               // An explicit enable/pause or schedule edit starts a new failure generation.
               ...((input.active !== undefined && input.active !== existing.active) ||
               scheduleChanged ||
-              (input.skipStale !== undefined && input.skipStale !== existing.skipStale)
+              (input.skipStale !== undefined && input.skipStale !== existing.skipStale) ||
+              (input.quietBriefing !== undefined && input.quietBriefing !== existing.quietBriefing)
                 ? {
                     generation: { increment: 1 },
                     failureStreak: 0,
@@ -2661,7 +2728,8 @@ export function createRouter(deps: RouterDeps) {
           where: { id: input.routineId, spaceId: context.actor.spaceId },
         });
         if (!existing) throw new IsolationError();
-        await deps.prisma.routine.delete({ where: { id: existing.id } });
+        const removed = await deps.prisma.routine.delete({ where: { id: existing.id } });
+        await deps.routineAppEvents?.cleanup(removed.appEvent);
         await deps.jobs.cancel(routineJobKey(existing.id));
         return { ok: true as const };
       }),
@@ -2686,7 +2754,15 @@ export function createRouter(deps: RouterDeps) {
           if (existing) return { runId: existing.id };
         }
         const skillRecords = await agentSkills.listWithContent(context.actor, bot.id);
-        const prompt = expandSkillReferencesInPrompt(routine.prompt, skillRecords);
+        const briefingSnapshotAt = new Date();
+        const briefing = routine.quietBriefing
+          ? await quietBriefingContext(deps.prisma, routine, briefingSnapshotAt)
+          : undefined;
+        if (briefing === null)
+          throw new ORPCError("BAD_REQUEST", { message: "Nothing new needs a briefing." });
+        const prompt =
+          expandSkillReferencesInPrompt(routine.prompt, skillRecords) +
+          (briefing ? `\n\n${briefing}` : "");
         let run: { id: string };
         try {
           // Task + run must commit together so a nonce collision cannot leave an orphan queued Task.
@@ -2718,6 +2794,7 @@ export function createRouter(deps: RouterDeps) {
                 status: "queued",
                 trigger: "routine",
                 routineId: routine.id,
+                briefingSnapshotAt: routine.quietBriefing ? briefingSnapshotAt : undefined,
                 clientNonce: nonce,
               },
               select: { id: true },
@@ -4737,14 +4814,15 @@ export function createRouter(deps: RouterDeps) {
     },
     artifacts: {
       list: authed.artifacts.list.handler(async ({ context, input }) => {
-        await repos.getBot(context.actor, input.botId);
+        if (input.groupId) await groupRepos.getGroupTarget(context.actor, input.groupId);
+        else await repos.getBot(context.actor, input.botId!);
         const rows = await deps.prisma.artifact.findMany({
           where: {
-            botId: input.botId,
-            groupId: null,
+            ...(input.groupId ? { groupId: input.groupId } : { botId: input.botId, groupId: null }),
             spaceId: context.actor.spaceId,
             userId: context.actor.userId,
           },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         });
         return rows.map((row) => ({
           id: row.id,
@@ -4871,6 +4949,7 @@ export function createRouter(deps: RouterDeps) {
             prompt: r.prompt,
             crons: r.crons,
             timezone: r.timezone,
+            quietBriefing: r.quietBriefing,
           })),
           files,
           history,
@@ -4901,6 +4980,15 @@ export function createRouter(deps: RouterDeps) {
       })),
     },
     voice: {
+      realtimeOptions: authed.voice.realtimeOptions.handler(async ({ context }) => ({
+        available: await realtimeVoiceAvailable(deps, context.actor),
+      })),
+      realtimeSession: authed.voice.realtimeSession.handler(async ({ context, input }) =>
+        createRealtimeVoiceSession(deps, context.actor, { ...input, signal: context.signal }),
+      ),
+      saveCall: authed.voice.saveCall.handler(async ({ context, input }) =>
+        saveVoiceCall(deps, context.actor, input),
+      ),
       catalog: authed.voice.catalog.handler(async () => listVoiceCatalog()),
       status: authed.voice.status.handler(async ({ context }) => {
         const cred = await findDefaultVoiceCredential(deps.prisma, context.actor);
@@ -5599,6 +5687,8 @@ function nextRoutineDate(crons: string[], timezone: string): Date {
 }
 
 function mapRoutine(row: {
+  quietBriefing?: boolean;
+  appEvent?: unknown;
   id: string;
   botId: string;
   name: string;
@@ -5618,7 +5708,10 @@ function mapRoutine(row: {
   skipStale?: boolean;
   lastSkippedAt?: Date | null;
 }) {
+  const binding = AppEventBindingSchema.safeParse(row.appEvent);
   return {
+    quietBriefing: row.quietBriefing ?? false,
+    appEvent: binding.success ? binding.data : null,
     id: row.id,
     botId: row.botId,
     name: row.name,

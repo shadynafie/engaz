@@ -85,6 +85,7 @@ import { LessonDraftSchema, LessonPreviewSchema } from "./lessons.js";
 import { MessageReactionSchema } from "./reactions.js";
 import { RunActivityDetailsSchema, RunsListOutputSchema } from "./runs.js";
 import { SearchQueryOutputSchema } from "./search.js";
+import { RealtimeVoiceSessionSchema, VoiceCallRecordInput } from "./voice-calls.js";
 
 const botId = z.object({ botId: Id });
 const groupId = z.object({ groupId: Id });
@@ -391,6 +392,9 @@ export const appContract = {
     update: oc
       .input(z.object({ documentId: Id, content: z.string() }))
       .output(MemoryDocumentSchema),
+    remove: oc
+      .input(z.object({ documentId: Id, revision: z.number().int().positive() }))
+      .output(z.object({ ok: z.literal(true) })),
     exportMarkdown: oc.input(z.object({ botId: Id.optional() })).output(z.string()),
     providerConfig: oc.output(SpaceMemoryConfigSchema.nullable()),
     connectProvider: oc
@@ -410,47 +414,52 @@ export const appContract = {
   },
   routines: {
     health: oc.output(z.object({ lastCheckedAt: z.string().nullable(), checking: z.boolean() })),
+    eventTypes: oc.input(z.object({ connectionId: Id })).output(
+      z.array(
+        z.object({
+          slug: z.string(),
+          name: z.string(),
+          config: z.record(z.string(), z.unknown()),
+        }),
+      ),
+    ),
+    connectEvent: oc
+      .input(
+        z.object({
+          routineId: Id,
+          connectionId: Id,
+          event: z.string().min(1).max(200),
+          config: z.record(z.string(), z.unknown()).default({}),
+        }),
+      )
+      .output(RoutineSchema),
+    disconnectEvent: oc.input(z.object({ routineId: Id })).output(RoutineSchema),
     list: oc.input(botId).output(z.array(RoutineSchema)),
     create: oc.input(CreateRoutineInput).output(RoutineSchema),
     update: oc
       .input(
-        z
-          .object({
-            routineId: Id,
-            skipStale: z.boolean().optional(),
-            name: z.string().optional(),
-            prompt: z.string().optional(),
-            crons: z.array(z.string().min(1)).optional(),
-            timezone: z.string().optional(),
-            active: z.boolean().optional(),
-            notify: z.boolean().optional(),
-            webhookEnabled: z.boolean().optional(),
-            githubEnabled: z.boolean().optional(),
-            messageProvider: z
-              .string()
-              .min(1)
-              .max(50)
-              .regex(/^[a-z0-9._-]+$/i)
-              .nullable()
-              .optional(),
-            /** ISO datetime to arm a never-run one-shot. */
-            runAt: IsoDate.optional(),
-          })
-          .superRefine((value, ctx) => {
-            if (
-              value.crons &&
-              value.crons.length === 0 &&
-              value.webhookEnabled === false &&
-              value.githubEnabled === false &&
-              value.messageProvider === null
-            ) {
-              ctx.addIssue({
-                code: "custom",
-                message: "Add a schedule, webhook, GitHub, or message trigger",
-                path: ["crons"],
-              });
-            }
-          }),
+        z.object({
+          routineId: Id,
+          quietBriefing: z.boolean().optional(),
+          skipStale: z.boolean().optional(),
+          name: z.string().optional(),
+          prompt: z.string().optional(),
+          crons: z.array(z.string().min(1)).optional(),
+          timezone: z.string().optional(),
+          active: z.boolean().optional(),
+          notify: z.boolean().optional(),
+          webhookEnabled: z.boolean().optional(),
+          githubEnabled: z.boolean().optional(),
+          messageProvider: z
+            .string()
+            .min(1)
+            .max(50)
+            .regex(/^[a-z0-9._-]+$/i)
+            .nullable()
+            .optional(),
+          /** ISO datetime to arm a never-run one-shot. */
+          runAt: IsoDate.optional(),
+        }),
       )
       .output(RoutineSchema),
     remove: oc.input(z.object({ routineId: Id })).output(z.object({ ok: z.literal(true) })),
@@ -743,7 +752,7 @@ export const appContract = {
     set: oc.input(z.object({ enabled: z.boolean() })).output(ActionAutoReviewSettingsSchema),
   },
   artifacts: {
-    list: oc.input(botId).output(z.array(ArtifactSchema)),
+    list: oc.input(threadTarget).output(z.array(ArtifactSchema)),
     create: oc
       .input(
         threadTarget.and(
@@ -784,6 +793,9 @@ export const appContract = {
     list: oc.input(z.object({ filter: z.enum(["active", "recent"]) })).output(RunsListOutputSchema),
   },
   voice: {
+    realtimeOptions: oc.output(z.object({ available: z.boolean() })),
+    realtimeSession: oc.input(botId).output(RealtimeVoiceSessionSchema),
+    saveCall: oc.input(VoiceCallRecordInput).output(z.object({ id: Id })),
     catalog: oc.output(z.array(VoiceCatalogEntrySchema)),
     status: oc.output(VoiceStatusSchema),
     credentials: oc.output(z.array(VoiceCredentialSchema)),

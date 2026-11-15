@@ -108,5 +108,15 @@ test("memory is readable and editable in the app", async ({ page }, testInfo) =>
   ).toContainEqual(expect.objectContaining({ content: `# Chief\n\n${botMarker}\n`, revision: 2 }));
   await botMemoryRow.click();
   await expect(botDocEditor).toHaveValue(new RegExp(botMarker));
-  await botMemory.getByRole("button", { name: "Cancel", exact: true }).click();
+  await botMemory.getByRole("button", { name: "Forget", exact: true }).click();
+  await captureScreenshot(page, testInfo, "85-memory-forget-confirmation");
+  await botMemory.getByRole("button", { name: "Confirm forget", exact: true }).click();
+  await expect(botMemoryRow).toHaveCount(0);
+  expect(
+    await rpc<MemoryDocument[]>(page, "memory/list", { botId: activeBotId(page), scope: "bot" }),
+  ).toEqual([]);
+  await page.reload();
+  expect(
+    await rpc<MemoryDocument[]>(page, "memory/list", { botId: activeBotId(page), scope: "bot" }),
+  ).toEqual([]);
 });

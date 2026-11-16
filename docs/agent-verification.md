@@ -21,6 +21,31 @@ command. Nightly verification never starts computer sandboxes or requests model
 or sandbox credentials.
 Missing live credentials mean **not run**, not a passing model evaluation.
 
+## Completion supervisor
+
+After a turn uses tools, Pi's next text-only reply is a candidate answer. The
+runtime holds it while a tool-free call to the agent's configured model reviews
+the task, recent transcript, and candidate. Tool activity can still stream;
+the candidate answer appears only after the review accepts it.
+
+```mermaid
+flowchart TD
+    A[Agent uses tools] --> B[Agent drafts a final reply]
+    B --> C[Hold reply and review observed work]
+    C -->|complete| D[Show reply and finish]
+    C -->|continue| E{Under 3 review continuations?}
+    E -->|yes| F[Same agent continues the same run]
+    F --> A
+    E -->|no| G[Stop with an explanation]
+    C -->|needs_user| H[Pause run and ask the user]
+    C -->|blocked| G
+```
+
+The review can identify a missing step in the recorded work; it cannot prove
+an external outcome that no tool observed. Real tool approvals keep their
+existing approval flow. Replies without tool use and the exact silent-response
+sentinel keep their existing paths.
+
 ## Deterministic Pi tests
 
 `packages/testkit/src/model-emulator.ts` serves a loopback OpenAI-compatible

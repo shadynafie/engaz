@@ -241,6 +241,11 @@ vi.mock("@earendil-works/pi-ai/providers/all", () => ({
     streamSimple: () => {
       throw new Error("the fake agent must not call a provider");
     },
+    completeSimple: async () => ({
+      role: "assistant",
+      content: [{ type: "text", text: '{"status":"complete"}' }],
+      stopReason: "stop",
+    }),
   }),
 }));
 

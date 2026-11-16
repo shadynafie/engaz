@@ -2,6 +2,7 @@ import { type ToolCallStreak, trackToolCallStreak } from "@engaz/core";
 
 // Same tool, same arguments, this many times in a row means the agent is stuck, not paginating.
 const MAX_CONSECUTIVE_IDENTICAL_TOOL_CALLS = 6;
+export const MAX_COMPLETION_REVIEW_CONTINUATIONS = 3;
 
 export function advanceToolCallLoopGuard(
   streak: ToolCallStreak,

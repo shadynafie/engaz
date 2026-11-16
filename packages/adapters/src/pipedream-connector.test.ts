@@ -30,6 +30,7 @@ const TEST_NETWORK = { resolveHostname: async () => [{ address: "203.0.113.10", 
 function pipedreamMcpFetch(
   toolsByApp: Record<string, string[]>,
   calls: Array<{ app: string | null; name: string; args: unknown }> = [],
+  accounts: Array<{ method?: string; account: string | null }> = [],
 ) {
   return vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const request = input instanceof Request ? input : new Request(input, init);
@@ -42,6 +43,7 @@ function pipedreamMcpFetch(
       method?: string;
       params?: { name?: string; arguments?: unknown };
     };
+    accounts.push({ method: message.method, account: request.headers.get("x-pd-account-id") });
     if (message.method === "initialize") {
       return Response.json({
         jsonrpc: "2.0",
@@ -90,6 +92,7 @@ function connectedContext(...apps: string[]): AdapterContext {
       connectorId: "pipedream",
       externalId: app,
       displayName: app,
+      providerRef: `account-${app}`,
     })),
   };
 }
@@ -587,6 +590,117 @@ describe("PipedreamConnector", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("pins discovery and execution to the selected account when one app has two accounts", async () => {
+    const accounts: Array<{ method?: string; account: string | null }> = [];
+    const fetch = pipedreamMcpFetch({ gmail: ["send_email"] }, [], accounts);
+    const connector = new PipedreamConnector(FAKE_CONFIG, { ...TEST_NETWORK, fetch });
+    const granted = connectedContext("gmail");
+    granted.connectedConnections!.push({
+      id: "personal-gmail",
+      connectorId: "pipedream",
+      externalId: "gmail",
+      displayName: "Personal",
+      providerRef: "account-personal",
+    });
+    const tools = await connector.discoverTools(granted);
+    expect(tools).toHaveLength(2);
+    expect(new Set(tools.map((tool) => tool.name)).size).toBe(2);
+    expect(
+      accounts
+        .filter((entry) => entry.method === "tools/list")
+        .map((entry) => entry.account)
+        .sort(),
+    ).toEqual(["account-gmail", "account-personal"]);
+    for (const tool of tools) {
+      const events = [];
+      for await (const event of connector.execute(
+        { tool: tool.name, route: tool.route, executionId: tool.name, args: { text: "hello" } },
+        granted,
+      ))
+        events.push(event);
+      expect(events[0]?.type).toBe("result");
+      expect(accounts.filter((entry) => entry.method === "tools/call").at(-1)?.account).toBe(
+        tool.route?.resourceRevision,
+      );
+    }
+  });
+
+  it("refuses an approved app after its grant is removed while another app remains", async () => {
+    const fetch = pipedreamMcpFetch({ gmail: ["send_email"], slack: ["send_message"] });
+    const connector = new PipedreamConnector(FAKE_CONFIG, { ...TEST_NETWORK, fetch });
+    const tools = await connector.discoverTools(connectedContext("gmail", "slack"));
+    const approved = tools.find((tool) => tool.route?.resourceId === "slack")!;
+    fetch.mockClear();
+    const events = [];
+    for await (const event of connector.execute(
+      {
+        tool: approved.name,
+        route: approved.route,
+        executionId: "approved-before-revoke",
+        args: { text: "hello" },
+      },
+      connectedContext("gmail"),
+    ))
+      events.push(event);
+    expect(events).toEqual([
+      { type: "error", message: expect.stringContaining("no longer assigned") },
+    ]);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, "gmail"])(
+    "does not use a provider default for missing or slug-only account %s",
+    async (providerRef) => {
+      const fetch = pipedreamMcpFetch({ gmail: ["send_email"] });
+      const connector = new PipedreamConnector(FAKE_CONFIG, { ...TEST_NETWORK, fetch });
+      const granted = connectedContext("gmail");
+      granted.connectedConnections![0]!.providerRef = providerRef;
+      expect(await connector.discoverTools(granted)).toEqual([]);
+      const events = [];
+      for await (const event of connector.execute(
+        {
+          tool: "send_email",
+          route: {
+            connectorId: "pipedream",
+            resourceId: "gmail",
+            resourceRevision: "account-gmail",
+            toolName: "send_email",
+          },
+          executionId: "missing-account",
+          args: {},
+        },
+        granted,
+      ))
+        events.push(event);
+      expect(events).toEqual([{ type: "error", message: expect.stringContaining("Reconnect") }]);
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it("refuses an unpinned or ambiguous account before any provider request", async () => {
+    const fetch = pipedreamMcpFetch({ gmail: ["send_email"] });
+    const connector = new PipedreamConnector(FAKE_CONFIG, { ...TEST_NETWORK, fetch });
+    const granted = connectedContext("gmail");
+    const route = { connectorId: "pipedream", resourceId: "gmail", toolName: "send_email" };
+    for await (const event of connector.execute(
+      { tool: "send_email", route, executionId: "unpinned", args: {} },
+      granted,
+    ))
+      expect(event.type).toBe("error");
+    granted.connectedConnections!.push({ ...granted.connectedConnections![0]!, id: "duplicate" });
+    for await (const event of connector.execute(
+      {
+        tool: "send_email",
+        route: { ...route, resourceRevision: "account-gmail" },
+        executionId: "ambiguous",
+        args: {},
+      },
+      granted,
+    ))
+      expect(event.type).toBe("error");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("runs catalog, connection, discovery, execution, and revoke against the protocol emulator", async () => {
     const emulator = new ThirdPartyConnectorEmulator();
     const connector = new PipedreamConnector(
@@ -622,6 +736,7 @@ describe("PipedreamConnector", () => {
           connectorId: "pipedream",
           externalId: "linear",
           displayName: "Linear",
+          providerRef: "account-linear",
         },
       ],
     };

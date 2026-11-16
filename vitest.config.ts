@@ -14,6 +14,7 @@ export default defineConfig({
       "apps/mobile/lib/**/*.test.ts",
       "apps/mobile/plugins/**/*.test.js",
       "apps/api/src/**/*.test.ts",
+      "apps/connect/src/**/*.test.ts",
       "apps/www/src/**/*.test.ts",
     ],
     testTimeout: 30_000,

@@ -71,7 +71,10 @@ function asObject(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-export type ComposioCatalogItem = Omit<ConnectorCatalogItem, "connectorId">;
+export type ComposioCatalogItem = Omit<
+  ConnectorCatalogItem,
+  "connectorId" | "available" | "setupRequired"
+>;
 
 export interface ComposioProvider extends ManagedConnectorProvider {
   warmDirectory(): Promise<void>;
@@ -280,8 +283,18 @@ export class ComposioConnector implements ComposioProvider {
     for (const [toolkit, ids] of accountIdsByToolkit) {
       connectedAccounts[toolkit] = [...ids].sort();
     }
-    const key = executeSessionKey(canonicalToolkits, connectedAccounts);
-    if (!key) return this.sessionFor(userId);
+    const noAuthToolkits = new Set(
+      (await this.directory().catch(() => []))
+        .filter((toolkit) => toolkit.noAuth)
+        .map((toolkit) => composioSlugKey(toolkit.slug)),
+    );
+    const allowedToolkits = canonicalToolkits.filter(
+      (toolkit) =>
+        connectedAccounts[toolkit]?.length || noAuthToolkits.has(composioSlugKey(toolkit)),
+    );
+    // An omitted account pin would let the provider choose an unassigned account.
+    if (!allowedToolkits.length) throw new Error("Reconnect this account and choose this agent");
+    const key = executeSessionKey(allowedToolkits, connectedAccounts);
     const composio = this.sdk();
     const existing = this.executeSessions.get(userId);
     if (existing?.key === key) {
@@ -298,7 +311,7 @@ export class ComposioConnector implements ComposioProvider {
     const session = await composio.create(userId, {
       manageConnections: false,
       sandbox: { enable: false },
-      toolkits: canonicalToolkits,
+      toolkits: allowedToolkits,
       ...(Object.keys(connectedAccounts).length > 0 ? { connectedAccounts } : {}),
       ...(needsMultiAccount
         ? {
@@ -320,7 +333,7 @@ export class ComposioConnector implements ComposioProvider {
       this.listConnectedSlugs(context.userId),
     ]);
     return filterCatalog(mergeCatalogWithConnected(directory, connected), query ?? "").map(
-      (item) => ({ ...item, connectorId: "composio" }),
+      (item) => ({ ...item, connectorId: "composio", available: true, setupRequired: false }),
     );
   }
 
@@ -379,6 +392,10 @@ export class ComposioConnector implements ComposioProvider {
 
   async *execute(call: ConnectorCall, context: AdapterContext): AsyncIterable<ConnectorEvent> {
     try {
+      if (connectedComposioConnections(context).length === 0) {
+        yield { type: "error", message: "No connected account is available to this agent" };
+        return;
+      }
       const session = await this.sessionForExecute(
         context.userId,
         connectedComposioConnections(context),

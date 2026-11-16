@@ -6,6 +6,7 @@ import {
   CloudDownload,
   Cpu,
   Gauge,
+  Link2,
   Monitor,
   Settings,
   Users,
@@ -21,11 +22,15 @@ import {
   UsageSettingsPanel,
 } from "./AccountSettingsOverlay";
 import { InvitesSettingsPanel } from "./InvitesSettingsPanel";
+import { McpServersOverlay } from "./McpServersOverlay";
 import { MemorySettingsOverlay } from "./MemorySettingsOverlay";
 import { ModelSettingsOverlay } from "./ModelSettingsOverlay";
+import type { McpServerDraft } from "./PluginsOverlay";
+import { PluginsOverlay } from "./PluginsOverlay";
 import { VoiceSettingsOverlay } from "./VoiceSettingsOverlay";
 
 export type SettingsSection =
+  | "connections"
   | "general"
   | "models"
   | "memory"
@@ -42,6 +47,7 @@ type NavItem = {
 };
 
 export function SettingsOverlay({
+  stdioEnabled = false,
   email,
   name,
   usage,
@@ -57,6 +63,7 @@ export function SettingsOverlay({
   onClose,
   onVoiceStatusMaybeChanged,
 }: {
+  stdioEnabled?: boolean;
   email?: string | null;
   name: string;
   usage?: { runs: number; inputTokens: number; outputTokens: number } | null;
@@ -76,6 +83,7 @@ export function SettingsOverlay({
   const panelRef = useRef<HTMLDivElement>(null);
   const usageRef = useRef<HTMLDivElement>(null);
   const [section, setSection] = useState<SettingsSection>(initialSection);
+  const [mcpView, setMcpView] = useState<{ draft?: McpServerDraft } | null>(null);
   const [memoryBusy, setMemoryBusy] = useState(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const showComputer = isDeploymentOwner && computersAreUnavailable(sandboxProvider);
@@ -94,6 +102,7 @@ export function SettingsOverlay({
   const navItems: NavItem[] = [
     { id: "general", label: t`General`, icon: Settings },
     { id: "models", label: t`Models`, icon: Cpu },
+    { id: "connections", label: t`Connections`, icon: Link2 },
     { id: "memory", label: t`Memory`, icon: Brain },
     { id: "voice", label: t`Voice`, icon: Volume2 },
     { id: "usage", label: t`Usage`, icon: Gauge },
@@ -172,7 +181,10 @@ export function SettingsOverlay({
                   data-testid={`settings-nav-${item.id}`}
                   aria-current={active ? "page" : undefined}
                   disabled={panelBusy}
-                  onClick={() => setSection(item.id)}
+                  onClick={() => {
+                    setMcpView(null);
+                    setSection(item.id);
+                  }}
                   className={`flex shrink-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-start text-[13.5px] transition-colors disabled:pointer-events-none disabled:opacity-50 ${
                     active
                       ? "bg-muted text-foreground"
@@ -219,6 +231,18 @@ export function SettingsOverlay({
                   }
                   isDeploymentOwner={isDeploymentOwner}
                 />
+              ) : null}
+              {section === "connections" ? (
+                mcpView ? (
+                  <McpServersOverlay
+                    embedded
+                    stdioEnabled={stdioEnabled}
+                    draft={mcpView.draft}
+                    onClose={() => setMcpView(null)}
+                  />
+                ) : (
+                  <PluginsOverlay onOpenMcp={(draft) => setMcpView({ draft })} />
+                )
               ) : null}
               {section === "usage" ? (
                 <UsageSettingsPanel usage={usage} panelRef={usageRef} />

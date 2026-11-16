@@ -276,6 +276,7 @@ describe("secrets model-visibility conformance", () => {
             connectorId: "pipedream",
             externalId: "gmail",
             displayName: "Gmail",
+            providerRef: "account-gmail",
           },
         ],
       } as AdapterContext;
@@ -286,7 +287,12 @@ describe("secrets model-visibility conformance", () => {
           tool: "gmail.list",
           args: {},
           executionId: "exec-1",
-          route: { connectorId: "pipedream", resourceId: "gmail", toolName: "gmail.list" },
+          route: {
+            connectorId: "pipedream",
+            resourceId: "gmail",
+            resourceRevision: "account-gmail",
+            toolName: "gmail.list",
+          },
         },
         context,
       )) {

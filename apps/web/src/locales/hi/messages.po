@@ -26,7 +26,7 @@ msgstr ""
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# मॉडल} other {# मॉडल}}"
 
-#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working").length
+#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working") .length
 msgid "{0, plural, one {# needs attention} other {# need attention}}"
 msgstr ""
 
@@ -233,9 +233,6 @@ msgstr ""
 msgid "Add another"
 msgstr ""
 
-msgid "Add Executor"
-msgstr "Executor जोड़ें"
-
 msgid "Add GraphQL"
 msgstr "GraphQL जोड़ें"
 
@@ -260,13 +257,7 @@ msgstr ""
 msgid "Add to routine"
 msgstr "रूटीन में जोड़ें"
 
-msgid "Add Treg"
-msgstr "Treg जोड़ें"
-
 msgid "Add trigger"
-msgstr ""
-
-msgid "Added"
 msgstr ""
 
 msgid "Adding…"
@@ -374,6 +365,9 @@ msgstr "अनुमोदित करें"
 
 msgid "Approve this server to let your agent use its tools."
 msgstr "अपने एजेंट को इसके टूल उपयोग करने देने के लिए इस सर्वर को अनुमोदित करें।"
+
+msgid "Apps are not available on this installation. You can still add a connection under Advanced."
+msgstr ""
 
 msgid "Archive"
 msgstr "आर्काइव करें"
@@ -632,9 +626,6 @@ msgstr "कंप्यूटर बंद करें"
 msgid "Close image preview"
 msgstr "छवि प्रीव्यू बंद करें"
 
-msgid "Close integrations"
-msgstr "इंटीग्रेशन बंद करें"
-
 msgid "Close MCP servers"
 msgstr "MCP सर्वर बंद करें"
 
@@ -729,13 +720,16 @@ msgstr "एक मॉडल कनेक्ट करें"
 msgid "Connect a model to continue."
 msgstr "जारी रखने के लिए मॉडल कनेक्ट करें।"
 
-msgid "Connect an app in Integrations to choose its events."
+msgid "Connect an app in Settings → Connections."
 msgstr ""
 
 msgid "Connect API key"
 msgstr "API कुंजी कनेक्ट करें"
 
 msgid "Connect app event"
+msgstr ""
+
+msgid "Connect for this agent"
 msgstr ""
 
 msgid "Connect MCP server “{name}”"
@@ -772,6 +766,9 @@ msgstr "कनेक्ट हो रहा है…"
 #. placeholder {0}: item.name
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "{0} से कनेक्शन अभी लंबित है। आप इसे बंद करके बाद में जांच सकते हैं।"
+
+msgid "Connections"
+msgstr ""
 
 msgid "Context limit"
 msgstr "कॉन्टेक्स्ट सीमा"
@@ -928,7 +925,7 @@ msgstr "अनुमोदन नियम लोड नहीं हो सक�
 msgid "Could not load apps"
 msgstr ""
 
-msgid "Could not load bots. Reload to try again."
+msgid "Could not load connections"
 msgstr ""
 
 msgid "Could not load events"
@@ -963,6 +960,9 @@ msgstr "यह चैट लोड नहीं हो सकी."
 
 msgid "Could not load this file."
 msgstr "यह फ़ाइल लोड नहीं हो सकी।"
+
+msgid "Could not load tool sources"
+msgstr ""
 
 msgid "Could not load update status"
 msgstr ""
@@ -1371,6 +1371,9 @@ msgstr "इमेज सीमा के लिए 1 से 1000 के बी�
 msgid "Enter event settings as a JSON object"
 msgstr ""
 
+msgid "Enter this code"
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "यह कोड <0>{0}</0> पर दर्ज करें"
@@ -1611,9 +1614,6 @@ msgstr ""
 msgid "Integration options"
 msgstr ""
 
-msgid "Integrations"
-msgstr "इंटीग्रेशन"
-
 msgid "Interrupt"
 msgstr "बीच में रोकें"
 
@@ -1704,8 +1704,8 @@ msgstr "पुराने संदेश लोड करें"
 msgid "Loading activity…"
 msgstr "गतिविधि लोड हो रही है…"
 
-msgid "Loading integrations…"
-msgstr "इंटीग्रेशन लोड हो रहे हैं…"
+msgid "Loading connections…"
+msgstr ""
 
 msgid "Loading memory settings…"
 msgstr "मेमोरी सेटिंग्स लोड हो रही हैं…"
@@ -2077,6 +2077,9 @@ msgstr "पूरी विंडो में खोलें"
 msgid "Open navigation"
 msgstr "नेविगेशन खोलें"
 
+msgid "Open sign-in page"
+msgstr ""
+
 msgid "Open work"
 msgstr "खुला कार्य"
 
@@ -2215,6 +2218,12 @@ msgstr ""
 
 msgid "Recent"
 msgstr "हाल के"
+
+msgid "Reconnect"
+msgstr ""
+
+msgid "Reconnect this account before granting access."
+msgstr ""
 
 msgid "Reconnecting"
 msgstr "पुनः कनेक्ट हो रहा है"
@@ -2453,6 +2462,9 @@ msgstr ""
 msgid "Saved"
 msgstr "सहेजा गया"
 
+msgid "Saved connections"
+msgstr ""
+
 msgid "Saved, but list refresh failed"
 msgstr "सहेजा गया, लेकिन सूची रिफ़्रेश विफल रही"
 
@@ -2604,6 +2616,9 @@ msgid "Sign up"
 msgstr "साइन अप करें"
 
 msgid "Sign-in needed"
+msgstr ""
+
+msgid "Sign-in pending"
 msgstr ""
 
 msgid "Signing in…"
@@ -2853,9 +2868,6 @@ msgid "Unassigned"
 msgstr "असाइन नहीं किया गया"
 
 msgid "Unavailable"
-msgstr ""
-
-msgid "Uninstall"
 msgstr ""
 
 msgid "Unlink"

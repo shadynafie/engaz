@@ -113,6 +113,7 @@ describeWithDatabase("structured @ mention targets", () => {
       notifyOnFinish: true,
     });
     const started = await rpc<{ connectionId: string }>(app, cookie, "connections/begin", {
+      connectorId: "composio",
       provider: "gmail",
       displayName: "Gmail",
     });
@@ -278,6 +279,7 @@ describeWithDatabase("structured @ mention targets", () => {
       active: false,
     });
     const started = await rpc<{ connectionId: string }>(app, ada, "connections/begin", {
+      connectorId: "composio",
       provider: "gmail",
       displayName: "Gmail",
     });

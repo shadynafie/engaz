@@ -64,6 +64,7 @@ async function main() {
     process.env.CLOUD_AGENT_PROVIDER = "emulator";
     delete process.env.CURSOR_API_KEY;
     process.env.COMPOSIO_API_KEY = "";
+    process.env.DIRECT_APP_SETTINGS = "";
     process.env.BETTER_AUTH_SECRET = "test-secret-test-secret-32chars!";
     process.env.ENCRYPTION_KEY = "test-encryption-key-test-encryption-key";
     process.env.SANDBOX_SUPERVISOR_TOKEN = "test-supervisor-token-test-32chars";
@@ -108,6 +109,7 @@ async function main() {
         "packages/testkit/src/executor-lifecycle.test.ts",
         "packages/testkit/src/routine-safety.postgres.test.ts",
         "packages/testkit/src/connections.test.ts",
+        "packages/testkit/src/direct-connections.test.ts",
         "packages/testkit/src/bot-secrets.test.ts",
         "packages/db/src/space-membership.postgres.test.ts",
         "packages/db/src/messaging.postgres.test.ts",

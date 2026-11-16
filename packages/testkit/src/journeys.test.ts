@@ -1850,7 +1850,7 @@ describeJourneys("required product journeys", () => {
       app,
       ada,
       "connections/begin",
-      { provider: "gmail", displayName: "Gmail" },
+      { connectorId: "composio", provider: "gmail", displayName: "Gmail" },
     );
     expect(started.authorizationUrl).toBeNull();
     const connected = await rpc<{ status: string }>(app, ada, "connections/complete", {

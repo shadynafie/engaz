@@ -427,22 +427,12 @@ export default function Account() {
         <Pressable
           accessibilityRole="button"
           disabled={pending}
-          onPress={() => router.push("/integrations")}
+          onPress={() => router.push("/connections")}
           style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}
         >
-          <Text style={styles.settingsTitle}>{t("Integrations")}</Text>
+          <Text style={styles.settingsTitle}>{t("Connections")}</Text>
           <Text style={styles.chevron}>›</Text>
         </Pressable>
-
-        {me?.isDeploymentOwner ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push("/integration-setup")}
-            style={styles.settingsButton}
-          >
-            <Text style={styles.settingsTitle}>{t("Server integrations")}</Text>
-          </Pressable>
-        ) : null}
 
         <Pressable
           accessibilityRole="button"

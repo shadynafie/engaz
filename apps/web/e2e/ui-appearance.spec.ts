@@ -111,12 +111,7 @@ test("sidebar bot rows hover with the same tone as the integrations row", async 
 
   await chief.hover();
   await expect.poll(readChiefBg).not.toBe("rgba(0, 0, 0, 0)");
-  const chiefBg = await readChiefBg();
   await captureScreenshot(page, testInfo, "sidebar-row-hover");
 
-  const integrations = sidebar.getByRole("button", { name: "Integrations", exact: true });
-  await integrations.hover();
-  await expect
-    .poll(() => integrations.evaluate((el) => getComputedStyle(el).backgroundColor))
-    .toBe(chiefBg);
+  await expect(sidebar.getByRole("button", { name: "Integrations", exact: true })).toHaveCount(0);
 });

@@ -1,0 +1,977 @@
+import type {
+  CapabilityInstall,
+  Connection,
+  ConnectionCatalogItem,
+  McpServer,
+} from "@engaz/contracts";
+import {
+  buildFeaturedConnectorTiles,
+  CONNECTION_CATALOG_PAGE_SIZE,
+  filterConnectionCatalogItems,
+  humanizeToolName,
+} from "@engaz/core";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import type { MobileBot } from "../lib/api";
+import { rpc } from "../lib/api";
+import { mobileTokens } from "../lib/appearance";
+import type { ConnectionAuthorization } from "../lib/connection-authorization";
+import { finishConnectionAuthorization } from "../lib/connection-authorization";
+import { confirmConnectionCode } from "../lib/connection-code";
+import { useI18n } from "../lib/i18n";
+import { native, useThemedStyles } from "../lib/native";
+
+type SourceKind = "api" | "graphql";
+type ConnectionTool = { name: string; description: string };
+
+const LOGO_SIZE = 32;
+
+function itemKey(item: Pick<ConnectionCatalogItem, "connectorId" | "slug">) {
+  return `${item.connectorId}:${item.slug}`;
+}
+
+function ConnectorLogo({
+  logo,
+  label,
+  styles,
+}: {
+  logo?: string | null;
+  label: string;
+  styles: ReturnType<typeof createConnectionsStyles>;
+}) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+  }, [logo]);
+  const initial = (label.trim()[0] || "?").toUpperCase();
+  if (!logo || failed) {
+    return (
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={styles.logoFallback}
+      >
+        <Text style={styles.logoInitial}>{initial}</Text>
+      </View>
+    );
+  }
+  return (
+    <Image
+      accessibilityIgnoresInvertColors
+      accessible={false}
+      onError={() => setFailed(true)}
+      resizeMode="contain"
+      source={{ uri: logo }}
+      style={styles.logo}
+    />
+  );
+}
+
+export default function Connections() {
+  const styles = useThemedStyles(createConnectionsStyles);
+  const { t } = useI18n();
+  const { width } = useWindowDimensions();
+  const catalogColumns = width >= 480 ? 2 : 1;
+  const [catalog, setCatalog] = useState<ConnectionCatalogItem[]>([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [query, setQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(CONNECTION_CATALOG_PAGE_SIZE);
+  const router = useRouter();
+  const [sources, setSources] = useState<CapabilityInstall[]>([]);
+  const [mcpServers, setMcpServers] = useState<McpServer[] | null>(null);
+  const [sourceKind, setSourceKind] = useState<SourceKind | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const [credential, setCredential] = useState("");
+  const [requiresAuth, setRequiresAuth] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [sourceError, setSourceError] = useState<string | null>(null);
+  const [agents, setAgents] = useState<MobileBot[]>([]);
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>({});
+  const [detailKey, setDetailKey] = useState<{ connectorId: string; slug: string } | null>(null);
+  const [tools, setTools] = useState<ConnectionTool[]>([]);
+  const [toolsLoading, setToolsLoading] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(true);
+  const [toolsTick, setToolsTick] = useState(0);
+  const connectionAttempt = useRef<AbortController | null>(null);
+
+  // Featured apps this catalog lacks are left out rather than shown disabled.
+  const featuredTiles = useMemo(
+    () => buildFeaturedConnectorTiles(catalog).filter((tile) => tile.item && !tile.missing),
+    [catalog],
+  );
+  const showFeatured = !query.trim();
+  const catalogApps = useMemo(() => filterConnectionCatalogItems(catalog, query), [catalog, query]);
+  const renderedApps = catalogApps.slice(0, visibleCount);
+
+  const detailItem = useMemo(() => {
+    if (!detailKey) return null;
+    return (
+      catalog.find(
+        (entry) => entry.connectorId === detailKey.connectorId && entry.slug === detailKey.slug,
+      ) ?? null
+    );
+  }, [catalog, detailKey]);
+
+  async function refresh() {
+    const catalogResult = await rpc<ConnectionCatalogItem[]>("connections/catalog");
+    setCatalog(catalogResult);
+    setCatalogReady(true);
+    try {
+      const rows = await rpc<Connection[]>("connections/list");
+      setConnections(rows);
+      setLabelDrafts((current) => {
+        const next: Record<string, string> = {};
+        for (const row of rows) {
+          if (row.status !== "revoked") {
+            next[row.id] = current[row.id] ?? row.displayName;
+          }
+        }
+        return next;
+      });
+    } catch {
+      setConnections([]);
+      setLabelDrafts({});
+    }
+    try {
+      const installs = await rpc<CapabilityInstall[]>("capabilities/list");
+      setSources(
+        installs.filter(
+          (item) => item.kind === "mcp" || item.kind === "api" || item.kind === "graphql",
+        ),
+      );
+    } catch {
+      // Tool sources are optional; keep featured/catalog usable if this fails.
+    }
+  }
+
+  useEffect(() => {
+    void refresh().catch((reason) => {
+      setCatalogReady(false);
+      setCatalogError(reason instanceof Error ? reason.message : t("Could not load connections"));
+    });
+    void rpc<MobileBot[]>("bots/list")
+      .then(setAgents)
+      .catch(() => undefined);
+    return () => connectionAttempt.current?.abort();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void rpc<McpServer[]>("mcp/servers/list")
+        .then(setMcpServers)
+        .catch(() => setMcpServers(null));
+    }, []),
+  );
+
+  useEffect(() => {
+    if (!detailKey) {
+      setTools([]);
+      setToolsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setToolsLoading(true);
+    void rpc<ConnectionTool[]>("connections/tools", {
+      connectorId: detailKey.connectorId,
+      provider: detailKey.slug,
+    })
+      .then((list) => {
+        if (!cancelled) setTools(list);
+      })
+      .catch(() => {
+        if (!cancelled) setTools([]);
+      })
+      .finally(() => {
+        if (!cancelled) setToolsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detailKey, toolsTick]);
+
+  function closeAdvanced() {
+    setAdvancedOpen(false);
+    setSourceKind(null);
+    setSourceError(null);
+    setName("");
+    setUrl("");
+    setCredential("");
+    setRequiresAuth(false);
+  }
+
+  function openDetail(item: ConnectionCatalogItem) {
+    setCatalogError(null);
+    setToolsOpen(true);
+    setDetailKey({ connectorId: item.connectorId, slug: item.slug });
+  }
+
+  function closeDetail() {
+    setDetailKey(null);
+    setTools([]);
+  }
+
+  function accountsFor(item: Pick<ConnectionCatalogItem, "connectorId" | "slug">) {
+    return connections.filter(
+      (row) =>
+        row.connectorId === item.connectorId &&
+        row.provider === item.slug &&
+        row.status !== "revoked",
+    );
+  }
+
+  function itemConnected(item: ConnectionCatalogItem) {
+    return item.connected || accountsFor(item).some((row) => row.status === "connected");
+  }
+
+  async function connect(item: ConnectionCatalogItem, reconnect?: Connection) {
+    if (item.available === false || item.setupRequired) return;
+    connectionAttempt.current?.abort();
+    const controller = new AbortController();
+    connectionAttempt.current = controller;
+    const key = itemKey(item);
+    setPending(key);
+    setCatalogError(null);
+    try {
+      const started = await rpc<ConnectionAuthorization>(
+        "connections/begin",
+        {
+          connectionId: reconnect?.id,
+          connectorId: item.connectorId,
+          provider: item.slug,
+          displayName: (() => {
+            const count = accountsFor(item).filter((row) => row.status === "connected").length;
+            return count <= 0 ? item.name : `${item.name} ${count + 1}`;
+          })(),
+        },
+        { signal: controller.signal },
+      );
+      const connected = await finishConnectionAuthorization(started, {
+        signal: controller.signal,
+        openUrl: Linking.openURL,
+        confirmCode: confirmConnectionCode,
+        complete: (connectionId, authorizationId) =>
+          rpc<Connection>(
+            "connections/complete",
+            { connectionId, authorizationId },
+            { signal: controller.signal },
+          ).catch(() => undefined),
+      });
+      if (controller.signal.aborted || connected === null) return;
+      if (connected) {
+        await refresh();
+        setToolsTick((tick) => tick + 1);
+        return;
+      }
+      if (controller.signal.aborted) return;
+      Alert.alert(
+        t("Connection pending"),
+        t("Finish connecting in the browser, then refresh this page."),
+      );
+    } catch (reason) {
+      if (controller.signal.aborted) return;
+      setCatalogError(reason instanceof Error ? reason.message : t("Could not connect"));
+    } finally {
+      if (connectionAttempt.current === controller) {
+        connectionAttempt.current = null;
+        setPending(null);
+      }
+    }
+  }
+
+  async function setAgentAccess(row: Connection, botId: string, enabled: boolean) {
+    const current = row.agentIds ?? [];
+    const botIds = enabled
+      ? [...new Set([...current, botId])]
+      : current.filter((id) => id !== botId);
+    setPending(`agents:${row.id}`);
+    setCatalogError(null);
+    try {
+      const updated = await rpc<Connection>("connections/setAgents", {
+        connectionId: row.id,
+        botIds,
+      });
+      setConnections((rows) => rows.map((entry) => (entry.id === row.id ? updated : entry)));
+    } catch (reason) {
+      setCatalogError(
+        reason instanceof Error ? reason.message : t("Could not update agent access"),
+      );
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function revokeAccount(row: Connection) {
+    setPending(row.id);
+    setCatalogError(null);
+    try {
+      await rpc("connections/revoke", { connectionId: row.id });
+      await refresh();
+      setToolsTick((tick) => tick + 1);
+    } catch (reason) {
+      setCatalogError(reason instanceof Error ? reason.message : t("Could not revoke connection"));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function renameAccount(row: Connection) {
+    const displayName = (labelDrafts[row.id] ?? row.displayName).trim();
+    if (!displayName || displayName === row.displayName) return;
+    setPending(`rename:${row.id}`);
+    setCatalogError(null);
+    try {
+      const updated = await rpc<Connection>("connections/rename", {
+        connectionId: row.id,
+        displayName,
+      });
+      setConnections((current) =>
+        current.map((entry) =>
+          entry.id === row.id ? { ...entry, displayName: updated.displayName } : entry,
+        ),
+      );
+      setLabelDrafts((current) => ({ ...current, [row.id]: updated.displayName }));
+    } catch (reason) {
+      setCatalogError(reason instanceof Error ? reason.message : t("Could not rename connection"));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  function beginSource(kind: SourceKind) {
+    setSourceKind(kind);
+    setSourceError(null);
+    setName("");
+    setUrl("");
+    setCredential("");
+    setRequiresAuth(false);
+  }
+
+  async function addSource() {
+    if (!sourceKind) return;
+    setPending("source");
+    setSourceError(null);
+    try {
+      await rpc("capabilities/install", {
+        kind: sourceKind,
+        name: name.trim() || (sourceKind === "graphql" ? "GraphQL" : t("Custom connector")),
+        source: url.trim(),
+        credential: credential.trim() || undefined,
+        config:
+          sourceKind === "api"
+            ? { openApi: true, auth: { type: requiresAuth ? "bearer" : "none" } }
+            : { auth: { type: requiresAuth ? "bearer" : "none" } },
+      });
+      setCredential("");
+      setSourceKind(null);
+      await refresh();
+    } catch (reason) {
+      setSourceError(reason instanceof Error ? reason.message : t("Could not add source"));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function removeSource(source: CapabilityInstall) {
+    setPending(source.id);
+    setSourceError(null);
+    try {
+      await rpc("capabilities/remove", { id: source.id });
+      setSources((current) => current.filter((item) => item.id !== source.id));
+    } catch (reason) {
+      setSourceError(reason instanceof Error ? reason.message : t("Could not remove source"));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  function renderCatalogActions(item: ConnectionCatalogItem, label: string) {
+    const key = itemKey(item);
+    const connected = itemConnected(item);
+    const connecting = pending === key;
+    if (connected || accountsFor(item).length > 0) {
+      return (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={connected ? t("Connected") : t("Needs attention")}
+          disabled={connecting}
+          onPress={() => openDetail(item)}
+        >
+          <Text style={styles.link}>
+            {connecting ? t("Working…") : connected ? t("Connected") : t("Needs attention")}
+          </Text>
+        </Pressable>
+      );
+    }
+    if (item.available === false || item.setupRequired)
+      return <Text style={styles.secondary}>{t("Unavailable")}</Text>;
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("Connect {name}", { name: label })}
+        disabled={connecting}
+        onPress={() => void connect(item)}
+      >
+        <Text style={styles.link}>{connecting ? t("Working…") : t("Connect")}</Text>
+      </Pressable>
+    );
+  }
+
+  function renderCatalogTile(item: ConnectionCatalogItem, label: string) {
+    const connected = itemConnected(item);
+    const body = (
+      <>
+        <ConnectorLogo logo={item.logo} label={label} styles={styles} />
+        <View style={styles.grow}>
+          <Text numberOfLines={1} style={styles.title}>
+            {label}
+          </Text>
+        </View>
+        {renderCatalogActions(item, label)}
+      </>
+    );
+    const tileStyle = [styles.row, catalogColumns === 2 ? styles.catalogCell : null];
+    if (connected || accountsFor(item).length > 0) {
+      return (
+        <Pressable
+          key={itemKey(item)}
+          accessibilityRole="button"
+          onPress={() => openDetail(item)}
+          style={tileStyle}
+        >
+          {body}
+        </Pressable>
+      );
+    }
+    return (
+      <View key={itemKey(item)} style={tileStyle}>
+        {body}
+      </View>
+    );
+  }
+
+  function renderDetail(item: ConnectionCatalogItem) {
+    const accounts = accountsFor(item);
+    const key = itemKey(item);
+    const connecting = pending === key;
+    const toolCount = tools.length;
+
+    return (
+      <View style={styles.detail}>
+        <View style={styles.detailHeader}>
+          <View style={styles.detailTitleRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("Back")}
+              onPress={closeDetail}
+              style={styles.backButton}
+            >
+              <Text style={styles.link}>{t("Back")}</Text>
+            </Pressable>
+            <ConnectorLogo logo={item.logo} label={item.name} styles={styles} />
+            <Text numberOfLines={1} style={styles.detailTitle}>
+              {item.name}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.section}>{t("Accounts")}</Text>
+          {accounts.map((row) => (
+            <View key={row.id} style={styles.accountBlock}>
+              {row.accountLabel ? <Text style={styles.title}>{row.accountLabel}</Text> : null}
+              <Text style={styles.secondary}>
+                {row.status === "connected"
+                  ? t("Connected")
+                  : row.status === "pending"
+                    ? t("Waiting…")
+                    : t("Needs attention")}
+              </Text>
+              <View style={styles.accountRow}>
+                <TextInput
+                  value={labelDrafts[row.id] ?? row.displayName}
+                  onChangeText={(value) =>
+                    setLabelDrafts((current) => ({ ...current, [row.id]: value }))
+                  }
+                  onEndEditing={() => void renameAccount(row)}
+                  accessibilityLabel={t("Account label")}
+                  style={styles.accountLabel}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t("Remove {name}", { name: row.displayName })}
+                  disabled={pending !== null}
+                  onPress={() => void revokeAccount(row)}
+                >
+                  <Text style={styles.link}>
+                    {pending === row.id ? t("Working…") : t("Remove")}
+                  </Text>
+                </Pressable>
+              </View>
+              {row.status !== "connected" ? (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={pending !== null}
+                  onPress={() => void connect(item, row)}
+                >
+                  <Text style={styles.link}>{t("Reconnect")}</Text>
+                </Pressable>
+              ) : null}
+              <Text style={styles.section}>{t("Agents")}</Text>
+              {agents.map((agent) => (
+                <View key={agent.id} style={styles.accountRow}>
+                  <Text style={styles.secondary}>{agent.name}</Text>
+                  <Switch
+                    accessibilityLabel={t("Allow {name}", { name: agent.name })}
+                    value={(row.agentIds ?? []).includes(agent.id)}
+                    disabled={pending !== null || row.status !== "connected"}
+                    onValueChange={(enabled) => void setAgentAccess(row, agent.id, enabled)}
+                  />
+                </View>
+              ))}
+            </View>
+          ))}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("Add another {name}", { name: item.name })}
+            disabled={pending !== null || item.available === false || item.setupRequired}
+            onPress={() => void connect(item)}
+            style={styles.cardButton}
+          >
+            <Text style={styles.buttonLabel}>{connecting ? t("Working…") : t("Add another")}</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.card}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: toolsOpen }}
+            onPress={() => setToolsOpen((open) => !open)}
+            style={styles.toolsToggle}
+          >
+            <Text style={styles.title}>
+              {toolsLoading
+                ? t("Tools")
+                : toolCount === 1
+                  ? t("1 tool")
+                  : t("{count} tools", { count: toolCount })}
+            </Text>
+            <Text style={styles.chevron}>{toolsOpen ? "˅" : "›"}</Text>
+          </Pressable>
+          {toolsOpen ? (
+            <View style={styles.toolsBody}>
+              {toolsLoading ? (
+                <Text style={styles.secondary}>{t("Loading tools…")}</Text>
+              ) : tools.length === 0 ? (
+                <Text style={styles.secondary}>{t("No tools available.")}</Text>
+              ) : (
+                tools.map((tool) => (
+                  <Text key={tool.name} style={styles.toolName}>
+                    {humanizeToolName(tool.name)}
+                  </Text>
+                ))
+              )}
+            </View>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  function mcpSummary(list: McpServer[] | null) {
+    if (!list || list.length === 0) {
+      return t("Connect tools from a server on the internet or your network");
+    }
+    const attention = list.filter((server) => server.check.status !== "working").length;
+    if (attention === 1) return t("1 needs attention");
+    if (attention > 1) return t("{count} need attention", { count: attention });
+    return t("{count} working", { count: list.length });
+  }
+
+  return (
+    <SafeAreaView edges={["bottom"]} style={styles.screen}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+        {!detailItem ? (
+          <View style={styles.accountRow}>
+            <Text style={styles.section}>{t("Apps")}</Text>
+            <Pressable
+              accessibilityRole="button"
+              disabled={refreshing || pending !== null}
+              onPress={() => {
+                setRefreshing(true);
+                setCatalogError(null);
+                void refresh()
+                  .catch(() => setCatalogError(t("Could not load connections")))
+                  .finally(() => setRefreshing(false));
+              }}
+            >
+              <Text style={styles.link}>{refreshing ? t("Loading…") : t("Refresh")}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {!detailItem && catalog.length > 0 ? (
+          <TextInput
+            value={query}
+            onChangeText={(value) => {
+              setQuery(value);
+              setVisibleCount(CONNECTION_CATALOG_PAGE_SIZE);
+            }}
+            accessibilityLabel={t("Search apps")}
+            placeholder={t("Search apps")}
+            placeholderTextColor={native.tertiaryLabel}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            style={styles.input}
+          />
+        ) : null}
+
+        {catalogError ? <Text style={styles.error}>{catalogError}</Text> : null}
+
+        {detailItem ? (
+          renderDetail(detailItem)
+        ) : (
+          <>
+            {!catalogReady ? <ActivityIndicator color={native.fillPressed} /> : null}
+
+            {catalogReady && catalog.length === 0 ? (
+              <Text style={styles.secondary}>
+                {t("Apps are unavailable on this installation.")}
+              </Text>
+            ) : null}
+
+            {catalogReady && catalog.length > 0 ? (
+              <View style={catalogColumns === 2 ? styles.catalogGrid : styles.catalogStack}>
+                {showFeatured
+                  ? featuredTiles.map((tile) => renderCatalogTile(tile.item!, tile.label))
+                  : null}
+                {renderedApps.map((item) => renderCatalogTile(item, item.name))}
+              </View>
+            ) : null}
+
+            {catalogReady && catalog.length > 0 && catalogApps.length === 0 && !showFeatured ? (
+              <Text style={styles.secondary}>{t("No apps match your search.")}</Text>
+            ) : null}
+
+            {renderedApps.length < catalogApps.length ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setVisibleCount((count) => count + CONNECTION_CATALOG_PAGE_SIZE)}
+                style={styles.smallButton}
+              >
+                <Text style={styles.buttonLabel}>{t("Show more")}</Text>
+              </Pressable>
+            ) : null}
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: advancedOpen }}
+              testID="integrations-advanced"
+              onPress={() => {
+                if (advancedOpen) closeAdvanced();
+                else setAdvancedOpen(true);
+              }}
+              style={styles.advancedToggle}
+            >
+              <Text style={styles.advancedLabel}>{t("Advanced")}</Text>
+              <Text style={styles.chevron}>{advancedOpen ? "˅" : "›"}</Text>
+            </Pressable>
+
+            {advancedOpen ? (
+              <View style={styles.advancedBody}>
+                {advancedOpen ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    testID="integrations-mcp"
+                    onPress={() => router.push("/mcp-servers")}
+                    style={styles.row}
+                  >
+                    <View style={styles.grow}>
+                      <Text style={styles.title}>{t("MCP servers")}</Text>
+                      <Text style={styles.secondary}>{mcpSummary(mcpServers)}</Text>
+                    </View>
+                    <Text style={styles.chevron}>›</Text>
+                  </Pressable>
+                ) : null}
+                <View style={styles.accountActions}>
+                  {(["api", "graphql"] as const).map((kind) => (
+                    <Pressable
+                      key={kind}
+                      accessibilityRole="button"
+                      onPress={() => beginSource(kind)}
+                      style={styles.smallButton}
+                    >
+                      <Text style={styles.buttonLabel}>
+                        {kind === "graphql" ? t("Add GraphQL") : t("Add custom API")}
+                      </Text>
+                    </Pressable>
+                  ))}
+                  {/* MCP presets open the MCP servers screen already filled in. */}
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() =>
+                      router.push({ pathname: "/mcp-servers", params: { name: "Executor" } })
+                    }
+                    style={styles.smallButton}
+                  >
+                    <Text style={styles.buttonLabel}>{t("Add Executor")}</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/mcp-servers",
+                        params: { name: "Treg", endpoint: "https://treg.to/mcp/" },
+                      })
+                    }
+                    style={styles.smallButton}
+                  >
+                    <Text style={styles.buttonLabel}>{t("Add Treg")}</Text>
+                  </Pressable>
+                </View>
+
+                {sourceError ? <Text style={styles.error}>{sourceError}</Text> : null}
+
+                {sourceKind ? (
+                  <View style={styles.card}>
+                    <Text style={styles.title}>
+                      {sourceKind === "graphql" ? t("GraphQL endpoint") : t("OpenAPI JSON")}
+                    </Text>
+                    <TextInput
+                      value={name}
+                      onChangeText={setName}
+                      placeholder={t("Display name")}
+                      placeholderTextColor={native.tertiaryLabel}
+                      style={styles.input}
+                    />
+                    <TextInput
+                      value={url}
+                      onChangeText={setUrl}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      placeholder={
+                        sourceKind === "graphql"
+                          ? t("https://example.com/graphql")
+                          : t("https://example.com/openapi.json")
+                      }
+                      placeholderTextColor={native.tertiaryLabel}
+                      style={styles.input}
+                    />
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => setRequiresAuth((value) => !value)}
+                      style={styles.authToggle}
+                    >
+                      <Text style={styles.secondary}>
+                        {requiresAuth ? t("Bearer authentication") : t("No authentication")}
+                      </Text>
+                    </Pressable>
+                    {requiresAuth ? (
+                      <TextInput
+                        value={credential}
+                        onChangeText={setCredential}
+                        secureTextEntry
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        placeholder={t("Bearer token")}
+                        placeholderTextColor={native.tertiaryLabel}
+                        style={styles.input}
+                      />
+                    ) : null}
+                    <View style={styles.accountActions}>
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={pending === "source"}
+                        onPress={() => void addSource()}
+                        style={styles.smallButton}
+                      >
+                        {pending === "source" ? (
+                          <ActivityIndicator color={native.label} />
+                        ) : (
+                          <Text style={styles.buttonLabel}>{t("Verify and add")}</Text>
+                        )}
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setSourceKind(null)}
+                        style={styles.smallButton}
+                      >
+                        <Text style={styles.buttonLabel}>{t("Cancel")}</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : null}
+
+                <Text style={styles.section}>{t("Tool sources")}</Text>
+                {sources.length === 0 ? (
+                  <Text style={styles.secondary}>{t("No custom sources installed.")}</Text>
+                ) : null}
+                {sources.map((source) => (
+                  <View key={source.id} style={styles.row}>
+                    <View style={styles.grow}>
+                      <Text style={styles.title}>{source.name}</Text>
+                      <Text numberOfLines={1} style={styles.secondary}>
+                        {source.kind.toUpperCase()} · {source.source}
+                      </Text>
+                    </View>
+                    <Pressable accessibilityRole="button" onPress={() => void removeSource(source)}>
+                      <Text style={styles.remove}>
+                        {pending === source.id ? t("Removing…") : t("Remove")}
+                      </Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function createConnectionsStyles() {
+  const destructive = mobileTokens().destructive;
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: native.page },
+    content: { padding: 20, gap: 14 },
+    explanation: { color: native.secondaryLabel, fontSize: 14, lineHeight: 20 },
+    section: { color: native.secondaryLabel, fontSize: 14, fontWeight: "600", marginTop: 2 },
+    smallButton: {
+      minHeight: 42,
+      paddingHorizontal: 14,
+      borderRadius: 12,
+      backgroundColor: native.fill,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    cardButton: {
+      alignSelf: "flex-start",
+      minHeight: 42,
+      paddingHorizontal: 14,
+      borderRadius: 12,
+      backgroundColor: native.fillPressed,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    buttonLabel: { color: native.label, fontSize: 14, fontWeight: "600" },
+    card: { padding: 16, borderRadius: 16, backgroundColor: native.fill, gap: 12 },
+    input: {
+      minHeight: 48,
+      borderRadius: 12,
+      backgroundColor: native.fillPressed,
+      color: native.label,
+      paddingHorizontal: 14,
+      fontSize: 15,
+    },
+    authToggle: { minHeight: 42, justifyContent: "center" },
+    catalogGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    catalogStack: { gap: 8 },
+    catalogCell: { flexGrow: 1, flexBasis: "47%", maxWidth: "49%" },
+    row: {
+      minHeight: 56,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      borderRadius: 14,
+      backgroundColor: native.fill,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    logo: {
+      width: LOGO_SIZE,
+      height: LOGO_SIZE,
+      borderRadius: 10,
+      backgroundColor: native.fillPressed,
+    },
+    logoFallback: {
+      width: LOGO_SIZE,
+      height: LOGO_SIZE,
+      borderRadius: 10,
+      backgroundColor: native.fillPressed,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    logoInitial: {
+      color: native.label,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+    grow: { flex: 1, gap: 3, minWidth: 0 },
+    title: { color: native.label, fontSize: 15, fontWeight: "600" },
+    secondary: { color: native.secondaryLabel, fontSize: 13 },
+    accountActions: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: 8,
+    },
+    accountBlock: { gap: 10 },
+    accountRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+    },
+    accountLabel: {
+      flex: 1,
+      minHeight: 36,
+      borderRadius: 10,
+      backgroundColor: native.fillPressed,
+      color: native.label,
+      paddingHorizontal: 10,
+      fontSize: 13,
+    },
+    link: { color: native.label, fontSize: 14, fontWeight: "600" },
+    remove: { color: destructive, fontSize: 14, fontWeight: "600" },
+    error: { color: destructive, fontSize: 14 },
+    detail: { gap: 14 },
+    detailHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+    },
+    detailTitleRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, minWidth: 0 },
+    backButton: { paddingVertical: 4 },
+    detailTitle: { flex: 1, color: native.label, fontSize: 17, fontWeight: "600" },
+    toolsToggle: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+    },
+    toolsBody: { gap: 8, paddingTop: 4 },
+    toolName: { color: native.label, fontSize: 14 },
+    advancedToggle: {
+      marginTop: 8,
+      minHeight: 44,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    advancedLabel: { color: native.secondaryLabel, fontSize: 14 },
+    advancedBody: { gap: 14 },
+    chevron: { color: native.secondaryLabel, fontSize: 18 },
+  });
+}

@@ -1,6 +1,6 @@
 import type { BotMcpServer, McpServer } from "@engaz/contracts";
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openConnections, signup } from "./helpers";
 
 test("the owner chooses which of a server's tools an agent may use", async ({ page }, testInfo) => {
   await signup(page, `mcp-tools-${Date.now()}@engaz.test`, "password12", "MCP Tools");
@@ -74,7 +74,7 @@ test("the owner chooses which of a server's tools an agent may use", async ({ pa
     return route.fulfill({ json: { json: assignment ? [assignment] : [] } });
   });
 
-  await page.getByText("Integrations", { exact: true }).click();
+  await openConnections(page, true);
   await page.getByTestId("integrations-mcp").click();
   await expect(page.getByText("Crawler", { exact: true })).toBeVisible();
   // With one server its details are already open.

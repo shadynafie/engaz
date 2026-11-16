@@ -36,38 +36,37 @@ const FOCUS_OPTIONS: FocusOption[] = [
     letter: "A",
     label: "Day-to-day work",
     summary: "Slack, calendar, and email",
-    apps: ["slack", "gmail", "googlecalendar"],
+    apps: ["slack", "google", "microsoft"],
   },
   {
     id: "inbox",
     letter: "B",
     label: "Inbox & email",
     summary: "email and calendar",
-    apps: ["gmail", "googlecalendar", "slack"],
+    apps: ["google", "microsoft", "slack"],
   },
   {
     id: "research",
     letter: "C",
     label: "Research & writing",
     summary: "the web, notes, and docs",
-    apps: ["hackernews", "notion", "googledocs"],
+    apps: ["notion", "google", "linear"],
   },
   {
     id: "everything",
     letter: "D",
     label: "A bit of everything",
     summary: "Slack, calendar, and email",
-    apps: ["slack", "gmail", "googlecalendar"],
+    apps: ["slack", "google", "microsoft"],
   },
 ];
 
 const APP_DESCRIPTIONS: Record<string, string> = {
-  slack: "Search, read, and send messages.",
-  gmail: "Search, read, draft, and send email.",
-  googlecalendar: "Search events and schedule meetings.",
-  notion: "Search and edit pages and databases.",
-  googledocs: "Draft and edit documents.",
-  hackernews: "Search stories and discussions.",
+  slack: "Search messages.",
+  google: "Read email, calendar events, and file information.",
+  microsoft: "Read email, calendar events, and file information.",
+  notion: "Search pages.",
+  linear: "Read issues.",
 };
 
 async function requireBotThread(deps: OnboardingDeps, actor: Actor, botId: string) {
@@ -289,22 +288,36 @@ export async function chooseFocus(
       ),
     )
   ).flat();
+  const assigned = await deps.prisma.connection.findMany({
+    where: {
+      userId: actor.userId,
+      spaceId: actor.spaceId,
+      connectorId: "direct",
+      status: "connected",
+      botConnections: { some: { botId: bot.id } },
+    },
+    select: { provider: true },
+  });
   const cards: MessageBlock[] = option.apps.flatMap((slug) => {
     const entry = catalog.find(
       (item) =>
-        item.slug.toLowerCase() === slug.toLowerCase() ||
-        featuredConnectorProvidersMatch(item.slug, slug),
+        item.connectorId === "direct" &&
+        item.available !== false &&
+        !item.setupRequired &&
+        item.slug.toLowerCase() === slug.toLowerCase(),
     );
     if (!entry) return [];
     return [
       {
         kind: "app_connect" as const,
-        connectorId: entry.connectorId ?? "composio",
+        connectorId: entry.connectorId,
         provider: entry.slug,
         name: entry.name,
         description: APP_DESCRIPTIONS[slug] ?? "",
         logo: entry.logo ?? null,
-        status: entry.connected ? ("connected" as const) : ("pending" as const),
+        status: assigned.some((row) => row.provider === entry.slug)
+          ? ("connected" as const)
+          : ("pending" as const),
       },
     ];
   });
@@ -340,6 +353,24 @@ export async function markAppConnected(
 ): Promise<void> {
   const { bot, thread } = await requireBotThread(deps, actor, botId);
   const target = { spaceId: actor.spaceId, botId: bot.id, threadId: thread.id };
+  const assigned = await deps.prisma.connection.findMany({
+    where: {
+      userId: actor.userId,
+      spaceId: actor.spaceId,
+      connectorId,
+      status: "connected",
+      botConnections: { some: { botId: bot.id } },
+    },
+    select: { provider: true },
+  });
+  if (
+    !assigned.some((row) =>
+      connectorId === "direct"
+        ? row.provider === provider
+        : featuredConnectorProvidersMatch(row.provider, provider),
+    )
+  )
+    throw new IsolationError();
   const messages = await deps.prisma.message.findMany({
     where: { threadId: thread.id },
     select: { id: true, blocks: true },

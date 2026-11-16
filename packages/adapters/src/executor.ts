@@ -198,6 +198,7 @@ import {
 } from "./computer-support.js";
 import { observationToolResult, parseComputerActions } from "./computer-tools.js";
 import { checkpointRunComputerWorkspace } from "./computer-workspace.js";
+import { currentConnectionContext } from "./connection-grants.js";
 import { sanitizeConnectorError } from "./connector-safety.js";
 import { formatCurrentTimeInstruction } from "./current-time.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
@@ -1335,7 +1336,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
             : Promise.resolve(undefined),
           deps.prisma.task.findUniqueOrThrow({ where: { id: run.taskId } }),
           deps.prisma.connection.findMany({
-            where: { userId: run.userId, spaceId: run.spaceId },
+            where: {
+              userId: run.userId,
+              spaceId: run.spaceId,
+              botConnections: { some: { botId: run.botId } },
+            },
             select: {
               id: true,
               connectorId: true,
@@ -3678,10 +3683,18 @@ export function createRunExecutor(deps: ExecutorDeps) {
             return archived;
           }
           if (deps.connector) {
+            const executionContext = await currentConnectionContext(
+              deps.prisma,
+              connectorCall,
+              context,
+            );
+            if (!executionContext) {
+              return finish({ error: "This agent no longer has access to the connected account." });
+            }
             let result: unknown = { error: `unknown tool ${name}` };
             for await (const event of deps.connector.execute(
               { ...connectorCall, tool: name, args, executionId: effectKey },
-              context,
+              executionContext,
             )) {
               if (event.type === "result") {
                 result = event.data;

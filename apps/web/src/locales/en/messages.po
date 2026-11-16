@@ -26,7 +26,7 @@ msgstr "{0, plural, one {{1} of # tool} other {{2} of # tools}}"
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# model} other {# models}}"
 
-#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working").length
+#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working") .length
 msgid "{0, plural, one {# needs attention} other {# need attention}}"
 msgstr "{0, plural, one {# needs attention} other {# need attention}}"
 
@@ -233,9 +233,6 @@ msgstr "Add a schedule, webhook, GitHub, or message trigger to run this routine.
 msgid "Add another"
 msgstr "Add another"
 
-msgid "Add Executor"
-msgstr "Add Executor"
-
 msgid "Add GraphQL"
 msgstr "Add GraphQL"
 
@@ -260,14 +257,8 @@ msgstr "Add the server address."
 msgid "Add to routine"
 msgstr "Add to routine"
 
-msgid "Add Treg"
-msgstr "Add Treg"
-
 msgid "Add trigger"
 msgstr "Add trigger"
-
-msgid "Added"
-msgstr "Added"
 
 msgid "Adding…"
 msgstr "Adding…"
@@ -374,6 +365,9 @@ msgstr "Approve"
 
 msgid "Approve this server to let your agent use its tools."
 msgstr "Approve this server to let your agent use its tools."
+
+msgid "Apps are not available on this installation. You can still add a connection under Advanced."
+msgstr "Apps are not available on this installation. You can still add a connection under Advanced."
 
 msgid "Archive"
 msgstr "Archive"
@@ -632,9 +626,6 @@ msgstr "Close computer"
 msgid "Close image preview"
 msgstr "Close image preview"
 
-msgid "Close integrations"
-msgstr "Close integrations"
-
 msgid "Close MCP servers"
 msgstr "Close MCP servers"
 
@@ -729,14 +720,17 @@ msgstr "Connect a model"
 msgid "Connect a model to continue."
 msgstr "Connect a model to continue."
 
-msgid "Connect an app in Integrations to choose its events."
-msgstr "Connect an app in Integrations to choose its events."
+msgid "Connect an app in Settings → Connections."
+msgstr "Connect an app in Settings → Connections."
 
 msgid "Connect API key"
 msgstr "Connect API key"
 
 msgid "Connect app event"
 msgstr "Connect app event"
+
+msgid "Connect for this agent"
+msgstr "Connect for this agent"
 
 msgid "Connect MCP server “{name}”"
 msgstr "Connect MCP server “{name}”"
@@ -772,6 +766,9 @@ msgstr "Connecting…"
 #. placeholder {0}: item.name
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "Connection to {0} is still pending. You can close this and check again."
+
+msgid "Connections"
+msgstr "Connections"
 
 msgid "Context limit"
 msgstr "Context limit"
@@ -928,8 +925,8 @@ msgstr "Could not load approval rules"
 msgid "Could not load apps"
 msgstr "Could not load apps"
 
-msgid "Could not load bots. Reload to try again."
-msgstr "Could not load bots. Reload to try again."
+msgid "Could not load connections"
+msgstr "Could not load connections"
 
 msgid "Could not load events"
 msgstr "Could not load events"
@@ -963,6 +960,9 @@ msgstr "Could not load this chat."
 
 msgid "Could not load this file."
 msgstr "Could not load this file."
+
+msgid "Could not load tool sources"
+msgstr "Could not load tool sources"
 
 msgid "Could not load update status"
 msgstr "Could not load update status"
@@ -1371,6 +1371,9 @@ msgstr "Enter a whole number from 1 to 1000 for the image limit."
 msgid "Enter event settings as a JSON object"
 msgstr "Enter event settings as a JSON object"
 
+msgid "Enter this code"
+msgstr "Enter this code"
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Enter this code at <0>{0}</0>"
@@ -1611,9 +1614,6 @@ msgstr "Integration domain"
 msgid "Integration options"
 msgstr "Integration options"
 
-msgid "Integrations"
-msgstr "Integrations"
-
 msgid "Interrupt"
 msgstr "Interrupt"
 
@@ -1704,8 +1704,8 @@ msgstr "Load earlier messages"
 msgid "Loading activity…"
 msgstr "Loading activity…"
 
-msgid "Loading integrations…"
-msgstr "Loading integrations…"
+msgid "Loading connections…"
+msgstr "Loading connections…"
 
 msgid "Loading memory settings…"
 msgstr "Loading memory settings…"
@@ -2077,6 +2077,9 @@ msgstr "Open in full window"
 msgid "Open navigation"
 msgstr "Open navigation"
 
+msgid "Open sign-in page"
+msgstr "Open sign-in page"
+
 msgid "Open work"
 msgstr "Open work"
 
@@ -2215,6 +2218,12 @@ msgstr "Received through"
 
 msgid "Recent"
 msgstr "Recent"
+
+msgid "Reconnect"
+msgstr "Reconnect"
+
+msgid "Reconnect this account before granting access."
+msgstr "Reconnect this account before granting access."
 
 msgid "Reconnecting"
 msgstr "Reconnecting"
@@ -2453,6 +2462,9 @@ msgstr "Save and assign"
 msgid "Saved"
 msgstr "Saved"
 
+msgid "Saved connections"
+msgstr "Saved connections"
+
 msgid "Saved, but list refresh failed"
 msgstr "Saved, but list refresh failed"
 
@@ -2605,6 +2617,9 @@ msgstr "Sign up"
 
 msgid "Sign-in needed"
 msgstr "Sign-in needed"
+
+msgid "Sign-in pending"
+msgstr "Sign-in pending"
 
 msgid "Signing in…"
 msgstr "Signing in…"
@@ -2854,9 +2869,6 @@ msgstr "Unassigned"
 
 msgid "Unavailable"
 msgstr "Unavailable"
-
-msgid "Uninstall"
-msgstr "Uninstall"
 
 msgid "Unlink"
 msgstr "Unlink"

@@ -19,6 +19,15 @@ async function shot(page: Page, testInfo: TestInfo, name: string) {
   await testInfo.attach(name, { contentType: "image/png", path });
 }
 
+async function openConnectionsMcp(page: Page) {
+  await page.getByTestId("user-menu-trigger").click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  const settings = page.getByTestId("user-settings");
+  await settings.getByTestId("settings-nav-connections").click();
+  await settings.getByTestId("integrations-advanced").locator("summary").first().click();
+  await settings.getByTestId("integrations-mcp").click();
+}
+
 test("a new owner goes from sign-up to a working agent with a plugin", async ({
   page,
 }, testInfo) => {
@@ -98,8 +107,7 @@ test("a new owner goes from sign-up to a working agent with a plugin", async ({
   await shot(page, testInfo, "image-03-first-reply");
 
   // Give Chief a plugin: an MCP server on this computer.
-  await page.getByText("Integrations", { exact: true }).click();
-  await page.getByTestId("integrations-mcp").click();
+  await openConnectionsMcp(page);
   await expect(page.getByRole("heading", { name: "Add MCP server" })).toBeVisible();
   await page.getByLabel("Server address").fill(`${FAKE}/mcp`);
   await page.getByLabel("Name", { exact: true }).fill("Team notes");
@@ -118,6 +126,7 @@ test("a new owner goes from sign-up to a working agent with a plugin", async ({
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(page.getByText("Team notes", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Close MCP servers" }).click();
+  await page.getByRole("button", { name: "Close user settings", exact: true }).click();
 
   // Chief's settings show the plugin and how much of it Chief may use.
   await page

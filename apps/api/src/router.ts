@@ -22,6 +22,7 @@ import type {
   ComposioProvider,
   ComputerExecutionLease,
   ConnectorRegistry,
+  DirectAppConnector,
   EncryptedSecretStore,
   InstalledConnectorProvider,
   IntegrationProviderSettings,
@@ -58,6 +59,7 @@ import {
   listPiCatalog,
   listScratchpadItems,
   McpOAuthBroker,
+  mapAppConnection,
   mapScratchpadItem,
   mcpCheckFailure,
   modelCredentialDto,
@@ -144,6 +146,7 @@ import {
   SpaceNotFoundError,
   selectSpaceModelPreference,
   selectSpaceVoicePreference,
+  setAppConnectionAgents,
   touchGroupUpdatedAt,
 } from "@engaz/db";
 import { getLogger } from "@engaz/logging";
@@ -450,6 +453,7 @@ function mcpAssignmentDto(row: {
 }
 
 export interface RouterDeps {
+  directApps?: DirectAppConnector;
   routineAppEvents?: RoutineAppEventsService;
   lessonModel?: LessonModel;
   cloudAgent?: CloudAgentConnection | null;
@@ -519,6 +523,16 @@ function mapSpaceLifecycleError(error: unknown): unknown {
 }
 
 export function createRouter(deps: RouterDeps) {
+  const connectionDto = async (row: Parameters<typeof mapAppConnection>[0]) => {
+    const grants = await deps.prisma.botConnection.findMany({
+      where: { connectionId: row.id },
+      select: { botId: true },
+    });
+    return mapAppConnection(
+      row,
+      grants.map((grant) => grant.botId),
+    );
+  };
   const os = implement(appContract).$context<{ actor: Actor | null; signal?: AbortSignal }>();
   const repos = createRepos(deps.prisma);
   const onboardingDeps = { prisma: deps.prisma, events: deps.events, connectors: deps.connectors };
@@ -3710,17 +3724,23 @@ export function createRouter(deps: RouterDeps) {
         const rows = await deps.prisma.connection.findMany({
           where: { spaceId: context.actor.spaceId, userId: context.actor.userId },
         });
-        return rows.map((row) => ({
-          id: row.id,
-          connectorId: row.connectorId,
-          provider: row.provider,
-          displayName: row.displayName,
-          status: row.status as "pending" | "connected" | "revoked" | "error",
-          capabilities: [],
-          createdAt: row.createdAt.toISOString(),
-        }));
+        return Promise.all(rows.map(connectionDto));
       }),
       begin: authed.connections.begin.handler(async ({ context, input }) => {
+        if (input.connectorId === "direct") {
+          if (!deps.directApps)
+            throw new ORPCError("BAD_REQUEST", { message: "App connections are not configured" });
+          try {
+            return await deps.directApps.beginConnection(
+              { ...input, redirectUrl: `${deps.env.webOrigin}/app` },
+              connectionContext(context.actor, "connections.begin", context.signal),
+            );
+          } catch (error) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: error instanceof Error ? error.message : "Could not start app sign-in",
+            });
+          }
+        }
         const connector =
           deps.integrationSettings &&
           (input.connectorId === "composio" || input.connectorId === "pipedream")
@@ -3925,6 +3945,22 @@ export function createRouter(deps: RouterDeps) {
           },
         });
         if (!existing) throw new IsolationError();
+        if (existing.connectorId === "direct") {
+          if (!deps.directApps)
+            throw new ORPCError("BAD_REQUEST", { message: "App connections are not configured" });
+          try {
+            return await deps.directApps.completeConnection(
+              existing.id,
+              input.authorizationId,
+              connectionContext(context.actor, "connections.complete", context.signal),
+              input.code,
+            );
+          } catch (error) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: error instanceof Error ? error.message : "Could not finish app sign-in",
+            });
+          }
+        }
         const connector = deps.connectors.managed(existing.connectorId);
         if (!connector) {
           throw new ORPCError("BAD_REQUEST", {
@@ -4207,15 +4243,11 @@ export function createRouter(deps: RouterDeps) {
             { timeout: 60_000 },
           );
         }
-        return {
-          id: row.id,
-          connectorId: row.connectorId,
-          provider: row.provider,
-          displayName: row.displayName,
-          status: row.status as "pending" | "connected" | "revoked" | "error",
-          capabilities: [],
-          createdAt: row.createdAt.toISOString(),
-        };
+        return connectionDto(row);
+      }),
+      setAgents: authed.connections.setAgents.handler(async ({ context, input }) => {
+        const { row, botIds } = await setAppConnectionAgents(deps.prisma, context.actor, input);
+        return mapAppConnection(row, botIds);
       }),
       rename: authed.connections.rename.handler(async ({ context, input }) => {
         const existing = await deps.prisma.connection.findFirst({
@@ -4230,17 +4262,27 @@ export function createRouter(deps: RouterDeps) {
           where: { id: existing.id },
           data: { displayName: input.displayName },
         });
-        return {
-          id: row.id,
-          connectorId: row.connectorId,
-          provider: row.provider,
-          displayName: row.displayName,
-          status: row.status as "pending" | "connected" | "revoked" | "error",
-          capabilities: [],
-          createdAt: row.createdAt.toISOString(),
-        };
+        return connectionDto(row);
       }),
       revoke: authed.connections.revoke.handler(async ({ context, input }) => {
+        const direct = await deps.prisma.connection.findFirst({
+          where: {
+            id: input.connectionId,
+            userId: context.actor.userId,
+            spaceId: context.actor.spaceId,
+            connectorId: "direct",
+          },
+          select: { id: true },
+        });
+        if (direct) {
+          if (!deps.directApps)
+            throw new ORPCError("BAD_REQUEST", { message: "App connections are not configured" });
+          await deps.directApps.revokeConnection(
+            direct.id,
+            connectionContext(context.actor, "connections.revoke", context.signal),
+          );
+          return { ok: true as const };
+        }
         type RemoteRevoke = {
           connectorId: string;
           connectionRef: string;
@@ -4414,6 +4456,12 @@ export function createRouter(deps: RouterDeps) {
           },
         });
         if (!row) return [];
+        if (input.connectorId === "direct")
+          return (
+            deps.directApps
+              ?.listTools(row)
+              .map((tool) => ({ name: tool.name, description: tool.description })) ?? []
+          );
         try {
           const tools = await connector.discoverTools({
             ...connectionContext(context.actor, "connections.tools", context.signal),

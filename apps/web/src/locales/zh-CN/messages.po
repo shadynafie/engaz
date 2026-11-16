@@ -26,7 +26,7 @@ msgstr ""
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# 个模型} other {# 个模型}}"
 
-#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working").length
+#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working") .length
 msgid "{0, plural, one {# needs attention} other {# need attention}}"
 msgstr ""
 
@@ -233,9 +233,6 @@ msgstr ""
 msgid "Add another"
 msgstr ""
 
-msgid "Add Executor"
-msgstr "添加 Executor"
-
 msgid "Add GraphQL"
 msgstr "添加 GraphQL"
 
@@ -260,14 +257,8 @@ msgstr ""
 msgid "Add to routine"
 msgstr "加入例行任务"
 
-msgid "Add Treg"
-msgstr "添加 Treg"
-
 msgid "Add trigger"
 msgstr "添加触发器"
-
-msgid "Added"
-msgstr ""
 
 msgid "Adding…"
 msgstr "正在添加…"
@@ -374,6 +365,9 @@ msgstr "批准"
 
 msgid "Approve this server to let your agent use its tools."
 msgstr "批准此服务器后，Agent 才能使用它的工具。"
+
+msgid "Apps are not available on this installation. You can still add a connection under Advanced."
+msgstr ""
 
 msgid "Archive"
 msgstr "归档"
@@ -632,9 +626,6 @@ msgstr "关闭电脑"
 msgid "Close image preview"
 msgstr "关闭图片预览"
 
-msgid "Close integrations"
-msgstr "关闭集成"
-
 msgid "Close MCP servers"
 msgstr "关闭 MCP 服务器"
 
@@ -729,13 +720,16 @@ msgstr "连接模型"
 msgid "Connect a model to continue."
 msgstr "连接模型以继续。"
 
-msgid "Connect an app in Integrations to choose its events."
+msgid "Connect an app in Settings → Connections."
 msgstr ""
 
 msgid "Connect API key"
 msgstr "连接 API 密钥"
 
 msgid "Connect app event"
+msgstr ""
+
+msgid "Connect for this agent"
 msgstr ""
 
 msgid "Connect MCP server “{name}”"
@@ -772,6 +766,9 @@ msgstr "正在连接…"
 #. placeholder {0}: item.name
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "与 {0} 的连接仍在等待。可以关闭此窗口稍后再看。"
+
+msgid "Connections"
+msgstr ""
 
 msgid "Context limit"
 msgstr "上下文限制"
@@ -928,7 +925,7 @@ msgstr "无法加载审批规则"
 msgid "Could not load apps"
 msgstr ""
 
-msgid "Could not load bots. Reload to try again."
+msgid "Could not load connections"
 msgstr ""
 
 msgid "Could not load events"
@@ -963,6 +960,9 @@ msgstr "无法加载此对话。"
 
 msgid "Could not load this file."
 msgstr "无法加载此文件。"
+
+msgid "Could not load tool sources"
+msgstr ""
 
 msgid "Could not load update status"
 msgstr "无法加载更新状态"
@@ -1371,6 +1371,9 @@ msgstr "请输入 1 到 1000 之间的整数作为图像限制。"
 msgid "Enter event settings as a JSON object"
 msgstr ""
 
+msgid "Enter this code"
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "在 <0>{0}</0> 输入此代码"
@@ -1611,9 +1614,6 @@ msgstr ""
 msgid "Integration options"
 msgstr ""
 
-msgid "Integrations"
-msgstr "集成"
-
 msgid "Interrupt"
 msgstr "打断"
 
@@ -1704,8 +1704,8 @@ msgstr "加载更早的消息"
 msgid "Loading activity…"
 msgstr "正在加载动态…"
 
-msgid "Loading integrations…"
-msgstr "正在加载集成…"
+msgid "Loading connections…"
+msgstr ""
 
 msgid "Loading memory settings…"
 msgstr "正在加载记忆设置…"
@@ -2077,6 +2077,9 @@ msgstr "在完整窗口中打开"
 msgid "Open navigation"
 msgstr "打开导航"
 
+msgid "Open sign-in page"
+msgstr ""
+
 msgid "Open work"
 msgstr "待办"
 
@@ -2215,6 +2218,12 @@ msgstr ""
 
 msgid "Recent"
 msgstr "最近"
+
+msgid "Reconnect"
+msgstr ""
+
+msgid "Reconnect this account before granting access."
+msgstr ""
 
 msgid "Reconnecting"
 msgstr "正在重新连接"
@@ -2453,6 +2462,9 @@ msgstr ""
 msgid "Saved"
 msgstr "已保存"
 
+msgid "Saved connections"
+msgstr ""
+
 msgid "Saved, but list refresh failed"
 msgstr "已保存，但列表刷新失败"
 
@@ -2604,6 +2616,9 @@ msgid "Sign up"
 msgstr "注册"
 
 msgid "Sign-in needed"
+msgstr ""
+
+msgid "Sign-in pending"
 msgstr ""
 
 msgid "Signing in…"
@@ -2854,9 +2869,6 @@ msgstr "未分配"
 
 msgid "Unavailable"
 msgstr "不可用"
-
-msgid "Uninstall"
-msgstr ""
 
 msgid "Unlink"
 msgstr "取消关联"

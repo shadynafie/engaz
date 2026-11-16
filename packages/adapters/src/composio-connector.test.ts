@@ -92,6 +92,7 @@ vi.mock("@composio/core", () => ({
                   isNoAuth: false,
                   connection: { isActive: true, connectedAccount: { id: "ca-github" } },
                 },
+                { slug: "HACKERNEWS", name: "Hacker News", logo: null, isNoAuth: true },
               ],
             };
           },
@@ -384,39 +385,42 @@ describe("composio tool mapping", () => {
     }
   });
 
-  it("omits stale account ids when the provider lists no ACTIVE accounts", async () => {
+  it("never falls back from a stale granted account to a live unassigned sibling", async () => {
     composioSdkState.created.length = 0;
+    composioSdkState.executions.length = 0;
     composioSdkState.sessions.clear();
     composioToolkitDirectory.invalidate();
-    const restore = stubActiveAccounts([]);
-
+    const restore = stubActiveAccounts(["ca-unassigned-B"]);
     try {
       const connector = new ComposioConnector();
-      await connector.discoverTools({
-        operationId: "composio-empty-active",
-        traceId: "composio-empty-active",
+      const context: AdapterContext = {
+        operationId: "stale-grant",
+        traceId: "stale-grant",
         spaceId: "workspace",
         userId: "user-1",
         signal: new AbortController().signal,
         connectedConnections: [
           {
-            id: "connection-revoked",
+            id: "granted-A",
             connectorId: "composio",
             externalId: "github",
             displayName: "GitHub",
-            providerRef: "ca_old",
+            providerRef: "ca-revoked-A",
           },
         ],
-      });
-
-      expect(composioSdkState.created.at(-1)).toEqual({
-        userId: "user-1",
-        config: {
-          manageConnections: false,
-          sandbox: { enable: false },
-          toolkits: ["GITHUB"],
-        },
-      });
+      };
+      await expect(connector.discoverTools(context)).rejects.toThrow("Reconnect this account");
+      const events = [];
+      for await (const event of connector.execute(
+        { tool: "GITHUB_GET_REPOS", args: {}, executionId: "stale" },
+        context,
+      ))
+        events.push(event);
+      expect(events).toContainEqual(expect.objectContaining({ type: "error" }));
+      expect(composioSdkState.executions).toEqual([]);
+      expect(composioSdkState.created.every((entry) => entry.userId === "__engaz_catalog__")).toBe(
+        true,
+      );
     } finally {
       restore();
     }
@@ -461,7 +465,7 @@ describe("composio tool mapping", () => {
     }
   });
 
-  it("omits connectedAccounts and multiAccount for legacy slug-only refs", async () => {
+  it("only permits classified no-auth toolkits for legacy slug-only refs", async () => {
     composioSdkState.created.length = 0;
     composioSdkState.sessions.clear();
     composioToolkitDirectory.invalidate();
@@ -496,12 +500,13 @@ describe("composio tool mapping", () => {
       config: {
         manageConnections: false,
         sandbox: { enable: false },
-        toolkits: ["GITHUB", "HACKERNEWS"],
+        toolkits: ["HACKERNEWS"],
       },
     });
   });
 
   it("uses catalog-canonical toolkit slugs without preloading every tool", async () => {
+    const restore = stubActiveAccounts(["ca-github"]);
     composioSdkState.created.length = 0;
     composioSdkState.executions.length = 0;
     composioSdkState.sessions.clear();
@@ -518,6 +523,7 @@ describe("composio tool mapping", () => {
         {
           id: "connection-github",
           connectorId: "composio",
+          providerRef: "ca-github",
           externalId: "github",
           displayName: "GitHub",
         },
@@ -555,6 +561,7 @@ describe("composio tool mapping", () => {
     ]);
     await expect(connector.connectionReady(context, "github")).resolves.toBe(true);
     await expect(connector.connectedAccountId("user-1", "github")).resolves.toBe("ca-github");
+    restore();
   });
 
   it("resolves connection-request ids to connected-account ids and skips sibling refs", async () => {
@@ -668,6 +675,7 @@ describe("composio tool mapping", () => {
   });
 
   it("uses Composio slug casing when the toolkit directory is unavailable", async () => {
+    const restore = stubActiveAccounts(["ca-github"]);
     composioSdkState.created.length = 0;
     composioSdkState.sessions.clear();
     composioSdkState.directoryFails = true;
@@ -684,6 +692,7 @@ describe("composio tool mapping", () => {
         connectedConnections: [
           {
             id: "connection-github",
+            providerRef: "ca-github",
             connectorId: "composio",
             externalId: "github",
             displayName: "GitHub",
@@ -696,6 +705,7 @@ describe("composio tool mapping", () => {
       );
       expect(composioSdkState.created.at(-1)?.config.toolkits).toEqual(["GITHUB"]);
     } finally {
+      restore();
       composioSdkState.directoryFails = false;
       composioToolkitDirectory.invalidate();
     }

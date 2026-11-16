@@ -10,7 +10,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link } from "react-router-dom";
 import { ApprovalRulesSettings } from "../components/ApprovalRulesSettings";
 import { SuccessPop } from "../components/ai/primitives";
 import { ComputersUnavailableHint } from "../components/ComputersUnavailableHint";
@@ -42,7 +41,6 @@ export function GeneralSettingsPanels({
   onAvatarStyleChange,
   messagingEnabled = false,
   onOpenMessaging,
-  isDeploymentOwner = false,
 }: SettingsGeneralProps) {
   const { t } = useLingui();
   const [locale, setLocale] = useState<UiLocale>(() => getActiveUiLocale());
@@ -156,12 +154,6 @@ export function GeneralSettingsPanels({
           </p>
         ) : null}
       </section>
-
-      {isDeploymentOwner ? (
-        <Button variant="outline" render={<Link to="/integrations/setup" />}>
-          <Trans>Server integrations</Trans>
-        </Button>
-      ) : null}
 
       <details data-testid="advanced-settings" className="group rounded-xl border border-border">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 text-[14px] text-foreground/75">

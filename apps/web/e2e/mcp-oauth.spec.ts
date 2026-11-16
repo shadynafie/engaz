@@ -1,7 +1,7 @@
 import type { McpServer } from "@engaz/contracts";
 import { expect, type Route, test } from "@playwright/test";
 import { MCP_OAUTH_CHANNEL } from "../src/lib/mcp-connect";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openConnections, signup } from "./helpers";
 
 test("connects an MCP server through the OAuth popup callback", async ({ page }, testInfo) => {
   const stamp = Date.now();
@@ -99,7 +99,7 @@ test("connects an MCP server through the OAuth popup callback", async ({ page },
     });
   });
 
-  await page.getByText("Integrations", { exact: true }).click();
+  await openConnections(page, true);
   await page.getByTestId("integrations-mcp").click();
   await expect(page.getByRole("heading", { name: "MCP servers" })).toBeVisible();
   await expect(page.getByText("Linear MCP", { exact: true })).toBeVisible();

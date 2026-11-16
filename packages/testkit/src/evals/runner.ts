@@ -117,12 +117,15 @@ export async function runTrial(
       if (!signup.ok) throw new EvalFailure("harness", `Fixture signup failed (${signup.status})`);
       cookie = sessionCookieHeader(signup);
       await rpc(app, cookie, "models/connect", options.connection);
-      for (const provider of scenario.connections ?? ["GMAIL", "CRM", "GITHUB"])
-        await rpc(app, cookie, "connections/begin", {
+      const connectionIds: string[] = [];
+      for (const provider of scenario.connections ?? ["GMAIL", "CRM", "GITHUB"]) {
+        const connected = await rpc<{ connectionId: string }>(app, cookie, "connections/begin", {
           connectorId: "composio",
           provider,
           displayName: provider,
         });
+        connectionIds.push(connected.connectionId);
+      }
       const bot = await rpc<{ id: string }>(app, cookie, "bots/create", {
         name: "Assistant",
         title: "",
@@ -131,6 +134,9 @@ export async function runTrial(
         notifyOnFinish: false,
       });
       botId = bot.id;
+      for (const connectionId of connectionIds) {
+        await rpc(app, cookie, "connections/setAgents", { connectionId, botIds: [botId] });
+      }
       const persistedBot = await prisma.bot.findUniqueOrThrow({
         where: { id: botId },
         select: { userId: true, spaceId: true },

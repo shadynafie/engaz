@@ -26,7 +26,7 @@ msgstr ""
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# модель} few {# модели} many {# моделей} other {# модели}}"
 
-#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working").length
+#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working") .length
 msgid "{0, plural, one {# needs attention} other {# need attention}}"
 msgstr ""
 
@@ -233,9 +233,6 @@ msgstr "Добавьте расписание, вебхук, GitHub или тр�
 msgid "Add another"
 msgstr "Добавить еще"
 
-msgid "Add Executor"
-msgstr "Добавить Executor"
-
 msgid "Add GraphQL"
 msgstr "Добавить GraphQL"
 
@@ -260,14 +257,8 @@ msgstr ""
 msgid "Add to routine"
 msgstr "Добавить в задачу"
 
-msgid "Add Treg"
-msgstr "Добавить Treg"
-
 msgid "Add trigger"
 msgstr "Добавить триггер"
-
-msgid "Added"
-msgstr "Добавлен"
 
 msgid "Adding…"
 msgstr "Добавление…"
@@ -374,6 +365,9 @@ msgstr "Утвердить"
 
 msgid "Approve this server to let your agent use its tools."
 msgstr "Одобрите этот сервер, чтобы ваш агент мог использовать его инструменты."
+
+msgid "Apps are not available on this installation. You can still add a connection under Advanced."
+msgstr ""
 
 msgid "Archive"
 msgstr "Архивировать"
@@ -632,9 +626,6 @@ msgstr "Закрыть компьютер"
 msgid "Close image preview"
 msgstr "Закрыть предварительный просмотр изображения"
 
-msgid "Close integrations"
-msgstr "Закрыть интеграции"
-
 msgid "Close MCP servers"
 msgstr "Закрыть серверы MCP"
 
@@ -729,13 +720,16 @@ msgstr "Подключить модель"
 msgid "Connect a model to continue."
 msgstr "Подключите модель, чтобы продолжить."
 
-msgid "Connect an app in Integrations to choose its events."
+msgid "Connect an app in Settings → Connections."
 msgstr ""
 
 msgid "Connect API key"
 msgstr "Подключить API-ключ"
 
 msgid "Connect app event"
+msgstr ""
+
+msgid "Connect for this agent"
 msgstr ""
 
 msgid "Connect MCP server “{name}”"
@@ -772,6 +766,9 @@ msgstr "Подключение…"
 #. placeholder {0}: item.name
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "Соединение с {0} все еще не завершено. Вы можете закрыть это и проверить еще раз."
+
+msgid "Connections"
+msgstr ""
 
 msgid "Context limit"
 msgstr ""
@@ -928,8 +925,8 @@ msgstr "Не удалось загрузить правила одобрения
 msgid "Could not load apps"
 msgstr ""
 
-msgid "Could not load bots. Reload to try again."
-msgstr "Не удалось загрузить ботов. Обновите страницу и попробуйте снова."
+msgid "Could not load connections"
+msgstr ""
 
 msgid "Could not load events"
 msgstr ""
@@ -963,6 +960,9 @@ msgstr "Не удалось загрузить этот чат."
 
 msgid "Could not load this file."
 msgstr "Не удалось загрузить этот файл."
+
+msgid "Could not load tool sources"
+msgstr ""
 
 msgid "Could not load update status"
 msgstr "Не удалось загрузить статус обновления"
@@ -1371,6 +1371,9 @@ msgstr ""
 msgid "Enter event settings as a JSON object"
 msgstr ""
 
+msgid "Enter this code"
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Введите этот код по адресу <0>{0}</0>."
@@ -1611,9 +1614,6 @@ msgstr "Домен интеграции"
 msgid "Integration options"
 msgstr "Параметры интеграции"
 
-msgid "Integrations"
-msgstr "Интеграции"
-
 msgid "Interrupt"
 msgstr "Прерывать"
 
@@ -1704,8 +1704,8 @@ msgstr "Загрузить более ранние сообщения"
 msgid "Loading activity…"
 msgstr "Загрузка активности…"
 
-msgid "Loading integrations…"
-msgstr "Загрузка интеграций…"
+msgid "Loading connections…"
+msgstr ""
 
 msgid "Loading memory settings…"
 msgstr "Загрузка настроек памяти…"
@@ -2077,6 +2077,9 @@ msgstr "Открыть в полном окне"
 msgid "Open navigation"
 msgstr "Открыть навигацию"
 
+msgid "Open sign-in page"
+msgstr ""
+
 msgid "Open work"
 msgstr "Открытые задачи"
 
@@ -2215,6 +2218,12 @@ msgstr ""
 
 msgid "Recent"
 msgstr "Недавние"
+
+msgid "Reconnect"
+msgstr ""
+
+msgid "Reconnect this account before granting access."
+msgstr ""
 
 msgid "Reconnecting"
 msgstr "Повторное подключение"
@@ -2453,6 +2462,9 @@ msgstr ""
 msgid "Saved"
 msgstr "Сохранено"
 
+msgid "Saved connections"
+msgstr ""
+
 msgid "Saved, but list refresh failed"
 msgstr "Сохранено, но обновить список не удалось."
 
@@ -2604,6 +2616,9 @@ msgid "Sign up"
 msgstr "Зарегистрироваться"
 
 msgid "Sign-in needed"
+msgstr ""
+
+msgid "Sign-in pending"
 msgstr ""
 
 msgid "Signing in…"
@@ -2854,9 +2869,6 @@ msgstr "Без раздела"
 
 msgid "Unavailable"
 msgstr "Недоступно"
-
-msgid "Uninstall"
-msgstr "Удалить"
 
 msgid "Unlink"
 msgstr "Отсоединить"

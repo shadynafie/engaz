@@ -596,6 +596,9 @@ export const MemoryDocumentSchema = z.object({
 export type MemoryDocument = z.infer<typeof MemoryDocumentSchema>;
 
 export const ConnectionSchema = z.object({
+  agentIds: z.array(Id).default([]),
+  accountLabel: z.string().nullable().default(null),
+  checkedAt: z.string().nullable().default(null),
   id: Id,
   connectorId: z.string(),
   provider: z.string(),
@@ -607,6 +610,8 @@ export const ConnectionSchema = z.object({
 export type Connection = z.infer<typeof ConnectionSchema>;
 
 export const ConnectionCatalogItemSchema = z.object({
+  available: z.boolean().default(true),
+  setupRequired: z.boolean().default(false),
   connectorId: z.string(),
   slug: z.string(),
   name: z.string(),

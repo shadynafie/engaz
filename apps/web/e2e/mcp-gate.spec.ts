@@ -1,6 +1,13 @@
 import type { BotMcpServer, McpServer } from "@engaz/contracts";
 import { expect, type Page, test } from "@playwright/test";
-import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import {
+  activeBotId,
+  captureScreenshot,
+  completeOnboarding,
+  openConnections,
+  rpc,
+  signup,
+} from "./helpers";
 
 const USE_TOOL = "use the mcp tool mcp__treg__notes.write";
 
@@ -39,7 +46,7 @@ test("an agent uses the one tool it was given, and cannot once it is taken away"
   await waitForRunIdle(page, chiefId);
 
   // Take the server away from Chief on the MCP servers screen.
-  await page.getByText("Integrations", { exact: true }).click();
+  await openConnections(page, true);
   await page.getByTestId("integrations-mcp").click();
   const revoked = page.waitForResponse(
     (response) => response.url().includes("/rpc/mcp/assignments/replace") && response.ok(),

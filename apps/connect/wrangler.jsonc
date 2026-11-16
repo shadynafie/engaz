@@ -1,0 +1,24 @@
+{
+  "$schema": "https://developers.cloudflare.com/workers/wrangler/config-schema.json",
+  "name": "engaz-connect",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-16",
+  "workers_dev": false,
+  "observability": { "enabled": false },
+  "ratelimits": [
+    {
+      "name": "AUTH_START_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 20, "period": 60 }
+    },
+    {
+      "name": "TOKEN_REQUEST_LIMITER",
+      "namespace_id": "1002",
+      "simple": { "limit": 120, "period": 60 }
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "SESSIONS", "class_name": "ConnectSession" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ConnectSession"] }]
+}

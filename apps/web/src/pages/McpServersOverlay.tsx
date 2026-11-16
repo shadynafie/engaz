@@ -4,9 +4,7 @@ import {
   Button,
   Checkbox,
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogHeader,
   DialogTitle,
   Field,
   FieldGroup,
@@ -16,7 +14,7 @@ import {
   Textarea,
 } from "@engaz/ui-web";
 import { Plural, Trans, useLingui } from "@lingui/react/macro";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PluginStatus } from "../components/PluginStatus";
 import { connectMcpOauth, MCP_OAUTH_CHANNEL } from "../lib/mcp-connect";
@@ -77,11 +75,13 @@ function ToolChoices({
 
 export function McpServersOverlay({
   stdioEnabled,
+  embedded = false,
   draft,
   onClose,
 }: {
   /** Local commands run inside the Engaz server, so they appear only when the owner enabled them. */
   stdioEnabled: boolean;
+  embedded?: boolean;
   /** Pre-fills the add form, e.g. from a preset or a catalog result. */
   draft?: McpServerDraft;
   onClose: () => void;
@@ -705,6 +705,326 @@ export function McpServersOverlay({
     </form>
   );
 
+  const content = (
+    <>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-base font-medium">
+          {adding ? <Trans>Add MCP server</Trans> : <Trans>MCP servers</Trans>}
+        </h3>
+        <Button variant="ghost" size="sm" onClick={onClose} aria-label={t`Close MCP servers`}>
+          <Trans>Back</Trans>
+        </Button>
+      </div>
+      <div className="min-w-0">
+        {error ? (
+          <p
+            role="alert"
+            className="mb-5 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive"
+          >
+            {error}
+          </p>
+        ) : null}
+        {!loaded ? null : adding ? (
+          addForm
+        ) : (
+          <>
+            <ul className="space-y-2">
+              {servers.map((server) => {
+                const open = expanded === server.id;
+                const users = bots.filter((bot) => assignmentFor(server, bot.id));
+                const needsSignIn =
+                  server.check.status === "sign_in" || server.oauthStatus === "reconnect";
+                return (
+                  <li key={server.id} className="rounded-xl border border-border">
+                    <div className="relative flex items-start justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        {/* The name toggles the details; its overlay makes the whole row clickable. */}
+                        <button
+                          type="button"
+                          aria-expanded={open}
+                          onClick={() => {
+                            setExpanded(open ? null : server.id);
+                            setNewToken("");
+                            setEditing(null);
+                          }}
+                          className="text-start text-[15px] font-medium text-foreground after:absolute after:inset-0 after:rounded-xl hover:after:bg-accent/40"
+                        >
+                          {server.name}
+                        </button>
+                        <McpServerStatus server={server} />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {users.length > 0 ? (
+                            <Trans>Used by {users.map((bot) => bot.name).join(", ")}</Trans>
+                          ) : (
+                            <Trans>No agent uses it yet</Trans>
+                          )}
+                        </p>
+                        {needsSignIn ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="relative z-10 mt-3"
+                            disabled={
+                              oauthPending === server.id ||
+                              checking !== null ||
+                              saving ||
+                              updatingAgents.length > 0
+                            }
+                            onClick={() => void connectOAuth(server)}
+                          >
+                            {oauthPending === server.id ? (
+                              <Trans>Signing in…</Trans>
+                            ) : (
+                              <Trans>Sign in</Trans>
+                            )}
+                          </Button>
+                        ) : null}
+                      </div>
+                      <ChevronRight
+                        aria-hidden="true"
+                        className={`mt-1 size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`}
+                      />
+                    </div>
+                    {open ? (
+                      <div className="space-y-4 border-t border-border px-4 pt-3 pb-4">
+                        <p className="truncate text-xs text-muted-foreground">
+                          {server.endpoint ?? server.command ?? server.slug}
+                        </p>
+                        {editing === server.id ? (
+                          <form
+                            className="space-y-4"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              void saveServer(server);
+                            }}
+                          >
+                            <Field>
+                              <FieldLabel htmlFor="mcp-edit-name">
+                                <Trans>Name</Trans>
+                              </FieldLabel>
+                              <Input
+                                id="mcp-edit-name"
+                                value={editName}
+                                onChange={(event) => setEditName(event.target.value)}
+                                disabled={saving}
+                              />
+                            </Field>
+                            <Field>
+                              <FieldLabel htmlFor="mcp-edit-endpoint">
+                                <Trans>Server address</Trans>
+                              </FieldLabel>
+                              <Input
+                                id="mcp-edit-endpoint"
+                                value={editEndpoint}
+                                onChange={(event) => setEditEndpoint(event.target.value)}
+                                disabled={saving}
+                              />
+                            </Field>
+                            <details>
+                              <summary className="cursor-pointer text-sm text-muted-foreground">
+                                <Trans>Advanced</Trans>
+                              </summary>
+                              <div className="mt-3 space-y-4">
+                                <Field>
+                                  <FieldLabel htmlFor="mcp-edit-token">
+                                    <Trans>New access token</Trans>
+                                  </FieldLabel>
+                                  <Input
+                                    id="mcp-edit-token"
+                                    type="password"
+                                    value={editToken}
+                                    onChange={(event) => setEditToken(event.target.value)}
+                                    disabled={saving}
+                                    placeholder={t`Leave blank to keep saved token`}
+                                  />
+                                </Field>
+                                <Field>
+                                  <FieldLabel htmlFor="mcp-edit-headers">
+                                    <Trans>Replace headers (JSON)</Trans>
+                                  </FieldLabel>
+                                  <Textarea
+                                    id="mcp-edit-headers"
+                                    value={editHeaders}
+                                    onChange={(event) => setEditHeaders(event.target.value)}
+                                    disabled={saving}
+                                    placeholder={t`Leave blank to keep saved headers`}
+                                  />
+                                  {server.headerKeys.length ? (
+                                    <p className="text-xs text-muted-foreground">
+                                      {server.headerKeys.join(", ")}
+                                    </p>
+                                  ) : null}
+                                </Field>
+                              </div>
+                            </details>
+                            <div className="flex gap-2">
+                              <Button
+                                type="submit"
+                                disabled={
+                                  saving ||
+                                  checking !== null ||
+                                  updatingAgents.length > 0 ||
+                                  !editName.trim() ||
+                                  !editEndpoint.trim()
+                                }
+                              >
+                                {saving ? <Trans>Saving…</Trans> : <Trans>Save</Trans>}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                disabled={saving}
+                                onClick={() => setEditing(null)}
+                              >
+                                <Trans>Cancel</Trans>
+                              </Button>
+                            </div>
+                          </form>
+                        ) : server.transport !== "stdio" ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => editServer(server)}
+                          >
+                            <Trans>Edit</Trans>
+                          </Button>
+                        ) : null}
+                        {bots.length > 0 ? (
+                          <ul className="space-y-3" aria-label={t`Agents`}>
+                            <li aria-hidden="true" className="text-xs text-muted-foreground">
+                              <Trans>Agents</Trans>
+                            </li>
+                            {bots.map((bot) => {
+                              const entry = assignmentFor(server, bot.id);
+                              return (
+                                <li key={bot.id}>
+                                  <div className="flex items-center justify-between gap-3 text-sm text-foreground">
+                                    {bot.name}
+                                    <Switch
+                                      aria-label={bot.name}
+                                      checked={Boolean(entry)}
+                                      disabled={
+                                        checking !== null ||
+                                        saving ||
+                                        oauthPending !== null ||
+                                        updatingAgents.includes(bot.id)
+                                      }
+                                      onCheckedChange={() => void toggleAssignment(server, bot.id)}
+                                    />
+                                  </div>
+                                  {entry && server.check.tools.length > 0 ? (
+                                    <ToolChoices
+                                      server={server}
+                                      entry={entry}
+                                      disabled={
+                                        checking !== null ||
+                                        saving ||
+                                        oauthPending !== null ||
+                                        updatingAgents.includes(bot.id)
+                                      }
+                                      onToggle={(tool) => void toggleTool(server, bot.id, tool)}
+                                    />
+                                  ) : null}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        ) : null}
+                        {editing !== server.id &&
+                        server.check.status === "failing" &&
+                        server.transport !== "stdio" &&
+                        server.oauthStatus === "none" ? (
+                          // A rejected token is the usual failure; replacing it keeps everything else.
+                          <div className="flex gap-2">
+                            <Input
+                              type="password"
+                              aria-label={t`New access token`}
+                              placeholder={t`New access token`}
+                              value={newToken}
+                              onChange={(e) => setNewToken(e.target.value)}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={
+                                checking !== null ||
+                                saving ||
+                                updatingAgents.length > 0 ||
+                                !newToken.trim()
+                              }
+                              onClick={() => void replaceToken(server)}
+                            >
+                              <Trans>Save</Trans>
+                            </Button>
+                          </div>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2">
+                          {needsSignIn ? null : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={checking !== null || saving || updatingAgents.length > 0}
+                              onClick={() => void checkServer(server.id)}
+                            >
+                              {checking === server.id ? (
+                                <Trans>Checking…</Trans>
+                              ) : (
+                                <Trans>Check again</Trans>
+                              )}
+                            </Button>
+                          )}
+                          {server.oauthStatus === "connected" ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                oauthPending === server.id ||
+                                checking !== null ||
+                                saving ||
+                                updatingAgents.length > 0
+                              }
+                              onClick={() => void disconnectOAuth(server)}
+                            >
+                              <Trans>Sign out</Trans>
+                            </Button>
+                          ) : null}
+                          <Button
+                            type="button"
+                            variant={confirmingDelete === server.id ? "destructive" : "ghost"}
+                            size="sm"
+                            className="ml-auto"
+                            onClick={() => void deleteServer(server)}
+                          >
+                            {confirmingDelete === server.id ? (
+                              <Trans>Confirm delete</Trans>
+                            ) : (
+                              <Trans>Delete</Trans>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 w-full"
+              onClick={() => setAdding(true)}
+            >
+              <Trans>Add server</Trans>
+            </Button>
+          </>
+        )}
+      </div>
+    </>
+  );
+  if (embedded) return content;
   return (
     <Dialog
       open
@@ -712,329 +1032,11 @@ export function McpServersOverlay({
         if (!open) onClose();
       }}
     >
-      <DialogContent
-        showCloseButton={false}
-        className="flex max-h-[calc(100%-2rem)] w-[600px] max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-2xl bg-card p-0 sm:max-w-[600px]"
-      >
-        <DialogHeader className="flex-row items-center justify-between border-b border-border px-6 py-5">
-          <DialogTitle className="text-xl text-foreground">
-            {adding ? <Trans>Add MCP server</Trans> : <Trans>MCP servers</Trans>}
-          </DialogTitle>
-          <DialogClose
-            render={<Button variant="ghost" size="icon-sm" aria-label={t`Close MCP servers`} />}
-          >
-            <X />
-          </DialogClose>
-        </DialogHeader>
-        <div className="rk-scroll min-h-0 overflow-y-auto p-6">
-          {error ? (
-            <p
-              role="alert"
-              className="mb-5 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive"
-            >
-              {error}
-            </p>
-          ) : null}
-          {!loaded ? null : adding ? (
-            addForm
-          ) : (
-            <>
-              <ul className="space-y-2">
-                {servers.map((server) => {
-                  const open = expanded === server.id;
-                  const users = bots.filter((bot) => assignmentFor(server, bot.id));
-                  const needsSignIn =
-                    server.check.status === "sign_in" || server.oauthStatus === "reconnect";
-                  return (
-                    <li key={server.id} className="rounded-xl border border-border">
-                      <div className="relative flex items-start justify-between gap-3 px-4 py-3">
-                        <div className="min-w-0">
-                          {/* The name toggles the details; its overlay makes the whole row clickable. */}
-                          <button
-                            type="button"
-                            aria-expanded={open}
-                            onClick={() => {
-                              setExpanded(open ? null : server.id);
-                              setNewToken("");
-                              setEditing(null);
-                            }}
-                            className="text-start text-[15px] font-medium text-foreground after:absolute after:inset-0 after:rounded-xl hover:after:bg-accent/40"
-                          >
-                            {server.name}
-                          </button>
-                          <McpServerStatus server={server} />
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {users.length > 0 ? (
-                              <Trans>Used by {users.map((bot) => bot.name).join(", ")}</Trans>
-                            ) : (
-                              <Trans>No agent uses it yet</Trans>
-                            )}
-                          </p>
-                          {needsSignIn ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="relative z-10 mt-3"
-                              disabled={
-                                oauthPending === server.id ||
-                                checking !== null ||
-                                saving ||
-                                updatingAgents.length > 0
-                              }
-                              onClick={() => void connectOAuth(server)}
-                            >
-                              {oauthPending === server.id ? (
-                                <Trans>Signing in…</Trans>
-                              ) : (
-                                <Trans>Sign in</Trans>
-                              )}
-                            </Button>
-                          ) : null}
-                        </div>
-                        <ChevronRight
-                          aria-hidden="true"
-                          className={`mt-1 size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`}
-                        />
-                      </div>
-                      {open ? (
-                        <div className="space-y-4 border-t border-border px-4 pt-3 pb-4">
-                          <p className="truncate text-xs text-muted-foreground">
-                            {server.endpoint ?? server.command ?? server.slug}
-                          </p>
-                          {editing === server.id ? (
-                            <form
-                              className="space-y-4"
-                              onSubmit={(event) => {
-                                event.preventDefault();
-                                void saveServer(server);
-                              }}
-                            >
-                              <Field>
-                                <FieldLabel htmlFor="mcp-edit-name">
-                                  <Trans>Name</Trans>
-                                </FieldLabel>
-                                <Input
-                                  id="mcp-edit-name"
-                                  value={editName}
-                                  onChange={(event) => setEditName(event.target.value)}
-                                  disabled={saving}
-                                />
-                              </Field>
-                              <Field>
-                                <FieldLabel htmlFor="mcp-edit-endpoint">
-                                  <Trans>Server address</Trans>
-                                </FieldLabel>
-                                <Input
-                                  id="mcp-edit-endpoint"
-                                  value={editEndpoint}
-                                  onChange={(event) => setEditEndpoint(event.target.value)}
-                                  disabled={saving}
-                                />
-                              </Field>
-                              <details>
-                                <summary className="cursor-pointer text-sm text-muted-foreground">
-                                  <Trans>Advanced</Trans>
-                                </summary>
-                                <div className="mt-3 space-y-4">
-                                  <Field>
-                                    <FieldLabel htmlFor="mcp-edit-token">
-                                      <Trans>New access token</Trans>
-                                    </FieldLabel>
-                                    <Input
-                                      id="mcp-edit-token"
-                                      type="password"
-                                      value={editToken}
-                                      onChange={(event) => setEditToken(event.target.value)}
-                                      disabled={saving}
-                                      placeholder={t`Leave blank to keep saved token`}
-                                    />
-                                  </Field>
-                                  <Field>
-                                    <FieldLabel htmlFor="mcp-edit-headers">
-                                      <Trans>Replace headers (JSON)</Trans>
-                                    </FieldLabel>
-                                    <Textarea
-                                      id="mcp-edit-headers"
-                                      value={editHeaders}
-                                      onChange={(event) => setEditHeaders(event.target.value)}
-                                      disabled={saving}
-                                      placeholder={t`Leave blank to keep saved headers`}
-                                    />
-                                    {server.headerKeys.length ? (
-                                      <p className="text-xs text-muted-foreground">
-                                        {server.headerKeys.join(", ")}
-                                      </p>
-                                    ) : null}
-                                  </Field>
-                                </div>
-                              </details>
-                              <div className="flex gap-2">
-                                <Button
-                                  type="submit"
-                                  disabled={
-                                    saving ||
-                                    checking !== null ||
-                                    updatingAgents.length > 0 ||
-                                    !editName.trim() ||
-                                    !editEndpoint.trim()
-                                  }
-                                >
-                                  {saving ? <Trans>Saving…</Trans> : <Trans>Save</Trans>}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  disabled={saving}
-                                  onClick={() => setEditing(null)}
-                                >
-                                  <Trans>Cancel</Trans>
-                                </Button>
-                              </div>
-                            </form>
-                          ) : server.transport !== "stdio" ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => editServer(server)}
-                            >
-                              <Trans>Edit</Trans>
-                            </Button>
-                          ) : null}
-                          {bots.length > 0 ? (
-                            <ul className="space-y-3" aria-label={t`Agents`}>
-                              <li aria-hidden="true" className="text-xs text-muted-foreground">
-                                <Trans>Agents</Trans>
-                              </li>
-                              {bots.map((bot) => {
-                                const entry = assignmentFor(server, bot.id);
-                                return (
-                                  <li key={bot.id}>
-                                    <div className="flex items-center justify-between gap-3 text-sm text-foreground">
-                                      {bot.name}
-                                      <Switch
-                                        aria-label={bot.name}
-                                        checked={Boolean(entry)}
-                                        disabled={
-                                          checking !== null ||
-                                          saving ||
-                                          oauthPending !== null ||
-                                          updatingAgents.includes(bot.id)
-                                        }
-                                        onCheckedChange={() =>
-                                          void toggleAssignment(server, bot.id)
-                                        }
-                                      />
-                                    </div>
-                                    {entry && server.check.tools.length > 0 ? (
-                                      <ToolChoices
-                                        server={server}
-                                        entry={entry}
-                                        disabled={
-                                          checking !== null ||
-                                          saving ||
-                                          oauthPending !== null ||
-                                          updatingAgents.includes(bot.id)
-                                        }
-                                        onToggle={(tool) => void toggleTool(server, bot.id, tool)}
-                                      />
-                                    ) : null}
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          ) : null}
-                          {editing !== server.id &&
-                          server.check.status === "failing" &&
-                          server.transport !== "stdio" &&
-                          server.oauthStatus === "none" ? (
-                            // A rejected token is the usual failure; replacing it keeps everything else.
-                            <div className="flex gap-2">
-                              <Input
-                                type="password"
-                                aria-label={t`New access token`}
-                                placeholder={t`New access token`}
-                                value={newToken}
-                                onChange={(e) => setNewToken(e.target.value)}
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                disabled={
-                                  checking !== null ||
-                                  saving ||
-                                  updatingAgents.length > 0 ||
-                                  !newToken.trim()
-                                }
-                                onClick={() => void replaceToken(server)}
-                              >
-                                <Trans>Save</Trans>
-                              </Button>
-                            </div>
-                          ) : null}
-                          <div className="flex flex-wrap gap-2">
-                            {needsSignIn ? null : (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={checking !== null || saving || updatingAgents.length > 0}
-                                onClick={() => void checkServer(server.id)}
-                              >
-                                {checking === server.id ? (
-                                  <Trans>Checking…</Trans>
-                                ) : (
-                                  <Trans>Check again</Trans>
-                                )}
-                              </Button>
-                            )}
-                            {server.oauthStatus === "connected" ? (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={
-                                  oauthPending === server.id ||
-                                  checking !== null ||
-                                  saving ||
-                                  updatingAgents.length > 0
-                                }
-                                onClick={() => void disconnectOAuth(server)}
-                              >
-                                <Trans>Sign out</Trans>
-                              </Button>
-                            ) : null}
-                            <Button
-                              type="button"
-                              variant={confirmingDelete === server.id ? "destructive" : "ghost"}
-                              size="sm"
-                              className="ml-auto"
-                              onClick={() => void deleteServer(server)}
-                            >
-                              {confirmingDelete === server.id ? (
-                                <Trans>Confirm delete</Trans>
-                              ) : (
-                                <Trans>Delete</Trans>
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-4 w-full"
-                onClick={() => setAdding(true)}
-              >
-                <Trans>Add server</Trans>
-              </Button>
-            </>
-          )}
-        </div>
+      <DialogContent className="max-h-[calc(100%-2rem)] overflow-y-auto">
+        <DialogTitle className="sr-only">
+          <Trans>MCP servers</Trans>
+        </DialogTitle>
+        {content}
       </DialogContent>
     </Dialog>
   );

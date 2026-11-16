@@ -199,7 +199,7 @@ export function BotSettings({
   onOpenPlugins,
 }: {
   bot: Bot;
-  /** Opens Integrations, where the owner changes which plugins this agent can use. */
+  /** Opens Connections, where the owner changes which plugins this agent can use. */
   onOpenPlugins?: () => void;
   onSkillsChange: (skills: AgentSkillCatalogEntry[]) => void;
   memoryProviderConfigured: boolean;

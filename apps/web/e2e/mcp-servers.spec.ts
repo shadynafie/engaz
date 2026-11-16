@@ -1,6 +1,6 @@
 import type { BotMcpServer, McpServer } from "@engaz/contracts";
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openConnections, rpc, signup } from "./helpers";
 
 test("the owner finds a server in the public catalog and gives it to their agent", async ({
   page,
@@ -32,7 +32,7 @@ test("the owner finds a server in the public catalog and gives it to their agent
   await signup(page, `mcp-find-${Date.now()}@engaz.test`, "password12", "MCP Find");
   await completeOnboarding(page);
 
-  await page.getByText("Integrations", { exact: true }).click();
+  await openConnections(page, true);
   // MCP servers have one way in: the row at the top of Integrations.
   await expect(page.getByRole("button", { name: "Browse MCP servers" })).toBeHidden();
   await page.getByTestId("integrations-mcp").click();
@@ -86,7 +86,7 @@ test("a server whose token stopped working takes a new one without losing its ag
     await route.continue();
   });
 
-  await page.getByText("Integrations", { exact: true }).click();
+  await openConnections(page, true);
   await page.getByTestId("integrations-mcp").click();
   await expect(page.getByText("The server refused the access token.")).toBeVisible();
   await page.getByLabel("New access token").fill("fake-new-token");
@@ -118,7 +118,7 @@ test("edits a saved MCP server without changing access and keeps failed edits re
   const [bot] = await rpc<{ id: string }[]>(page, "bots/list", {});
   await rpc(page, "mcp/assignments/approve", { botId: bot!.id, serverId: server.id });
   const before = await rpc<BotMcpServer[]>(page, "mcp/assignments/all", {});
-  await page.getByText("Integrations", { exact: true }).click();
+  await openConnections(page, true);
   await page.getByTestId("integrations-mcp").click();
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("Updated Treg");
@@ -168,7 +168,7 @@ test("disables an agent's permission controls until its update finishes", async 
     await gate;
     await route.continue();
   });
-  await page.getByText("Integrations", { exact: true }).click();
+  await openConnections(page, true);
   await page.getByTestId("integrations-mcp").click();
   const tool = page.getByRole("checkbox", { name: "notes.write", exact: true });
   await tool.click();
@@ -189,7 +189,7 @@ test("managed plugin authorization continues in the same tab when popups are blo
       json: {
         json: [
           {
-            connectorId: "composio",
+            connectorId: "direct",
             slug: "fakeapp",
             name: "Fake App",
             logo: null,
@@ -216,8 +216,8 @@ test("managed plugin authorization continues in the same tab when popups are blo
   await page.evaluate(() => {
     window.open = () => null;
   });
-  await page.getByText("Integrations", { exact: true }).click();
-  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await openConnections(page, true);
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Authorize Fake App" })).toBeVisible();
 });
 
@@ -265,7 +265,7 @@ test("a connection check refreshes pinned access before showing newly discovered
       },
     });
   });
-  await page.getByText("Integrations", { exact: true }).click();
+  await openConnections(page, true);
   await page.getByTestId("integrations-mcp").click();
   await page.getByRole("button", { name: "Check again", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "notes.write", exact: true })).toBeChecked();

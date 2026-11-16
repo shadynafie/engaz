@@ -26,7 +26,7 @@ msgstr ""
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# Modell} other {# Modelle}}"
 
-#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working").length
+#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working") .length
 msgid "{0, plural, one {# needs attention} other {# need attention}}"
 msgstr ""
 
@@ -233,9 +233,6 @@ msgstr ""
 msgid "Add another"
 msgstr ""
 
-msgid "Add Executor"
-msgstr "Executor hinzufügen"
-
 msgid "Add GraphQL"
 msgstr "GraphQL hinzufügen"
 
@@ -260,13 +257,7 @@ msgstr ""
 msgid "Add to routine"
 msgstr "Zur Routine hinzufügen"
 
-msgid "Add Treg"
-msgstr "Treg hinzufügen"
-
 msgid "Add trigger"
-msgstr ""
-
-msgid "Added"
 msgstr ""
 
 msgid "Adding…"
@@ -374,6 +365,9 @@ msgstr "Genehmigen"
 
 msgid "Approve this server to let your agent use its tools."
 msgstr "Genehmige diesen Server, damit dein Agent seine Tools verwenden kann."
+
+msgid "Apps are not available on this installation. You can still add a connection under Advanced."
+msgstr ""
 
 msgid "Archive"
 msgstr "Archivieren"
@@ -632,9 +626,6 @@ msgstr "Computer schließen"
 msgid "Close image preview"
 msgstr "Bildvorschau schließen"
 
-msgid "Close integrations"
-msgstr "Integrationen schließen"
-
 msgid "Close MCP servers"
 msgstr "MCP-Server schließen"
 
@@ -729,13 +720,16 @@ msgstr "Modell verbinden"
 msgid "Connect a model to continue."
 msgstr "Verbinde ein Modell, um fortzufahren."
 
-msgid "Connect an app in Integrations to choose its events."
+msgid "Connect an app in Settings → Connections."
 msgstr ""
 
 msgid "Connect API key"
 msgstr "API-Schlüssel verbinden"
 
 msgid "Connect app event"
+msgstr ""
+
+msgid "Connect for this agent"
 msgstr ""
 
 msgid "Connect MCP server “{name}”"
@@ -772,6 +766,9 @@ msgstr "Verbindung wird hergestellt…"
 #. placeholder {0}: item.name
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "Die Verbindung zu {0} steht noch aus. Du kannst dieses Fenster schließen und später erneut nachsehen."
+
+msgid "Connections"
+msgstr ""
 
 msgid "Context limit"
 msgstr "Kontextlimit"
@@ -928,7 +925,7 @@ msgstr "Bestätigungsregeln konnten nicht geladen werden"
 msgid "Could not load apps"
 msgstr ""
 
-msgid "Could not load bots. Reload to try again."
+msgid "Could not load connections"
 msgstr ""
 
 msgid "Could not load events"
@@ -963,6 +960,9 @@ msgstr "Dieser Chat konnte nicht geladen werden."
 
 msgid "Could not load this file."
 msgstr "Datei konnte nicht geladen werden."
+
+msgid "Could not load tool sources"
+msgstr ""
 
 msgid "Could not load update status"
 msgstr ""
@@ -1371,6 +1371,9 @@ msgstr "Gib eine ganze Zahl von 1 bis 1000 für das Bilderlimit ein."
 msgid "Enter event settings as a JSON object"
 msgstr ""
 
+msgid "Enter this code"
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Gib diesen Code unter <0>{0}</0> ein"
@@ -1611,9 +1614,6 @@ msgstr ""
 msgid "Integration options"
 msgstr ""
 
-msgid "Integrations"
-msgstr "Integrationen"
-
 msgid "Interrupt"
 msgstr "Unterbrechen"
 
@@ -1704,8 +1704,8 @@ msgstr "Frühere Nachrichten laden"
 msgid "Loading activity…"
 msgstr "Aktivität wird geladen…"
 
-msgid "Loading integrations…"
-msgstr "Integrationen werden geladen…"
+msgid "Loading connections…"
+msgstr ""
 
 msgid "Loading memory settings…"
 msgstr "Erinnerungseinstellungen werden geladen…"
@@ -2077,6 +2077,9 @@ msgstr "In vollständigem Fenster öffnen"
 msgid "Open navigation"
 msgstr "Navigation öffnen"
 
+msgid "Open sign-in page"
+msgstr ""
+
 msgid "Open work"
 msgstr "Offene Arbeit"
 
@@ -2215,6 +2218,12 @@ msgstr ""
 
 msgid "Recent"
 msgstr "Kürzlich"
+
+msgid "Reconnect"
+msgstr ""
+
+msgid "Reconnect this account before granting access."
+msgstr ""
 
 msgid "Reconnecting"
 msgstr "Verbindung wird wiederhergestellt"
@@ -2453,6 +2462,9 @@ msgstr ""
 msgid "Saved"
 msgstr "Gespeichert"
 
+msgid "Saved connections"
+msgstr ""
+
 msgid "Saved, but list refresh failed"
 msgstr "Gespeichert, aber die Liste konnte nicht aktualisiert werden"
 
@@ -2604,6 +2616,9 @@ msgid "Sign up"
 msgstr "Registrieren"
 
 msgid "Sign-in needed"
+msgstr ""
+
+msgid "Sign-in pending"
 msgstr ""
 
 msgid "Signing in…"
@@ -2853,9 +2868,6 @@ msgid "Unassigned"
 msgstr "Nicht zugewiesen"
 
 msgid "Unavailable"
-msgstr ""
-
-msgid "Uninstall"
 msgstr ""
 
 msgid "Unlink"

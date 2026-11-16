@@ -103,15 +103,17 @@ tags:
     timeout: 10000
 - takeScreenshot: "12-voice"
 
-- openLink: "engaz:///integrations"
+- openLink: "engaz:///connections"
 - extendedWaitUntil:
-    visible: "MCP servers"
+    visible: "Apps"
     timeout: 10000
-- takeScreenshot: "13-integrations"
+- assertNotVisible: "MCP servers"
+- takeScreenshot: "13-connections"
 - tapOn:
     id: "integrations-advanced"
-- assertVisible: "Add OpenAPI"
-- takeScreenshot: "14-integrations-advanced"
+- assertVisible: "MCP servers"
+- assertVisible: "Add custom API"
+- takeScreenshot: "14-connections-advanced"
 
 - openLink: "engaz:///mcp-servers"
 - extendedWaitUntil:

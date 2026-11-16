@@ -175,6 +175,7 @@ describeWithDatabase("API authorization and resource isolation", () => {
       ["connections/list"],
       ["connections/begin", connectionInput("Unauthenticated")],
       ["connections/complete", { connectionId: "missing-connection" }],
+      ["connections/setAgents", { connectionId: "missing-connection", botIds: [] }],
       ["connections/revoke", { connectionId: "missing-connection" }],
       ["approvalRules/list"],
       [
@@ -1474,7 +1475,7 @@ function capabilityInput(name: string) {
 }
 
 function connectionInput(displayName: string) {
-  return { provider: "test-provider", displayName };
+  return { connectorId: "composio", provider: "test-provider", displayName };
 }
 
 async function signup(app: App, email: string, name: string) {

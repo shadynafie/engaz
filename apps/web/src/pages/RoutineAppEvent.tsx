@@ -138,7 +138,7 @@ export function RoutineAppEvent({
         <div className="space-y-3 rounded-xl border border-border p-3">
           {connections.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              <Trans>Connect an app in Integrations to choose its events.</Trans>
+              <Trans>Connect an app in Settings → Connections.</Trans>
             </p>
           ) : null}
           <label htmlFor={`${id}-app`} className="block text-sm">

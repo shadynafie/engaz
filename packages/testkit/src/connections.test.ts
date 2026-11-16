@@ -341,6 +341,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
           connectorId: "pipedream",
           externalId: "linear",
           displayName: "Linear",
+          providerRef: "account-linear",
         },
       ],
     };

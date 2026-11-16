@@ -114,7 +114,15 @@ export async function createBotFromPicker(
 /** Open the user Settings overlay, optionally switching to a sidebar section. */
 export async function openUserSettings(
   page: Page,
-  section?: "general" | "models" | "memory" | "voice" | "usage" | "computer" | "updates",
+  section?:
+    | "connections"
+    | "general"
+    | "models"
+    | "memory"
+    | "voice"
+    | "usage"
+    | "computer"
+    | "updates",
 ) {
   await page.getByTestId("user-menu-trigger").click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -142,4 +150,16 @@ export async function createNamedBot(
   await page.goto(`/app/${bot.id}`);
   await expect(page.getByPlaceholder(`Message ${name}`)).toBeVisible();
   return bot.id;
+}
+
+export async function openConnections(page: Page, advanced = false) {
+  const settings = page.getByTestId("user-settings");
+  if (await settings.isVisible()) await settings.getByTestId("settings-nav-connections").click();
+  else await openUserSettings(page, "connections");
+  await expect(settings.getByTestId("connections-settings")).toBeVisible();
+  if (advanced)
+    await settings.getByTestId("integrations-advanced").evaluate((node) => {
+      (node as HTMLDetailsElement).open = true;
+    });
+  return settings;
 }

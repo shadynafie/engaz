@@ -71,12 +71,9 @@ export default function Layout() {
               >
                 <Stack.Screen name="index" options={{ headerShown: false, title: "Engaz" }} />
                 <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="integration-setup"
-                  options={{ title: t("Server integrations") }}
-                />
+                <Stack.Screen name="integration-setup" options={{ title: t("Connections") }} />
                 <Stack.Screen name="ai-data-sharing" options={{ title: "AI data sharing" }} />
-                <Stack.Screen name="account" options={{ title: t("Account") }} />
+                <Stack.Screen name="account" options={{ title: t("Settings") }} />
                 <Stack.Screen
                   name="change-password"
                   options={{
@@ -88,7 +85,8 @@ export default function Layout() {
                 />
                 <Stack.Screen name="models" options={{ title: t("Models") }} />
                 <Stack.Screen name="voice" options={{ title: t("Voice") }} />
-                <Stack.Screen name="integrations" options={{ title: t("Integrations") }} />
+                <Stack.Screen name="connections" options={{ title: t("Connections") }} />
+                <Stack.Screen name="integrations" options={{ title: t("Connections") }} />
                 <Stack.Screen name="mcp-servers" options={{ title: t("MCP servers") }} />
                 <Stack.Screen
                   name="new"

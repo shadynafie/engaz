@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page, type TestInfo, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openConnections, signup } from "./helpers";
 
 // The screens changed while building first run, plugins, and skills, checked the same way:
 // light and dark, a desktop and a phone width, and reachable, named controls.
@@ -265,7 +265,7 @@ test("settings, plugins, and skills hold up in light, dark, phone width, and key
   await expect(page.getByTestId("user-settings")).toBeHidden();
 
   // Integrations → MCP servers
-  await page.getByText("Integrations", { exact: true }).click();
+  await openConnections(page, true);
   await expect(page.getByTestId("integrations-mcp")).toBeVisible();
   findings.push(...(await audit(page, testInfo, "integrations", () => page.getByRole("dialog"))));
   await page.getByTestId("integrations-mcp").click();

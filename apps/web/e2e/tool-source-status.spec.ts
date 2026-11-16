@@ -1,6 +1,6 @@
 import type { CapabilityInstall } from "@engaz/contracts";
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openConnections, signup } from "./helpers";
 
 test("tool sources show whether they work and which agents use them", async ({
   page,
@@ -40,7 +40,7 @@ test("tool sources show whether they work and which agents use them", async ({
     return route.fulfill({ json: { json: source } });
   });
 
-  await page.getByText("Integrations", { exact: true }).click();
+  await openConnections(page, true);
   await page.getByTestId("integrations-advanced").evaluate((element) => {
     (element as HTMLDetailsElement).open = true;
   });

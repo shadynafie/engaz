@@ -13,6 +13,7 @@ import type {
   ComposioProvider,
   ConnectorRegistry,
   DestinationEmulator,
+  DirectAppConnector,
   RemoteConnectorDependencies,
 } from "@engaz/adapters";
 import {
@@ -21,6 +22,7 @@ import {
   ComposioConnector,
   createBackgroundJobHandlers,
   createCloudAgentConnection,
+  createConfiguredDirectApps,
   createConnectorStack,
   createJobReconciler,
   createMessagingContextLoader,
@@ -50,6 +52,7 @@ import {
   PiOAuthLogins,
   PipedreamConnector,
   PostgresRealtimeFanout,
+  parseDirectAppSettings,
   pipedreamConfigFromEnv,
   piSessionsRoot,
   pushTokenPath,
@@ -112,6 +115,7 @@ import { mountVoiceHttpRoutes } from "./voice.js";
 import { mountWebhookHttpRoutes } from "./webhook.js";
 
 export interface AppHandles {
+  directApps: DirectAppConnector;
   app: Hono;
   prisma: PrismaClient;
   jobs: JobPublisher;
@@ -132,6 +136,7 @@ export async function createApp(
     realtime?: RealtimeFanout;
     sandbox?: SandboxProvider;
     composio?: ComposioProvider;
+    directApps?: DirectAppConnector;
     pipedream?: ManagedConnectorProvider;
     messaging?: MessagingSurface;
     email?: TransactionalEmailProvider;
@@ -144,6 +149,7 @@ export async function createApp(
     realtime: realtimeOverride,
     sandbox: sandboxOverride,
     composio: composioOverride,
+    directApps: directAppsOverride,
     pipedream: pipedreamOverride,
     messaging: messagingOverride,
     email: emailOverride,
@@ -293,7 +299,17 @@ export async function createApp(
         : undefined),
     pipedream,
   });
+  const directApps =
+    directAppsOverride ??
+    (await createConfiguredDirectApps({
+      prisma,
+      secrets,
+      identitySecret: env.encryptionKey,
+      settings: parseDirectAppSettings(env.directAppSettings),
+      network: remoteConnectors,
+    }));
   const stack = createConnectorStack(false, composioOverride, [
+    directApps,
     installed,
     ...integrationSettings
       .providers()
@@ -326,6 +342,18 @@ export async function createApp(
     onEmailError: (error) => getLogger().error("transactional email delivery failed", error),
     extraOrigins: authExtraOrigins(env),
     beforeDeleteUser: async (userId) => {
+      const connections = await prisma.connection.findMany({
+        where: { userId, connectorId: "direct" },
+        select: { id: true, spaceId: true },
+      });
+      for (const connection of connections)
+        await directApps.revokeConnection(connection.id, {
+          operationId: "account-delete-connections",
+          traceId: "account-delete-connections",
+          userId,
+          spaceId: connection.spaceId,
+          signal: new AbortController().signal,
+        });
       const bots = await prisma.bot.findMany({
         where: { userId },
         select: { id: true, userId: true, spaceId: true, name: true, archivedAt: true },
@@ -439,6 +467,7 @@ export async function createApp(
     .catch((error) => getLogger().error("App event subscription failed", error));
 
   const router = createRouter({
+    directApps,
     routineAppEvents,
     lessonModel: { runtime, resolveModel: (scope) => executor.resolveModel(scope) },
     cloudAgent,
@@ -848,6 +877,7 @@ export async function createApp(
     jobs,
     sandbox,
     connector,
+    directApps,
     composio: stack.composio,
     connectors: stack.connector,
     messaging,

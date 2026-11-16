@@ -680,13 +680,33 @@ export const appContract = {
       .input(
         z.object({
           connectorId: z.string().default("composio"),
+          connectionId: Id.optional(),
           provider: z.string(),
           displayName: z.string(),
         }),
       )
-      .output(z.object({ connectionId: Id, authorizationUrl: z.string().nullable() })),
+      .output(
+        z.object({
+          connectionId: Id,
+          authorizationUrl: z.string().nullable(),
+          authorizationId: z.string().optional(),
+          userCode: z.string().optional(),
+          verificationUri: z.string().optional(),
+          expiresAt: IsoDate.optional(),
+          pollIntervalSeconds: z.number().int().positive().optional(),
+        }),
+      ),
     complete: oc
-      .input(z.object({ connectionId: Id, code: z.string().optional() }))
+      .input(
+        z.object({
+          connectionId: Id,
+          authorizationId: z.string().optional(),
+          code: z.string().optional(),
+        }),
+      )
+      .output(ConnectionSchema),
+    setAgents: oc
+      .input(z.object({ connectionId: Id, botIds: z.array(Id).max(100) }))
       .output(ConnectionSchema),
     rename: oc
       .input(z.object({ connectionId: Id, displayName: z.string().trim().min(1).max(80) }))

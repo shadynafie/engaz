@@ -365,7 +365,7 @@ export class ComposioEmulator implements ComposioProvider {
         connected: refsForProvider(refs, item.slug).length > 0,
       })),
       query ?? "",
-    ).map((item) => ({ ...item, connectorId: "composio" }));
+    ).map((item) => ({ ...item, connectorId: "composio", available: true, setupRequired: false }));
   }
 
   async warmDirectory(): Promise<void> {}

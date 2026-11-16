@@ -13,6 +13,7 @@ import {
 export { resolveCloudAgentProvider, resolveSandboxProvider } from "@engaz/adapters";
 
 export interface AppEnv {
+  directAppSettings?: string;
   nodeEnv: string;
   desktopStackToken?: string;
   databaseUrl: string;
@@ -104,6 +105,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
   const updaterUrl = optional(source.ENGAZ_UPDATER_URL);
   const updaterToken = optional(source.ENGAZ_UPDATER_TOKEN);
   return {
+    directAppSettings: optional(source.DIRECT_APP_SETTINGS),
     nodeEnv: source.NODE_ENV ?? "",
     databaseUrl: required(source, "DATABASE_URL"),
     realtimeDatabaseUrl: source.REALTIME_DATABASE_URL ?? required(source, "DATABASE_URL"),

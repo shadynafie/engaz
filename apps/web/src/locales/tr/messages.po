@@ -26,7 +26,7 @@ msgstr ""
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# model} other {# model}}"
 
-#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working").length
+#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working") .length
 msgid "{0, plural, one {# needs attention} other {# need attention}}"
 msgstr ""
 
@@ -233,9 +233,6 @@ msgstr ""
 msgid "Add another"
 msgstr ""
 
-msgid "Add Executor"
-msgstr "Executor ekle"
-
 msgid "Add GraphQL"
 msgstr "GraphQL ekle"
 
@@ -260,13 +257,7 @@ msgstr ""
 msgid "Add to routine"
 msgstr "Rutine ekle"
 
-msgid "Add Treg"
-msgstr "Treg ekle"
-
 msgid "Add trigger"
-msgstr ""
-
-msgid "Added"
 msgstr ""
 
 msgid "Adding…"
@@ -374,6 +365,9 @@ msgstr "Onayla"
 
 msgid "Approve this server to let your agent use its tools."
 msgstr "Agent'ının bu sunucunun araçlarını kullanabilmesi için sunucuyu onayla."
+
+msgid "Apps are not available on this installation. You can still add a connection under Advanced."
+msgstr ""
 
 msgid "Archive"
 msgstr "Arşivle"
@@ -632,9 +626,6 @@ msgstr "Bilgisayarı kapat"
 msgid "Close image preview"
 msgstr "Görsel önizlemesini kapat"
 
-msgid "Close integrations"
-msgstr "Entegrasyonları kapat"
-
 msgid "Close MCP servers"
 msgstr "MCP sunucularını kapat"
 
@@ -729,13 +720,16 @@ msgstr "Model bağla"
 msgid "Connect a model to continue."
 msgstr "Devam etmek için bir model bağlayın."
 
-msgid "Connect an app in Integrations to choose its events."
+msgid "Connect an app in Settings → Connections."
 msgstr ""
 
 msgid "Connect API key"
 msgstr "API anahtarıyla bağlan"
 
 msgid "Connect app event"
+msgstr ""
+
+msgid "Connect for this agent"
 msgstr ""
 
 msgid "Connect MCP server “{name}”"
@@ -772,6 +766,9 @@ msgstr "Bağlanıyor…"
 #. placeholder {0}: item.name
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "{0} bağlantısı hâlâ beklemede. Bunu kapatıp daha sonra tekrar kontrol edebilirsin."
+
+msgid "Connections"
+msgstr ""
 
 msgid "Context limit"
 msgstr "Bağlam sınırı"
@@ -928,7 +925,7 @@ msgstr "Onay kuralları yüklenemedi"
 msgid "Could not load apps"
 msgstr ""
 
-msgid "Could not load bots. Reload to try again."
+msgid "Could not load connections"
 msgstr ""
 
 msgid "Could not load events"
@@ -963,6 +960,9 @@ msgstr "Bu sohbet yüklenemedi."
 
 msgid "Could not load this file."
 msgstr "Bu dosya yüklenemedi."
+
+msgid "Could not load tool sources"
+msgstr ""
 
 msgid "Could not load update status"
 msgstr ""
@@ -1371,6 +1371,9 @@ msgstr "Görüntü sınırı için 1 ile 1000 arasında bir tam sayı girin."
 msgid "Enter event settings as a JSON object"
 msgstr ""
 
+msgid "Enter this code"
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Bu kodu <0>{0}</0> adresinde gir"
@@ -1611,9 +1614,6 @@ msgstr ""
 msgid "Integration options"
 msgstr ""
 
-msgid "Integrations"
-msgstr "Entegrasyonlar"
-
 msgid "Interrupt"
 msgstr "Kes"
 
@@ -1704,8 +1704,8 @@ msgstr "Önceki mesajları yükle"
 msgid "Loading activity…"
 msgstr "Etkinlik yükleniyor…"
 
-msgid "Loading integrations…"
-msgstr "Entegrasyonlar yükleniyor…"
+msgid "Loading connections…"
+msgstr ""
 
 msgid "Loading memory settings…"
 msgstr "Hafıza ayarları yükleniyor…"
@@ -2077,6 +2077,9 @@ msgstr "Tam pencerede aç"
 msgid "Open navigation"
 msgstr "Gezinmeyi aç"
 
+msgid "Open sign-in page"
+msgstr ""
+
 msgid "Open work"
 msgstr "Açık işler"
 
@@ -2215,6 +2218,12 @@ msgstr ""
 
 msgid "Recent"
 msgstr "Son"
+
+msgid "Reconnect"
+msgstr ""
+
+msgid "Reconnect this account before granting access."
+msgstr ""
 
 msgid "Reconnecting"
 msgstr "Yeniden bağlanıyor"
@@ -2453,6 +2462,9 @@ msgstr ""
 msgid "Saved"
 msgstr "Kaydedildi"
 
+msgid "Saved connections"
+msgstr ""
+
 msgid "Saved, but list refresh failed"
 msgstr "Kaydedildi ama liste yenilenemedi"
 
@@ -2604,6 +2616,9 @@ msgid "Sign up"
 msgstr "Kaydol"
 
 msgid "Sign-in needed"
+msgstr ""
+
+msgid "Sign-in pending"
 msgstr ""
 
 msgid "Signing in…"
@@ -2853,9 +2868,6 @@ msgid "Unassigned"
 msgstr "Atanmamış"
 
 msgid "Unavailable"
-msgstr ""
-
-msgid "Uninstall"
 msgstr ""
 
 msgid "Unlink"

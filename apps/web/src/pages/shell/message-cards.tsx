@@ -1,4 +1,4 @@
-import type { MessageBlock } from "@engaz/contracts";
+import type { Connection, MessageBlock } from "@engaz/contracts";
 import { abortableDelay } from "@engaz/core";
 import { Button, Dialog, DialogClose, DialogContent, DialogTitle } from "@engaz/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -152,6 +152,11 @@ export function AppConnectCard({
   const [localStatus, setLocalStatus] = useState<"pending" | "connected">(block.status);
   const [error, setError] = useState<string | null>(null);
   const connectionAttempt = useRef<AbortController | null>(null);
+  const verified = useRef<Connection | null>(null);
+  const [devicePrompt, setDevicePrompt] = useState<{
+    userCode?: string;
+    verificationUri?: string;
+  } | null>(null);
   const status = block.status === "connected" ? "connected" : localStatus;
   useEffect(() => () => connectionAttempt.current?.abort(), []);
 
@@ -161,31 +166,62 @@ export function AppConnectCard({
     connectionAttempt.current = controller;
     setBusy(true);
     setError(null);
+    async function grant(row: Connection) {
+      verified.current = row;
+      const current = (await rpc.connections.list()).find((entry) => entry.id === row.id);
+      if (current?.status !== "connected") {
+        verified.current = null;
+        throw new Error(t`Reconnect this account before granting access.`);
+      }
+      if (controller.signal.aborted) return;
+      await rpc.connections.setAgents({
+        connectionId: row.id,
+        botIds: [...new Set([...current.agentIds, botId])],
+      });
+      if (controller.signal.aborted) return;
+      setDevicePrompt(null);
+      setLocalStatus("connected");
+      await rpc.onboarding
+        .appConnected({ botId, provider: block.provider, connectorId: block.connectorId })
+        .catch(() => undefined);
+    }
     try {
+      if (verified.current) {
+        await grant(verified.current);
+        return;
+      }
       const started = await rpc.connections.begin({
         connectorId: block.connectorId,
         provider: block.provider,
         displayName: block.name,
       });
+      setDevicePrompt({ userCode: started.userCode, verificationUri: started.verificationUri });
       if (started.authorizationUrl) {
         window.open(started.authorizationUrl, "engaz-app-connect", "popup,width=560,height=720");
       }
-      for (let i = 0; i < 60; i += 1) {
+      const expires = started.expiresAt ? Date.parse(started.expiresAt) : Date.now() + 10 * 60_000;
+      while (Date.now() < expires) {
         if (controller.signal.aborted) return;
         const row = await rpc.connections
-          .complete({ connectionId: started.connectionId })
+          .complete({
+            connectionId: started.connectionId,
+            authorizationId: started.authorizationId,
+          })
           .catch(() => undefined);
         if (row?.status === "connected") {
           if (controller.signal.aborted) return;
-          setLocalStatus("connected");
-          await rpc.onboarding
-            .appConnected({ botId, provider: block.provider, connectorId: block.connectorId })
-            .catch(() => undefined);
+          await grant(row);
           return;
         }
-        await abortableDelay(2_000, controller.signal);
+        await abortableDelay(
+          Math.max(1, started.pollIntervalSeconds ?? 2) * 1_000,
+          controller.signal,
+        );
       }
-      if (!controller.signal.aborted) setError(t`Authorization timed out. Please try again.`);
+      if (!controller.signal.aborted) {
+        setDevicePrompt(null);
+        setError(t`Authorization timed out. Please try again.`);
+      }
     } catch (error) {
       if (!controller.signal.aborted) {
         setError(error instanceof Error ? error.message : t`Could not authorize this app`);
@@ -230,10 +266,23 @@ export function AppConnectCard({
             disabled={busy}
             onClick={() => void authorize()}
           >
-            {busy ? t`Waiting…` : t`Authorize`}
+            {busy ? t`Waiting…` : t`Connect for this agent`}
           </Button>
         )}
       </div>
+      {devicePrompt?.userCode ? (
+        <code className="mt-2 block select-all text-sm">{devicePrompt.userCode}</code>
+      ) : null}
+      {devicePrompt?.verificationUri ? (
+        <a
+          className="mt-2 block text-xs underline"
+          href={devicePrompt.verificationUri}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Trans>Open sign-in page</Trans>
+        </a>
+      ) : null}
       {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
     </BuiCard>
   );

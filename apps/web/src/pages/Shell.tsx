@@ -94,7 +94,6 @@ import {
   Clock,
   Copy,
   Gauge,
-  LayoutGrid,
   Lock,
   LogOut,
   Maximize2,
@@ -223,7 +222,6 @@ import type { ContextMenuPosition } from "./BotContextMenu";
 import { FilesButton } from "./FilesDialog";
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
-import type { McpServerDraft } from "./PluginsOverlay";
 import {
   draftFromRoutine,
   emptyRoutineDraft,
@@ -275,16 +273,6 @@ const SettingsOverlay = lazy(() =>
 const PeerMessagesOverlay = lazy(() =>
   import("./PeerMessagesOverlay").then((module) => ({
     default: module.PeerMessagesOverlay,
-  })),
-);
-const PluginsOverlay = lazy(() =>
-  import("./PluginsOverlay").then((module) => ({
-    default: module.PluginsOverlay,
-  })),
-);
-const McpServersOverlay = lazy(() =>
-  import("./McpServersOverlay").then((module) => ({
-    default: module.McpServersOverlay,
   })),
 );
 const CallView = lazy(() => import("./CallView").then((module) => ({ default: module.CallView })));
@@ -501,9 +489,6 @@ export function ShellPage() {
   function updateSnapshot(update: (prev: ThreadSnapshot | null) => ThreadSnapshot | null) {
     commitSnapshot(update(snapshotRef.current));
   }
-  const [pluginsOpen, setPluginsOpen] = useState(false);
-  const [mcpOpen, setMcpOpen] = useState(false);
-  const [mcpDraft, setMcpDraft] = useState<McpServerDraft | undefined>();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("general");
   const [messagingSettingsOpen, setMessagingSettingsOpen] = useState(false);
@@ -2405,6 +2390,20 @@ export function ShellPage() {
     writeBotsSidebarCollapsed(userId, collapsed);
   }
 
+  useEffect(() => {
+    if (searchParams.get("settings") !== "connections") return;
+    setSettingsSection("connections");
+    setSettingsOpen(true);
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("settings");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [searchParams, setSearchParams]);
+
   function openSettings(section: SettingsSection = "general") {
     setSettingsSection(section);
     setSettingsOpen(true);
@@ -3263,18 +3262,6 @@ export function ShellPage() {
             </div>
           ) : null}
         </div>
-        <button
-          type="button"
-          onClick={() => setPluginsOpen(true)}
-          className="mx-3 mb-1 flex items-center gap-3 rounded-xl px-2.5 py-2 hover:bg-sidebar-accent"
-        >
-          <span className="grid h-[30px] w-[30px] place-items-center rounded-lg bg-accent text-foreground/80">
-            <LayoutGrid size={15} strokeWidth={1.8} />
-          </span>
-          <span className="text-[14px] font-medium text-foreground/90">
-            <Trans>Integrations</Trans>
-          </span>
-        </button>
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
           <PopoverTrigger
             data-testid="user-menu-trigger"
@@ -3829,7 +3816,7 @@ export function ShellPage() {
                   URL.revokeObjectURL(url);
                 }}
                 onClear={() => setClearTarget({ kind: "bot", chat: active })}
-                onOpenPlugins={() => setPluginsOpen(true)}
+                onOpenPlugins={() => openSettings("connections")}
               />
             ) : null}
             {panel === "routine" && active ? (
@@ -4357,27 +4344,6 @@ export function ShellPage() {
           />
         ) : null}
 
-        {pluginsOpen ? (
-          <PluginsOverlay
-            activeBotId={activeBotId.current}
-            onClose={() => setPluginsOpen(false)}
-            onOpenMcp={(draft) => {
-              setPluginsOpen(false);
-              setMcpDraft(draft);
-              setMcpOpen(true);
-            }}
-          />
-        ) : null}
-        {mcpOpen ? (
-          <McpServersOverlay
-            stdioEnabled={bootstrapMe?.mcpStdioEnabled === true}
-            draft={mcpDraft}
-            onClose={() => {
-              setMcpOpen(false);
-              setMcpDraft(undefined);
-            }}
-          />
-        ) : null}
         {messagingSettingsOpen ? (
           <MessagingSettingsOverlay onClose={() => setMessagingSettingsOpen(false)} />
         ) : null}
@@ -4386,6 +4352,7 @@ export function ShellPage() {
       <Suspense fallback={null}>
         {settingsOpen ? (
           <SettingsOverlay
+            stdioEnabled={bootstrapMe?.mcpStdioEnabled === true}
             name={userName}
             email={session.data?.user.email}
             usage={usage}

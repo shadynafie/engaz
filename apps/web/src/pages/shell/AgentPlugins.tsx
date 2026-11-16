@@ -1,4 +1,4 @@
-import type { BotMcpServer, CapabilityInstall, McpServer } from "@engaz/contracts";
+import type { BotMcpServer, CapabilityInstall, Connection, McpServer } from "@engaz/contracts";
 import { Button } from "@engaz/ui-web";
 import { Plural, Trans } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
@@ -25,9 +25,10 @@ export function AgentPlugins({ botId, onManage }: { botId: string; onManage?: ()
       rpc.mcp.assignments.list({ botId }),
       rpc.mcp.servers.list(),
       rpc.capabilities.list(),
+      rpc.connections.list(),
     ])
-      .then(([assignments, servers, sources]) => {
-        if (active) setRows(pluginRows(botId, assignments, servers, sources));
+      .then(([assignments, servers, sources, connections]) => {
+        if (active) setRows(pluginRows(botId, assignments, servers, sources, connections));
       })
       .catch(() => {
         if (active) setFailed(true);
@@ -119,6 +120,7 @@ function pluginRows(
   assignments: BotMcpServer[],
   servers: McpServer[],
   sources: CapabilityInstall[],
+  connections: Connection[],
 ): Row[] {
   const byId = new Map(servers.map((server) => [server.id, server]));
   const mcp = assignments.flatMap((assignment): Row[] => {
@@ -144,5 +146,13 @@ function pluginRows(
         (source.agentIds === null || source.agentIds.includes(botId)),
     )
     .map((source) => ({ id: source.id, name: source.name, status: source.check.status }));
-  return [...mcp, ...toolSources];
+  const apps = connections
+    .filter((row) => row.status !== "revoked" && row.agentIds.includes(botId))
+    .map((row) => ({
+      id: row.id,
+      name: row.displayName,
+      status:
+        row.status === "connected" ? "working" : row.status === "pending" ? "sign_in" : "failing",
+    }));
+  return [...apps, ...mcp, ...toolSources];
 }

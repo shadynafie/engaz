@@ -498,6 +498,7 @@ describe("connections.complete", () => {
       createdAt: new Date("2026-08-26T00:00:00.000Z"),
     });
     const prisma = {
+      botConnection: { findMany: vi.fn().mockResolvedValue([]) },
       connection: {
         findFirst: vi.fn().mockResolvedValue({
           id: "conn-1",

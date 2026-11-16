@@ -1,9 +1,11 @@
-import type { MessageBlock } from "@engaz/contracts";
-import { abortableDelay } from "@engaz/core";
+import type { Connection, MessageBlock } from "@engaz/contracts";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, Text, View, type ViewProps } from "react-native";
 import { rpc } from "../lib/api";
 import { appConnectPresentation } from "../lib/app-connect";
+import type { ConnectionAuthorization } from "../lib/connection-authorization";
+import { finishConnectionAuthorization } from "../lib/connection-authorization";
+import { confirmConnectionCode } from "../lib/connection-code";
 import { useI18n } from "../lib/i18n";
 import { native, useMobileTokens } from "../lib/native";
 
@@ -36,7 +38,7 @@ export function AppConnectCard({
     setBusy(true);
     setError(null);
     try {
-      const started = await rpc<{ connectionId: string; authorizationUrl: string | null }>(
+      const started = await rpc<ConnectionAuthorization>(
         "connections/begin",
         {
           connectorId: block.connectorId,
@@ -46,26 +48,42 @@ export function AppConnectCard({
         { signal: controller.signal },
       );
       if (controller.signal.aborted) return;
-      if (started.authorizationUrl) await Linking.openURL(started.authorizationUrl);
-      for (let attempt = 0; attempt < 60; attempt += 1) {
-        if (controller.signal.aborted) return;
-        const row = await rpc<{ status: string }>(
-          "connections/complete",
-          { connectionId: started.connectionId },
+      let verified: Connection | undefined;
+      const connected = await finishConnectionAuthorization(started, {
+        signal: controller.signal,
+        openUrl: Linking.openURL,
+        confirmCode: confirmConnectionCode,
+        complete: async (connectionId, authorizationId) => {
+          const row = await rpc<Connection>(
+            "connections/complete",
+            { connectionId, authorizationId },
+            { signal: controller.signal },
+          ).catch(() => undefined);
+          if (row?.status === "connected") verified = row;
+          return row;
+        },
+      });
+      if (controller.signal.aborted || connected === null) return;
+      if (connected && verified) {
+        const current =
+          (await rpc<Connection[]>("connections/list", {}, { signal: controller.signal })).find(
+            (row) => row.id === verified!.id,
+          ) ?? verified;
+        await rpc(
+          "connections/setAgents",
+          {
+            connectionId: verified.id,
+            botIds: [...new Set([...(current.agentIds ?? []), botId])],
+          },
           { signal: controller.signal },
-        ).catch(() => undefined);
-        if (row?.status === "connected") {
-          if (controller.signal.aborted) return;
-          await rpc("onboarding/appConnected", {
-            botId,
-            provider: block.provider,
-            connectorId: block.connectorId,
-          });
-          if (controller.signal.aborted) return;
-          setLocalStatus("connected");
-          return;
-        }
-        await abortableDelay(2_000, controller.signal);
+        );
+        await rpc(
+          "onboarding/appConnected",
+          { botId, provider: block.provider, connectorId: block.connectorId },
+          { signal: controller.signal },
+        );
+        if (!controller.signal.aborted) setLocalStatus("connected");
+        return;
       }
       if (!controller.signal.aborted) setError(t("Authorization timed out. Please try again."));
     } catch (reason) {
@@ -124,7 +142,7 @@ export function AppConnectCard({
         {view.showAuthorize ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t("Authorize {name}", { name: block.name })}
+            accessibilityLabel={t("Connect for this agent")}
             disabled={busy}
             onPress={() => void authorize()}
             style={{

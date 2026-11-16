@@ -26,7 +26,7 @@ msgstr ""
 msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {모델 #개} other {모델 #개}}"
 
-#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working").length
+#. placeholder {0}: mcpServers.filter((server) => server.check.status !== "working") .length
 msgid "{0, plural, one {# needs attention} other {# need attention}}"
 msgstr ""
 
@@ -233,9 +233,6 @@ msgstr ""
 msgid "Add another"
 msgstr ""
 
-msgid "Add Executor"
-msgstr "Executor 추가"
-
 msgid "Add GraphQL"
 msgstr "GraphQL 추가"
 
@@ -260,14 +257,8 @@ msgstr ""
 msgid "Add to routine"
 msgstr "자동 실행에 추가"
 
-msgid "Add Treg"
-msgstr "Treg 추가"
-
 msgid "Add trigger"
 msgstr "트리거 추가"
-
-msgid "Added"
-msgstr ""
 
 msgid "Adding…"
 msgstr "추가 중…"
@@ -374,6 +365,9 @@ msgstr "승인"
 
 msgid "Approve this server to let your agent use its tools."
 msgstr "이 서버를 승인하면 Bot이 제공되는 도구를 사용할 수 있습니다."
+
+msgid "Apps are not available on this installation. You can still add a connection under Advanced."
+msgstr ""
 
 msgid "Archive"
 msgstr "보관"
@@ -632,9 +626,6 @@ msgstr "컴퓨터 닫기"
 msgid "Close image preview"
 msgstr "이미지 미리보기 닫기"
 
-msgid "Close integrations"
-msgstr "앱·도구 연동 닫기"
-
 msgid "Close MCP servers"
 msgstr "MCP 서버 설정 닫기"
 
@@ -729,13 +720,16 @@ msgstr "AI 모델 연결"
 msgid "Connect a model to continue."
 msgstr "계속하려면 모델을 연결하세요."
 
-msgid "Connect an app in Integrations to choose its events."
+msgid "Connect an app in Settings → Connections."
 msgstr ""
 
 msgid "Connect API key"
 msgstr "API 키 연결"
 
 msgid "Connect app event"
+msgstr ""
+
+msgid "Connect for this agent"
 msgstr ""
 
 msgid "Connect MCP server “{name}”"
@@ -772,6 +766,9 @@ msgstr "연결 중…"
 #. placeholder {0}: item.name
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "{0} 연결이 아직 진행 중입니다. 이 창을 닫고 나중에 다시 확인할 수 있습니다."
+
+msgid "Connections"
+msgstr ""
 
 msgid "Context limit"
 msgstr "컨텍스트 한도"
@@ -928,7 +925,7 @@ msgstr "확인 규칙을 불러오지 못했습니다."
 msgid "Could not load apps"
 msgstr ""
 
-msgid "Could not load bots. Reload to try again."
+msgid "Could not load connections"
 msgstr ""
 
 msgid "Could not load events"
@@ -963,6 +960,9 @@ msgstr "이 채팅을 불러오지 못했습니다."
 
 msgid "Could not load this file."
 msgstr "파일을 불러오지 못했습니다."
+
+msgid "Could not load tool sources"
+msgstr ""
 
 msgid "Could not load update status"
 msgstr "업데이트 상태를 불러올 수 없습니다"
@@ -1371,6 +1371,9 @@ msgstr "이미지 한도는 1에서 1000 사이의 정수로 입력하세요."
 msgid "Enter event settings as a JSON object"
 msgstr ""
 
+msgid "Enter this code"
+msgstr ""
+
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 msgid "Enter this code at <0>{0}</0>"
 msgstr "<0>{0}</0>에서 이 코드를 입력하세요"
@@ -1611,9 +1614,6 @@ msgstr ""
 msgid "Integration options"
 msgstr ""
 
-msgid "Integrations"
-msgstr "앱·도구 연동"
-
 msgid "Interrupt"
 msgstr "끼어들기"
 
@@ -1704,8 +1704,8 @@ msgstr "이전 메시지 불러오기"
 msgid "Loading activity…"
 msgstr "활동을 불러오는 중…"
 
-msgid "Loading integrations…"
-msgstr "연동 목록을 불러오는 중…"
+msgid "Loading connections…"
+msgstr ""
 
 msgid "Loading memory settings…"
 msgstr "기억 설정을 불러오는 중…"
@@ -2077,6 +2077,9 @@ msgstr "전체 창으로 열기"
 msgid "Open navigation"
 msgstr "메뉴 열기"
 
+msgid "Open sign-in page"
+msgstr ""
+
 msgid "Open work"
 msgstr "진행 중인 작업"
 
@@ -2215,6 +2218,12 @@ msgstr ""
 
 msgid "Recent"
 msgstr "최근"
+
+msgid "Reconnect"
+msgstr ""
+
+msgid "Reconnect this account before granting access."
+msgstr ""
 
 msgid "Reconnecting"
 msgstr "다시 연결 중"
@@ -2453,6 +2462,9 @@ msgstr ""
 msgid "Saved"
 msgstr "저장됨"
 
+msgid "Saved connections"
+msgstr ""
+
 msgid "Saved, but list refresh failed"
 msgstr "저장했지만 목록을 새로고침하지 못했습니다."
 
@@ -2604,6 +2616,9 @@ msgid "Sign up"
 msgstr "가입하기"
 
 msgid "Sign-in needed"
+msgstr ""
+
+msgid "Sign-in pending"
 msgstr ""
 
 msgid "Signing in…"
@@ -2854,9 +2869,6 @@ msgstr "섹션 없음"
 
 msgid "Unavailable"
 msgstr "사용할 수 없음"
-
-msgid "Uninstall"
-msgstr ""
 
 msgid "Unlink"
 msgstr "연결 해제"

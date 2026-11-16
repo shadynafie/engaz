@@ -1,6 +1,7 @@
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import type {
   AdapterContext,
+  ConnectedConnector,
   ConnectorCall,
   ConnectorCatalogItem,
   ConnectorEvent,
@@ -135,6 +136,8 @@ export class PipedreamConnector implements ManagedConnectorProvider {
     return filterCatalog(
       apps.map((app) => ({
         connectorId: "pipedream",
+        available: true,
+        setupRequired: false,
         slug: app.name_slug,
         name: app.name,
         logo: app.img_src ?? null,
@@ -161,34 +164,53 @@ export class PipedreamConnector implements ManagedConnectorProvider {
     ];
   }
 
+  private concreteAccount(connection: ConnectedConnector): string | null {
+    const account = connection.providerRef?.trim();
+    return account &&
+      /^[A-Za-z0-9_-]{1,200}$/.test(account) &&
+      account.toLowerCase() !== connection.externalId.trim().toLowerCase()
+      ? account
+      : null;
+  }
+
   private async allTools(context: AdapterContext): Promise<ConnectorTool[]> {
-    const apps =
-      context.connectedConnections
-        ?.filter((connection) => connection.connectorId === "pipedream")
-        .map((connection) => connection.externalId) ?? [];
-    if (apps.length === 0) return [];
+    const connections = (context.connectedConnections ?? []).filter(
+      (connection) => connection.connectorId === "pipedream" && this.concreteAccount(connection),
+    );
+    if (connections.length === 0) return [];
     const token = await this.token();
     const groups = await Promise.all(
-      [...new Set(apps)].map(async (app) => {
+      connections.map(async (connection) => {
+        const app = connection.externalId;
+        const account = this.concreteAccount(connection)!;
         try {
           const tools = await listRemoteMcpTools({
             endpoint: MCP_ENDPOINT,
-            headers: this.mcpHeaders(context, app, token),
+            headers: this.mcpHeaders(context, app, token, account),
             signal: context.signal,
             fetch: this.dependencies.fetch,
             resolveHostname: this.dependencies.resolveHostname,
           });
+          const multiple = connections.filter((row) => row.externalId === app).length > 1;
+          const suffix = multiple
+            ? `_${createHash("sha256").update(connection.id).digest("hex").slice(0, 10)}`
+            : "";
           return tools.map((tool) => ({
             ...tool,
+            name: `${tool.name}${suffix}`,
+            description: multiple
+              ? `${tool.description} (${connection.displayName})`
+              : tool.description,
             route: {
               connectorId: "pipedream",
               resourceId: app,
+              resourceRevision: account,
               toolName: tool.name,
               catalogGroup: app,
             },
           }));
         } catch (error) {
-          // A single unavailable app must not hide tools from other connections.
+          // A single unavailable account must not hide tools from other connections.
           getLogger().error(
             `pipedream discovery failed for app ${app}:`,
             sanitizeConnectorError(error),
@@ -238,13 +260,30 @@ export class PipedreamConnector implements ManagedConnectorProvider {
       yield { type: "error", message: "Pipedream app route is missing" };
       return;
     }
+    const matches = (context.connectedConnections ?? []).filter(
+      (connection) =>
+        connection.connectorId === "pipedream" &&
+        connection.externalId === app &&
+        this.concreteAccount(connection) !== null &&
+        this.concreteAccount(connection) === call.route?.resourceRevision &&
+        (!call.connectionId || call.connectionId === connection.id),
+    );
+    if (call.route?.connectorId !== "pipedream" || matches.length !== 1) {
+      yield {
+        type: "error",
+        message:
+          "This account is no longer assigned or identified. Reconnect it and choose this agent before trying again.",
+      };
+      return;
+    }
+    const account = this.concreteAccount(matches[0]!)!;
     let token: string | undefined;
     try {
       token = await this.token();
       const result = await callRemoteMcpTool(
         {
           endpoint: MCP_ENDPOINT,
-          headers: this.mcpHeaders(context, app, token),
+          headers: this.mcpHeaders(context, app, token, account),
           signal: context.signal,
           fetch: this.dependencies.fetch,
           resolveHostname: this.dependencies.resolveHostname,
@@ -400,6 +439,7 @@ export class PipedreamConnector implements ManagedConnectorProvider {
     context: AdapterContext,
     app: string,
     accessToken: string,
+    accountId: string,
   ): Record<string, string> {
     return {
       authorization: `Bearer ${accessToken}`,
@@ -407,6 +447,7 @@ export class PipedreamConnector implements ManagedConnectorProvider {
       "x-pd-environment": this.config.environment,
       "x-pd-external-user-id": this.externalUserId(context),
       "x-pd-app-slug": app,
+      "x-pd-account-id": accountId,
     };
   }
 

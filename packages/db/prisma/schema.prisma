@@ -390,6 +390,7 @@ model Bot {
   webhookSecretId   String?
   teamChatAmbientEnabled Boolean @default(false)
   teamChatRules          String  @default("")
+  connections       BotConnection[]
   routines          Routine[]
   scratchpadItems   ScratchpadItem[]
   taughtSkills      TaughtSkill[]
@@ -407,6 +408,7 @@ model Bot {
 
   externalConversations ExternalConversation[]
 
+  @@unique([id, spaceId, userId])
   @@unique([spaceId, spawnKey])
   @@index([spaceId, userId, archivedAt, pinned, updatedAt])
   @@index([sectionId])
@@ -845,6 +847,10 @@ model BotSkill {
 }
 
 model Connection {
+  revision    Int      @default(0)
+  accountLabel String?
+  checkedAt    DateTime?
+  botConnections BotConnection[]
   id          String   @id @default(cuid())
   spaceId     String
   space       Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
@@ -859,8 +865,21 @@ model Connection {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@unique([id, spaceId, userId])
   @@index([spaceId, userId, connectorId])
   @@map("connections")
+}
+
+model BotConnection {
+  connectionId String
+  botId        String
+  spaceId      String
+  userId       String
+  connection   Connection @relation(fields: [connectionId, spaceId, userId], references: [id, spaceId, userId], onDelete: Cascade)
+  bot          Bot        @relation(fields: [botId, spaceId, userId], references: [id, spaceId, userId], onDelete: Cascade)
+  @@id([connectionId, botId])
+  @@index([botId])
+  @@map("bot_connections")
 }
 
 model CapabilityInstall {

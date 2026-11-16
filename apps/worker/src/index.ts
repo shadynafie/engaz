@@ -8,6 +8,7 @@ import {
   ChatSdkMessagingSurface,
   createBackgroundJobHandlers,
   createCloudAgentConnection,
+  createConfiguredDirectApps,
   createConnectorStack,
   createJobReconciler,
   createMessagingContextLoader,
@@ -35,6 +36,7 @@ import {
   PiAgentRuntime,
   PipedreamConnector,
   PostgresRealtimeFanout,
+  parseDirectAppSettings,
   pipedreamConfigFromEnv,
   reconcileCloudAgents,
   reconcileComputerUpdates,
@@ -143,7 +145,14 @@ async function main() {
       pipedream,
     },
   );
+  const directApps = await createConfiguredDirectApps({
+    prisma,
+    secrets,
+    identitySecret: resolveEncryptionKey(process.env),
+    settings: parseDirectAppSettings(process.env.DIRECT_APP_SETTINGS),
+  });
   const stack = createConnectorStack(false, undefined, [
+    directApps,
     new InstalledConnectorProvider(prisma, secrets),
     ...integrationSettings.providers(),
     mcp,
